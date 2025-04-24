@@ -183,6 +183,35 @@ window.updateGraph = function() {
 
 class UserData {
     constructor(data) {
+        /** Incoming data format from csTimer
+         *  {
+         *      "session1":[[[solve1 time modifier, solve1 time],solve1 scramble,idk, solve1 UTC],[same shit for solve 2 and so on],[solve3],[...]],
+         *      "session2":[[[solve1 time modifier, solve1 time],solve1 scramble,idk, solve1 UTC],[same shit for solve 2 and so on],[solve3],[...]],
+         *      "...": [...],
+         *      "properties":
+         *          {
+         *              "sessionData":
+         *                  {
+         *                      "1": 
+         *                          {
+         *                              "name": name of session 1,
+         *                              "opt": options like the scramble type,
+         *                              "rank": idk
+         *                              "stat": [#of solves, #of dnfs, mean time(ms)],
+         *                              "date": [solve1 UTC, most recent solve UTC]
+         *                          },
+         *                      "same shit for the other sessions...": 
+         *                          {
+         *                              "...": ...
+         *                          }
+         *                  }
+         *              "useMilli": true/false,
+         *              "...useless stuff...""
+         *              "statalu": all the stats you see on the left, mine is "mo3 ao5 ao12 ao50 ao100 ao200 ao500 ao1000",
+         *              "...just a bunch more useless stuff...": ...
+         *          }
+         * }
+         */
 
         this.xTitle = "Date";
         this.xTitle2 = "Solve #";
@@ -193,46 +222,27 @@ class UserData {
         this.solves2 = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]];
 
         //names of sessions
-        this.sessions = []
+        this.sessions = [];
 
-        //!!!!! Theres gotta be a better way to do this
+        //Add the columns for solve date/time
+        for (let s = 1; s <= 15; s++) {
+            console.log("S: " + s);
+            const sessionKey = `session${s}`;
+            console.log("   sessionKey: " + sessionKey);
+            if (data[sessionKey] !== undefined) {
+                console.log("       Wohoo");
+                for (let i = 0; i < data[sessionKey].length; i++) {
+                    //Append col for the solve dates
+                    this.solves[s - 1].push([new Date(1000 * data[sessionKey][i][3])]);
 
-        //Append col for the solve dates
-        if(data.session1 != undefined){for (let i = 0; i < data.session1.length; i++) {this.solves[0].push([new Date(1000*data.session1[i][3])])};};
-        if(data.session2 != undefined){for (let i = 0; i < data.session2.length; i++) {this.solves[1].push([new Date(1000*data.session2[i][3])])};};
-        if(data.session3 != undefined){for (let i = 0; i < data.session3.length; i++) {this.solves[2].push([new Date(1000*data.session3[i][3])])};};
-        if(data.session4 != undefined){for (let i = 0; i < data.session4.length; i++) {this.solves[3].push([new Date(1000*data.session4[i][3])])};};
-        if(data.session5 != undefined){for (let i = 0; i < data.session5.length; i++) {this.solves[4].push([new Date(1000*data.session5[i][3])])};};
-        if(data.session6 != undefined){for (let i = 0; i < data.session6.length; i++) {this.solves[5].push([new Date(1000*data.session6[i][3])])};};
-        if(data.session7 != undefined){for (let i = 0; i < data.session7.length; i++) {this.solves[6].push([new Date(1000*data.session7[i][3])])};};
-        if(data.session8 != undefined){for (let i = 0; i < data.session8.length; i++) {this.solves[7].push([new Date(1000*data.session8[i][3])])};};
-        if(data.session9 != undefined){for (let i = 0; i < data.session9.length; i++) {this.solves[8].push([new Date(1000*data.session9[i][3])])};};
-        if(data.session10 != undefined){for (let i = 0; i < data.session10.length; i++) {this.solves[9].push([new Date(1000*data.session10[i][3])])};};
-        if(data.session11 != undefined){for (let i = 0; i < data.session11.length; i++) {this.solves[10].push([new Date(1000*data.session11[i][3])])};};
-        if(data.session12 != undefined){for (let i = 0; i < data.session12.length; i++) {this.solves[11].push([new Date(1000*data.session12[i][3])])};};
-        if(data.session13 != undefined){for (let i = 0; i < data.session13.length; i++) {this.solves[12].push([new Date(1000*data.session13[i][3])])};};
-        if(data.session14 != undefined){for (let i = 0; i < data.session14.length; i++) {this.solves[13].push([new Date(1000*data.session14[i][3])])};};
-        if(data.session15 != undefined){for (let i = 0; i < data.session15.length; i++) {this.solves[14].push([new Date(1000*data.session15[i][3])])};};
+                    //Append col for the solve times
+                    console.log("S: " + s + ", i: " + i)
+                    this.solves[s - 1][i].push(0.001*this.parseTime(data[sessionKey][i][0]))
+                }
+            }
+        }
 
-        //Append col for the solve times
-        if(data.session1 != undefined){for (let i = 0; i < data.session1.length; i++) {this.solves[0][i].push(0.001*this.parseTime(data.session1[i][0]))};};
-        if(data.session2 != undefined){for (let i = 0; i < data.session2.length; i++) {this.solves[1][i].push(0.001*this.parseTime(data.session2[i][0]))};};
-        if(data.session3 != undefined){for (let i = 0; i < data.session3.length; i++) {this.solves[2][i].push(0.001*this.parseTime(data.session3[i][0]))};};
-        if(data.session4 != undefined){for (let i = 0; i < data.session4.length; i++) {this.solves[3][i].push(0.001*this.parseTime(data.session4[i][0]))};};
-        if(data.session5 != undefined){for (let i = 0; i < data.session5.length; i++) {this.solves[4][i].push(0.001*this.parseTime(data.session5[i][0]))};};
-        if(data.session6 != undefined){for (let i = 0; i < data.session6.length; i++) {this.solves[5][i].push(0.001*this.parseTime(data.session6[i][0]))};};
-        if(data.session7 != undefined){for (let i = 0; i < data.session7.length; i++) {this.solves[6][i].push(0.001*this.parseTime(data.session7[i][0]))};};
-        if(data.session8 != undefined){for (let i = 0; i < data.session8.length; i++) {this.solves[7][i].push(0.001*this.parseTime(data.session8[i][0]))};};
-        if(data.session9 != undefined){for (let i = 0; i < data.session9.length; i++) {this.solves[8][i].push(0.001*this.parseTime(data.session9[i][0]))};};
-        if(data.session10 != undefined){for (let i = 0; i < data.session10.length; i++) {this.solves[9][i].push(0.001*this.parseTime(data.session10[i][0]))};};
-        if(data.session11 != undefined){for (let i = 0; i < data.session11.length; i++) {this.solves[10][i].push(0.001*this.parseTime(data.session11[i][0]))};};
-        if(data.session12 != undefined){for (let i = 0; i < data.session12.length; i++) {this.solves[11][i].push(0.001*this.parseTime(data.session12[i][0]))};};
-        if(data.session13 != undefined){for (let i = 0; i < data.session13.length; i++) {this.solves[12][i].push(0.001*this.parseTime(data.session13[i][0]))};};
-        if(data.session14 != undefined){for (let i = 0; i < data.session14.length; i++) {this.solves[13][i].push(0.001*this.parseTime(data.session14[i][0]))};};
-        if(data.session15 != undefined){for (let i = 0; i < data.session15.length; i++) {this.solves[14][i].push(0.001*this.parseTime(data.session15[i][0]))};};
         
-        
-
         //Delete DNFs
         for(let j = 0; j < 15; j++) {
             for(let i = 0; i < this.solves[j].length; i++) {
@@ -249,25 +259,6 @@ class UserData {
                 if(sessionData[i] != undefined){this.sessions.push(sessionData[i].name)}
             }
         }
-       
-        //Get pb s
-        /*
-        for(let j = 0; j < 15; j++){
-            debugger;
-            if(this.solves[j].length != 0) {
-                var idx = this.solves[j][0].length - 1;
-                console.log(j)
-                for(let i = 0; i < this.solves[j].length; i++) {
-                    if(i == 0){
-                        this.solves[j][0].push(this.solves[j][0][1])
-                    } else {
-                        if(this.solves[j][i][idx] < this.solves[j][i-1][2]) {this.solves[j][i].push(this.solves[j][i][idx])}
-                        else {this.solves[j][i].push(this.solves[j][i-1][2])}
-                    }
-                }
-            }
-        }
-        */
         
         //create the default data series
         this.pbsOfLastCol();
@@ -292,6 +283,7 @@ class UserData {
     }
 
     //append a column for the average of the x last solves
+    /*
     pushAvg(x) {
         console.log("pushing average of " + x)
 
@@ -300,7 +292,7 @@ class UserData {
             //iterate through all the solves
             for(let i = 0; i < this.solves[j].length; i++) {
                 //if i<x-1, there are not enough solves to make an average of x, so average is NaN
-                if(i < x-1) {this.solves[j][i].push(NaN); /*this.solves[j][i][y].push(NaN)*/}
+                if(i < x-1) {this.solves[j][i].push(NaN);}
 
                 else{ //holy shit does this guy not know the sliding window method
 
@@ -309,24 +301,55 @@ class UserData {
                     for(let k = 0; k < x; k++) {
                         temp.push(this.solves[j][i-k][1]);
                     }
+                    let numToClip = Math.ceil(0.05*x); // get the number of solves to clip off of each side
+                    temp.sort(function(a, b){return a - b});
 
-                    //!!!!! GOTTA SORT THIS AND TAKE OFF TOP AND BOTTOM 5% INSTEAD OF WHATEVER THIS SHIT IS
-                    //!!!!! ALSO GOTTA DEAL WITH DNFS
-
-                    //remove first and last of the arr
-                    temp.shift();
-                    temp.pop();
+                    //only sum solves not in the 5% fastest or 5% slowest
                     let sum = 0;
-                    for(let k = 0; k < x-2; k++) {
+                    for(let k = numToClip; k < x-numToClip; k++) {
                         sum += temp[k]
                     }
                     
-                    let mean = (sum)/(x-2)
+                    let mean = (sum)/(x-2*numToClip);
                     this.solves[j][i].push(mean);
                 }
             }
         } 
     }
+    */
+    pushAvg(x) {
+        console.log("pushing average of " + x);
+        for (let j = 0; j < 15; j++) {
+          const solves = this.solves[j];
+          const clip = Math.ceil(0.05 * x);
+          let windo = [];
+      
+          for (let i = 0; i < solves.length; i++) {
+            if (i < x - 1) {
+              solves[i].push(NaN);
+            } else {
+              // Remove oldest if window is full
+              if (windo.length === x) {
+                const old = solves[i - x][1];
+                const idx = windo.findIndex(val => val === old);
+                if (idx !== -1) windo.splice(idx, 1);
+              }
+      
+              // Insert new solve time in sorted position
+              const newVal = solves[i][1];
+              const insertIdx = windo.findIndex(val => val > newVal);
+              if (insertIdx === -1) windo.push(newVal);
+              else windo.splice(insertIdx, 0, newVal);
+      
+              // Copy clipped portion
+              const trimmed = windo.slice(clip, x - clip);
+              const sum = trimmed.reduce((a, b) => a + b, 0);
+              const mean = sum / trimmed.length;
+              solves[i].push(mean);
+            }
+          }
+        }
+      }
 
     /*
     the times are stored in array [t1,t2]
