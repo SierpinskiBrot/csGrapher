@@ -45,7 +45,7 @@ div.toolbar > button:active {
     border: #FFC857 inset thick
 }
 
-h1, p {
+h1, p, a {
     margin: 0px;
     color: #323031;
 }

@@ -1,4 +1,4 @@
-import "/dygraph.js";
+import "/lib/dygraph.js";
 
 //              x,     y
 var logScale = [false, false]
