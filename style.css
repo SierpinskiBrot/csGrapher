@@ -68,16 +68,6 @@ body {
     justify-content: center;
     border-top: none;
 }
-#axisswap {
-    background: #E45E3D;
-    height: max-content;
-    align-self: center;
-    padding: 3px;
-    border-radius: 3px;
-    box-shadow: black 2px 2px;
-    border: none;
-}
-
 
 .toggleButtonRow {
     display: flex;
@@ -101,7 +91,10 @@ body {
     margin: 5px;
 }
 
-#toggleButtons {
+#leftButtons {
+    width: 20%;
+}
+#rightButtons {
     width: 20%;
 }
 #legendDiv {
