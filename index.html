@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<head>
+    <link rel="stylesheet" type="text/css" href="dygraph.css" />
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script type="text/javascript" src="dygraph.js"></script>
+    
+    
+</head>
+<body>
+    <div class="header">
+        <h1 id="output">csGrapher</h1>
+    </div>
+    
+    <div class="toolbar">
+      <button type="button">
+        <p>Graph</p>
+      </button>
+      <button type="button">
+        <p>Histogram</p>
+      </button>
+      <button type="button">
+        <p>PBs</p>
+      </button>
+    </div>
+    <div id="inputline">
+      <form id="fileinput">
+          <input type="file" id="UploadFile">
+      </form>
+      <button type="button" id="axisswap">Swap X-Axis</button>
+    </div>
+    <div id="main" style="display: flex; flex-wrap: nowrap;">
+      <div id="toggleButtons">
+        <div class="toggleButtonRow">
+          <button id="logx">Log x</button><button id="logy">Log y</button>
+        </div>
+        <!--
+        <div class="toggleButtonRow">
+          <button>Single</button><button>PB</button>
+        </div>
+        <div class="toggleButtonRow">
+        <button>Ao5</button><button>PB</button>
+        </div>
+        <div class="toggleButtonRow">
+        <button>Ao12</button><button>PB</button>
+        </div>
+        <div class="toggleButtonRow">
+        <button>Ao100</button><button>PB</button>
+        </div>
+        <div class="toggleButtonRow">
+        <button>Ao1000</button><button>PB</button>
+        </div>
+        -->
+      </div>
+      <div id="graphdiv"></div>
+      
+      
+    </div>
+    <!--
+    <div class="footer" style="position: fixed; left: 0; bottom: 0;">
+      <h1>CubeGraph</h1>
+    </div>
+    -->
+    <script type="module" src="scripts.js"></script>
+    <script type="text/javascript">
+      Dygraph.onDOMready(function onDOMready() {
+        g = new Dygraph(
+          document.getElementById("graphdiv"),
+          [[0,0]],
+          {
+            xlabel: "Date"
+          }
+        );
+      });
+    </script>
+
+</body>

@@ -1,0 +1,131 @@
+html, body {
+    margin: 0px;
+    height: 100vh;
+    display: grid;
+    padding: 0;
+    margin: 0;
+    row-gap: 0;
+    grid-template-rows: min-content min-content min-content auto min-content;
+}
+
+body > div {
+    padding: 0;
+    margin: 0;
+}
+
+div.header, div.footer {
+    background-color: #DB3A34;
+    align-items: start;
+}
+h1 {
+    padding-left: 1em;
+}
+div.toolbar {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    background-color: #E45E3D;
+}
+div.toolbar > button {
+    font-weight: bold;
+    padding: 0.5em;
+    font-size: large;
+    flex-grow: 1;
+    flex-shrink: 1;
+    text-align: center;
+    background-color: #E45E3D;
+    border: #E45E3D outset thick;
+
+}
+div.toolbar > button:hover {
+    background-color: #FFC857;
+    border: #FFC857 outset thick
+}
+div.toolbar > button:active {
+    border: #FFC857 inset thick
+}
+
+h1, p {
+    margin: 0px;
+    color: #323031;
+}
+body {
+    background-color: #FFC857;
+}
+#fileinput {
+    padding: 1em;
+
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    
+    max-height: fit-content;
+}
+#inputline {
+    display: flex;
+    flex-wrap: wrap;
+    border: #323031 thick double;
+    justify-content: center;
+    border-top: none;
+}
+#axisswap {
+    background: #E45E3D;
+    height: max-content;
+    align-self: center;
+    padding: 3px;
+    border-radius: 3px;
+    box-shadow: black 2px 2px;
+    border: none;
+}
+
+
+.toggleButtonRow {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+}
+.toggleButtonRow > button {
+    flex-grow: 1;
+    display: flex;
+    align-content: center;
+    align-items: center;
+    justify-content: center;
+}
+
+#graphdiv {
+    display: grid;
+    width: 80%;
+    justify-self: center;
+    justify-content: center;
+    align-items: start;
+    margin: 5px;
+}
+
+#toggleButtons {
+    width: 20%;
+}
+#legendDiv {
+    width: 0%;
+}
+
+select#title-dropdown {
+    background: #084C61;
+    padding: 5px;
+    color: #D7D5D6;
+    border: #323031 medium double;
+    font-weight: 900;
+}
+select#title-dropdown:hover {
+    background: #177E89;
+}
+input#UploadFile {
+    background: #E45E3D;
+    padding: 3px;
+    border-radius: 3px;
+    box-shadow: black 2px 2px;
+}
+
+
+#graphdiv, #toggleButtons, #main {
+    border: black thin double;
+}
