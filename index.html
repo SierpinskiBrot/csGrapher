@@ -8,9 +8,13 @@
 </head>
 <body>
     <div class="header" style="display: flex">
-      <div  style="flex-grow: 1;">
+      <div  >
         <h1 id="output">csGrapher</h1>
       </div>
+      <form id="fileinput">
+        <input type="file" id="UploadFile">
+      </form>
+      <div style="flex-grow: 1;"></div>
       <div style="margin: 5px;">
         <a href="lib/LISCENCE.txt" id="copyright">dygraphs is available under the MIT license</a>
       </div>
@@ -27,10 +31,8 @@
         <p>PBs</p>
       </button>
     </div>
-    <div id="inputline">
-      <form id="fileinput">
-          <input type="file" id="UploadFile">
-      </form>
+    <div id="legendLine">
+      
     </div>
     <div id="main" style="display: flex; flex-wrap: nowrap;">
       <div id="leftButtons">

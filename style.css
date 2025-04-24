@@ -53,7 +53,8 @@ body {
     background-color: #FFC857;
 }
 #fileinput {
-    padding: 1em;
+    margin: 3px;
+    padding-left: 1em;
 
     display: grid;
     justify-content: center;
@@ -61,11 +62,12 @@ body {
     
     max-height: fit-content;
 }
-#inputline {
+#legendLine {
     display: flex;
     flex-wrap: wrap;
     border: #323031 thick double;
     justify-content: center;
+    height: 1em;
     border-top: none;
 }
 
@@ -113,6 +115,7 @@ select#title-dropdown:hover {
 }
 input#UploadFile {
     background: #E45E3D;
+    margin: 3px;
     padding: 3px;
     border-radius: 3px;
     box-shadow: black 2px 2px;

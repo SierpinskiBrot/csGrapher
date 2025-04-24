@@ -54,7 +54,8 @@ jsonDataFile.addEventListener("change", function() {
                 legend: "always",
                 title: window.dropdown.outerHTML,
                 color: "#084C61",
-                labelsSeparateLines: true,
+                labelsDiv: document.getElementById("legendLine"),
+                labelsSeparateLines: false,
                 zoomCallback: function() { //Make sure the title of dropdown stays the same while zooming
                     window.dropdown = window.document.getElementById("title-dropdown");
                     console.log("zoomCallback:")
