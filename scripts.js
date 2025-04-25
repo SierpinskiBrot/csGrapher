@@ -48,7 +48,7 @@ jsonDataFile.addEventListener("change", function() {
 
                 //Options
                 {
-                labels: [ "Date", "Time","PB Single", "ao5", "PBao5", "ao12", "PBao12", "ao100","PBao100", "ao1000","PBao1000" ],
+                labels: window.userData.labels,
                 xlabel: window.userData.xTitle,
                 ylabel: "Time(s)",
                 legend: "always",
@@ -81,7 +81,7 @@ jsonDataFile.addEventListener("change", function() {
                         strokeWidth: 2,
                         visibility: false,
                     },
-                    "PBao5": {
+                    "PB ao5": {
                         color: "#177E89",
                         strokeWidth: 2,
                         strokePattern: Dygraph.DASHED_LINE
@@ -91,7 +91,7 @@ jsonDataFile.addEventListener("change", function() {
                         strokeWidth: 2,
                         visibility: false,
                     },
-                    "PBao12": {
+                    "PB ao12": {
                         color: "#85A06A",
                         strokeWidth: 2,
                         strokePattern: Dygraph.DASHED_LINE
@@ -101,7 +101,7 @@ jsonDataFile.addEventListener("change", function() {
                         strokeWidth: 2,
                         color: "#FFAD0A"
                     },
-                    "PBao100": {
+                    "PB ao100": {
                         color: "#FFAD0A",
                         strokeWidth: 2,
                         strokePattern: Dygraph.DASHED_LINE
@@ -109,7 +109,7 @@ jsonDataFile.addEventListener("change", function() {
                     "ao1000": {
                         color: "#E45E3D"
                     },
-                    "PBao1000": {
+                    "PB ao1000": {
                         color: "#E45E3D",
                         strokeWidth: 2,
                         strokePattern: Dygraph.DASHED_LINE
@@ -118,6 +118,28 @@ jsonDataFile.addEventListener("change", function() {
                 }
             );
             });
+
+        //create the series toggle buttons
+        for(let i = 1; i < window.userData.labels.length; i++) {
+            let newButton = document.createElement("button");
+            newButton.setAttribute("type","button");
+            let newLabel = document.createElement("label");
+            newLabel.innerHTML = window.userData.labels[i];
+            newButton.appendChild(newLabel);
+            newButton.addEventListener("click", (e) => {
+                let currentVisibility = window.g.visibility()[i-1];
+                console.log("Button: " + i-1 + ", current: " + currentVisibility)
+                window.g.setVisibility(i-1,!currentVisibility);
+                const tgt = e.target.closest('button');
+                tgt.classList.toggle('pressed');
+
+            })
+            document.getElementById("leftButtons").appendChild(newButton);
+            if(window.userData.labels[i][0] == 'P') {
+                document.getElementById("leftButtons").appendChild(document.createElement("br"));                
+            }
+        }
+
     }
 
     GetFile.readAsText(this.files[0]);
@@ -215,6 +237,8 @@ class UserData {
 
         this.xTitle = "Date";
         this.xTitle2 = "Solve #";
+
+        this.labels = [ "Date", "Time","PB Single", "ao5", "PB ao5", "ao12", "PB ao12", "ao100","PB ao100", "ao1000","PB ao1000" ];
 
         //   date, time, pb s, mo3, pb mo3, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000
         this.solves = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]];

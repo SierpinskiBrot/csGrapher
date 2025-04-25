@@ -125,3 +125,23 @@ input#UploadFile {
 #graphdiv, #toggleButtons, #main {
     border: black thin double;
 }
+
+#leftButtons > button {
+    background-color: #E45E3D;
+    border: #E45E3D outset;
+    color: black;
+    width: 50%;
+    transition: all 0.3s ease-in-out;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+  }
+  
+  #leftButtons > button:hover {
+    background-color: #f0f0f0;
+  }
+  
+  #leftButtons > button.pressed {
+    border: #177E89 inset;
+    background-color: #177E89;
+    color: white;
+    box-shadow: 2px 2px 10px rgba(255, 0, 0, 0.5);
+  }
