@@ -119,21 +119,30 @@ jsonDataFile.addEventListener("change", function() {
             );
             });
 
-        //create the series toggle buttons
-        for(let i = 1; i < window.userData.labels.length; i++) {
+       //create the series toggle buttons
+       document.getElementById("leftButtons").replaceChildren(); //delete any existing buttons on the left
+       for(let i = 1; i < window.userData.labels.length; i++) {
+            //create the button
             let newButton = document.createElement("button");
             newButton.setAttribute("type","button");
             let newLabel = document.createElement("label");
             newLabel.innerHTML = window.userData.labels[i];
             newButton.appendChild(newLabel);
+
+            //redundant as visibility is reset when a file is uploaded
+            if(!window.userData.visibilities[i-1]) newButton.classList.toggle('pressed')
+
+            //create the onclick functino
             newButton.addEventListener("click", (e) => {
-                let currentVisibility = window.g.visibility()[i-1];
+                let currentVisibility = window.userData.visibilities[i-1];
                 console.log("Button: " + i-1 + ", current: " + currentVisibility)
-                window.g.setVisibility(i-1,!currentVisibility);
+                window.userData.visibilities[i-1] = !currentVisibility;
+                window.g.setVisibility(window.userData.visibilities, true);
                 const tgt = e.target.closest('button');
                 tgt.classList.toggle('pressed');
-
             })
+            
+            //line breaks after buttons that say pb
             document.getElementById("leftButtons").appendChild(newButton);
             if(window.userData.labels[i][0] == 'P') {
                 document.getElementById("leftButtons").appendChild(document.createElement("br"));                
@@ -239,6 +248,7 @@ class UserData {
         this.xTitle2 = "Solve #";
 
         this.labels = [ "Date", "Time","PB Single", "ao5", "PB ao5", "ao12", "PB ao12", "ao100","PB ao100", "ao1000","PB ao1000" ];
+        this.visibilities = [true,true,true,true,true,true,true,true,true,true];
 
         //   date, time, pb s, mo3, pb mo3, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000
         this.solves = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]];
