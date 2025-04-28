@@ -6,6 +6,13 @@ var logScale = [false, false]
 var userData = null;
 window.selectedSess = 0; //selected session from the cstimer
 
+
+function round(num, decimalPlaces = 0) {
+    num = Math.round(num + "e" + decimalPlaces);
+    return Number(num + "e" + -decimalPlaces);
+}
+
+
 //handle the toolbar buttons on the top
 const graphButton = document.getElementById("graphButton");
 const histogramButton = document.getElementById("histogramButton");
@@ -54,6 +61,10 @@ jsonDataFile.addEventListener("change", function() {
         window.userData = new UserData(jsonData)
 
         //Create the dropdown for the title of the graph and set its functionality
+        if(document.getElementById("title-dropdown")) {
+            document.getElementById("title-dropdown").remove()
+        }
+
         window.dropdown = document.createElement("select");
         window.dropdown.setAttribute("id","title-dropdown")
         for (let i = 0; i < 15; i++) {
@@ -162,27 +173,7 @@ jsonDataFile.addEventListener("change", function() {
             }
         }
 
-        //create the list for stats tab
-        let pbStats = document.getElementById("pbStats")
-        for(let i = window.userData.pbData[0][0][1].length-1; i >= 0; i--) {
-            let newRow = document.createElement("tr");
-
-            let dateCol = document.createElement("td");
-            let date = window.userData.pbData[0][0][2][i];
-            let dateStr = date.getDate() + " " + date.getMonth() + " " + date.getFullYear();
-            dateCol.innerHTML = dateStr;
-
-            let solveCol = document.createElement("td")
-            solveCol.innerHTML = window.userData.pbData[0][0][3][i]
-
-            let timeCol = document.createElement("td");
-            timeCol.innerHTML= window.userData.pbData[0][0][1][i]
-
-            newRow.appendChild(dateCol);
-            newRow.appendChild(solveCol);
-            newRow.appendChild(timeCol);
-            pbStats.appendChild(newRow);
-        }
+        window.userData.updatePBTable(0);
 
     }
 
@@ -239,6 +230,7 @@ ySelectLog.addEventListener("click", function() { if(logScale[1] == false) ySwap
 window.updateGraph = function() {
     window.dropdown = window.document.getElementById("title-dropdown");
     window.selectedSess = window.dropdown.value; 
+    window.userData.updatePBTable(window.selectedSess)
     window.g.updateOptions({
         file: window.userData.solves[window.selectedSess], 
         xlabel: (logScale[0] ? "Log(": "") + window.userData.xTitle + (logScale[0] ? ")": ""),
@@ -461,7 +453,86 @@ class UserData {
         }
         
     }
+    updatePBTable(j) {
+        
+        //create the list for stats tab
+        let pbStats = document.getElementById("pbStats")
+        let headerRow = document.getElementById("pbStatsHeader")
+        pbStats.replaceChildren();
+        pbStats.appendChild(headerRow);
+
+        for(let i = window.userData.pbData[j][0][1].length-1; i >= 0; i--) {
+            let newRow = document.createElement("tr");
+
+            //Date column
+            let dateCol = document.createElement("td");
+            let date = window.userData.pbData[j][0][2][i];
+            let dateStr = date.getDate() + "/" + date.getMonth() + "/" + date.getFullYear();
+            dateCol.innerHTML = dateStr;
+
+            //PB For Time column
+            let date2 = new Date();
+            let dateDiff = 0;
+            let pbForTimeCol = document.createElement("td")
+            if(i == window.userData.pbData[j][0][1].length-1) {
+                dateDiff = Math.abs(date2-date);
+                pbForTimeCol.innerHTML = dhm(dateDiff) + " and counting";
+            }
+            else {
+                date2 = window.userData.pbData[j][0][2][i+1];
+                dateDiff = Math.abs(date2-date)
+                pbForTimeCol.innerHTML = dhm(dateDiff);
+            }
+            
+            
+            //Solve # column
+            let solveCol = document.createElement("td")
+            solveCol.innerHTML = window.userData.pbData[j][0][3][i]
+
+            //PB for # solves column
+            let solves = window.userData.pbData[j][0][3][i]
+            let nextSolves = window.userData.solves[j].length;
+            if(i < window.userData.pbData[j][0][1].length-1) {
+                nextSolves = window.userData.pbData[j][0][3][i+1]
+            }
+            let solvesPassed = nextSolves-solves;
+            if(i == window.userData.pbData[j][0][1].length-1) solvesPassed += " and counting"
+            let pbForSolvesCol = document.createElement("td");
+            pbForSolvesCol.innerHTML = solvesPassed;
+
+            //Solve time column
+            let timeCol = document.createElement("td");
+            timeCol.innerHTML= round(window.userData.pbData[j][0][1][i],3)
+
+            newRow.appendChild(timeCol);
+            newRow.appendChild(dateCol);
+            newRow.appendChild(pbForTimeCol);
+            newRow.appendChild(solveCol);
+            newRow.appendChild(pbForSolvesCol);
+
+            pbStats.appendChild(newRow);
+        }
+    }
 }
+function dhm (ms) {
+    const days = Math.floor(ms / (24*60*60*1000));
+    const daysms = ms % (24*60*60*1000);
+    const hours = Math.floor(daysms / (60*60*1000));
+    const hoursms = ms % (60*60*1000);
+    const minutes = Math.floor(hoursms / (60*1000));
+    const minutesms = ms % (60*1000);
+    const sec = Math.floor(minutesms / 1000);
+    if(days >= 1) {
+        return days + " Days, " + hours + " Hours";
+    } else if(hours >= 1) {
+        return hours + " Hours, " + minutes + " Mins";
+    } else if(minutes >= 1) {
+        return minutes + " Mins, " + sec + " Seconds";
+    } else {
+        return sec + " Seconds";
+    }
+    return days + " Days, " + hours + " Hours, " + minutes + " Mins";
+  }
 
 
 

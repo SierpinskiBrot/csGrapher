@@ -165,8 +165,8 @@ input#UploadFile {
 }
 .radio > label {
     padding: 4px;
-    background: #177E89;
-    border: #177E89 inset;
+    background: #323031 ;
+    border: #323031  inset;
     border-radius: 5px;
     color: #D7D5D6;
     width: 50%;
@@ -198,6 +198,15 @@ input#UploadFile {
 }
 .buttonsTitle > p {
     padding-left: 4px;
+}
+
+.dygraph-label {
+    font-weight: bold;
+    font-size: larger;
+}
+
+table, th, td {
+    border:1px solid black;
 }
 
 
