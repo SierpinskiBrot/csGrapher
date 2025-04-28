@@ -108,10 +108,12 @@ body {
 
 select#title-dropdown {
     background: #084C61;
-    padding: 5px;
+    padding: 3px;
     color: #D7D5D6;
     border: #323031 medium double;
+    box-shadow: black 2px 2px;
     font-weight: 900;
+    margin: 3px;
 }
 select#title-dropdown:hover {
     background: #177E89;
@@ -134,17 +136,68 @@ input#UploadFile {
     border: #E45E3D outset;
     color: black;
     width: 50%;
+    padding: 4px;
     transition: all 0.3s ease-in-out;
     box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-  }
+}
   
-  #graphLeftButtons > button:hover {
+#graphLeftButtons > button:hover {
     background-color: #f0f0f0;
-  }
+}
   
-  #graphLeftButtons > button.pressed {
-    border: #177E89 inset;
-    background-color: #177E89;
+#graphLeftButtons > button.pressed {
+    border: #323031 inset !important;
+    background-color: #323031 !important;
     color: white;
     box-shadow: 2px 2px 10px rgba(255, 0, 0, 0.5);
-  }
+}
+
+.radio {
+    display: inline-flex;
+    overflow: hidden;
+    width:100%;
+    text-align: center;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+
+}
+.radio > input[type="radio"] {
+    display: none;
+}
+.radio > label {
+    padding: 4px;
+    background: #177E89;
+    border: #177E89 inset;
+    border-radius: 5px;
+    color: #D7D5D6;
+    width: 50%;
+}
+.radio > label:not(:last-of-type) {
+    margin-left: 4px;
+    border-top-right-radius: 0px;
+    border-bottom-right-radius: 0px;
+}
+.radio > label:is(:last-of-type) {
+    margin-right: 4px;
+    border-top-left-radius: 0px;
+    border-bottom-left-radius: 0px;
+}
+
+.radio > input[type="radio"]:checked + label {
+    color: black;
+    background:#E45E3D;
+    border: #E45E3D outset;
+}
+.buttonsTitle {
+    font-weight: bold;
+    font-size: large;
+    width: 100%;
+    background-color: #DB3A34;
+    margin-top: 4px;
+    box-sizing: border-box;
+    border: double thick #323031;
+}
+.buttonsTitle > p {
+    padding-left: 4px;
+}
+
+

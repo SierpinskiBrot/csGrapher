@@ -66,6 +66,7 @@ jsonDataFile.addEventListener("change", function() {
         }
         window.dropdown.setAttribute("value", window.selectedSess);
         window.dropdown.setAttribute("onchange", 'window.updateGraph(); window.g.resetZoom()');
+        document.getElementById("header").appendChild(window.dropdown)
 
 
 
@@ -85,7 +86,7 @@ jsonDataFile.addEventListener("change", function() {
                 xlabel: window.userData.xTitle,
                 ylabel: "Time(s)",
                 legend: "always",
-                title: window.dropdown.outerHTML,
+                //title: window.dropdown.outerHTML,
                 color: "#084C61",
                 labelsDiv: document.getElementById("legendLine"),
                 labelsSeparateLines: false,
@@ -95,65 +96,42 @@ jsonDataFile.addEventListener("change", function() {
                     console.log("   dropdown: " + window.dropdown.value + ", selected: " + window.selectedSess)
                     window.dropdown.value = window.selectedSess;
                     console.log("   new dropdown: " + window.dropdown.value)
-                },
-                series: {
-                    "Time": {
-                        color: "#084C61",
-                        strokeWidth: 0,
-                        drawPoints: true,
-                        pointSize: 1
-                    },
-                    
-                    "PB Single": {
-                        color: "#084C61",
-                        strokeWidth: 2,
-                        strokePattern: Dygraph.DASHED_LINE
-                    }, //177E89
-                    "ao5": {
-                        color: "#177E89",
-                        strokeWidth: 2,
-                        visibility: false,
-                    },
-                    "PB ao5": {
-                        color: "#177E89",
-                        strokeWidth: 2,
-                        strokePattern: Dygraph.DASHED_LINE
-                    }, 
-                    "ao12": {
-                        color: "#85A06A",
-                        strokeWidth: 2,
-                        visibility: false,
-                    },
-                    "PB ao12": {
-                        color: "#85A06A",
-                        strokeWidth: 2,
-                        strokePattern: Dygraph.DASHED_LINE
-                    }, 
-                    "ao100": {
-                        
-                        strokeWidth: 2,
-                        color: "#FFAD0A"
-                    },
-                    "PB ao100": {
-                        color: "#FFAD0A",
-                        strokeWidth: 2,
-                        strokePattern: Dygraph.DASHED_LINE
-                    }, 
-                    "ao1000": {
-                        color: "#E45E3D"
-                    },
-                    "PB ao1000": {
-                        color: "#E45E3D",
-                        strokeWidth: 2,
-                        strokePattern: Dygraph.DASHED_LINE
-                    }, 
                 }
                 }
             );
             });
-
+        
+        //Line styling for each line
+        for(let i = 1; i < window.userData.labels.length; i++) {
+            let label_ = window.userData.labels[i]
+            let color_ = window.userData.colors[i-1]
+            //Default setup
+            window.g.updateOptions({series : { 
+                [label_] : {
+                    color : color_,
+                    strokeWidth : 2
+                }
+            }})
+            //Dashed line for pb
+            if(label_[0] == 'P') {
+                window.g.updateOptions({series : { [label_] : {strokePattern: Dygraph.DASHED_LINE}}})
+            }
+            //Points for time
+            if(label_ == 'Time') {
+                window.g.updateOptions({series : { [label_] : {
+                    strokeWidth: 0,
+                    drawPoints: true,
+                    pointSize: 1}}})
+            }
+        }
        //create the series toggle buttons
        document.getElementById("graphLeftButtons").replaceChildren(); //delete any existing buttons on the left
+       let leftButtonsTitle = document.createElement("div");
+       let leftButtonsTitleText = document.createElement("p");
+       leftButtonsTitleText.innerHTML = "Series:"
+       leftButtonsTitle.appendChild(leftButtonsTitleText)
+       leftButtonsTitle.classList.add("buttonsTitle")
+       document.getElementById("graphLeftButtons").appendChild(leftButtonsTitle);
        for(let i = 1; i < window.userData.labels.length; i++) {
             //create the button
             let newButton = document.createElement("button");
@@ -161,6 +139,8 @@ jsonDataFile.addEventListener("change", function() {
             let newLabel = document.createElement("label");
             newLabel.innerHTML = window.userData.labels[i];
             newButton.appendChild(newLabel);
+            let color_ = window.userData.colors[i-1];
+            newButton.style = "background:" + color_ + "; border-color: " + color_
 
             //redundant as visibility is reset when a file is uploaded
             if(!window.userData.visibilities[i-1]) newButton.classList.toggle('pressed')
@@ -303,6 +283,7 @@ class UserData {
         this.xTitle2 = "Solve #";
 
         this.labels = [ "Date", "Time","PB Single", "ao5", "PB ao5", "ao12", "PB ao12", "ao100","PB ao100", "ao1000","PB ao1000" ];
+        this.colors = ["#084C61","#084C61","#177E89","#177E89","#85A06A","#85A06A","#FFAD0A","#FFAD0A","#E45E3D","#E45E3D"];
         this.visibilities = [true,true,true,true,true,true,true,true,true,true];
 
         //   date, time, pb s, mo3, pb mo3, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000

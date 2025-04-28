@@ -7,17 +7,13 @@
     
 </head>
 <body>
-    <div class="header" style="display: flex">
+    <div class="header" id="header" style="display: flex">
       <div>
         <h1 id="output">csGrapher</h1>
       </div>
       <form id="fileinput">
         <input type="file" id="UploadFile">
       </form>
-      <div style="flex-grow: 1;"></div>
-      <div style="margin: 5px;">
-        <a href="lib/LISCENCE.txt" id="copyright">dygraphs is available under the MIT license</a>
-      </div>
       </div>
     
     <div class="toolbar">
@@ -40,14 +36,14 @@
 
       <div id="graphRightButtons">
         <div>
-          <div> <p>X:</p></div>
-          <div> 
+          <div class="buttonsTitle"><p>X-axis:</p></div>
+          <div class="radio"> 
             <input type="radio" id="xSelectDate" name="xAxisData" checked>
             <label for="xSelectDate">Date</label>
             <input type="radio" id="xSelectSolve" name="xAxisData">
             <label for="xSelectSolve">Solve #</label>
           </div>
-          <div>
+          <div class="radio">
             <input type="radio" id="xSelectLinear" name="xAxisScale" checked>
             <label for="xSelectLinear">Linear</label>
             <input type="radio" id="xSelectLog" name="xAxisScale">
@@ -55,8 +51,8 @@
           </div>
         </div>
         <div>
-          <div> <p>Y:</p></div>
-          <div>
+          <div class="buttonsTitle"> <p>Y-axis:</p></div>
+          <div class="radio">
             <input type="radio" id="ySelectLinear" name="yAxisScale" checked>
             <label for="ySelectLinear">Linear</label>
             <input type="radio" id="ySelectLog" name="yAxisScale">
