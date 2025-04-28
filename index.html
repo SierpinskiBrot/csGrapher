@@ -21,24 +21,24 @@
       </div>
     
     <div class="toolbar">
-      <button type="button">
+      <button type="button" id="graphButton" class="pressed">
         <p>Graph</p>
       </button>
-      <button type="button">
+      <button type="button" id="histogramButton">
         <p>Histogram</p>
       </button>
-      <button type="button">
-        <p>PBs</p>
+      <button type="button" id="statsButton">
+        <p>Statistics</p>
       </button>
     </div>
     <div id="legendLine">
       
     </div>
     <div id="graphContainer" style="display: flex; flex-wrap: nowrap;">
-      <div id="leftButtons"></div>
+      <div id="graphLeftButtons"></div>
       <div id="graphdiv"></div>
 
-      <div id="rightButtons">
+      <div id="graphRightButtons">
         <div>
           <div> <p>X:</p></div>
           <div> 
@@ -67,11 +67,17 @@
       
       
     </div>
-    <!--
-    <div class="footer" style="position: fixed; left: 0; bottom: 0;">
-      <h1>CubeGraph</h1>
+    <div id="histogramContainer" style="display:none;flex-wrap:nowrap;">
     </div>
-    -->
+    <div id="statsContainer" style="display:none; flex-wrap:nowrap">
+      <div id="statsLeftButtons"></div>
+      <table id="pbStats" style="width: 80%">
+        <tr>
+          <th>DD/MM/YYYY</th><th>Solve #</th><th>Time</th>
+        </tr>
+      </table>
+      <div id="statsRightButtons"></div>
+    </div>
     <script type="module" src="scripts.js"></script>
     <script type="text/javascript">
       Dygraph.onDOMready(function onDOMready() {

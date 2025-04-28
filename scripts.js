@@ -6,6 +6,40 @@ var logScale = [false, false]
 var userData = null;
 window.selectedSess = 0; //selected session from the cstimer
 
+//handle the toolbar buttons on the top
+const graphButton = document.getElementById("graphButton");
+const histogramButton = document.getElementById("histogramButton");
+const statsButton = document.getElementById("statsButton");
+const graphContainer = document.getElementById("graphContainer");
+const histogramContainer = document.getElementById("histogramContainer");
+const statsContainer = document.getElementById("statsContainer");
+function resetContainers() {
+    histogramContainer.style.display = "none";
+    histogramButton.classList.remove("pressed");
+    statsContainer.style.display = "none";
+    statsButton.classList.remove("pressed");
+    graphContainer.style.display = "none";
+    graphButton.classList.remove("pressed");
+}
+graphButton.addEventListener("click", function() {
+    resetContainers();
+    graphContainer.style.display = "flex";
+    graphButton.classList.add("pressed");
+    window.g.resize();
+})
+histogramButton.addEventListener("click", function() {
+    resetContainers();
+    histogramContainer.style.display = "flex";
+    histogramButton.classList.add("pressed");
+})
+statsButton.addEventListener("click", function() {
+    resetContainers();
+    statsContainer.style.display = "flex";
+    statsButton.classList.add("pressed");
+})
+
+
+
 //This code is run after the user uploads a file
 const jsonDataFile = document.getElementById("UploadFile");
 jsonDataFile.addEventListener("change", function() {
@@ -31,10 +65,9 @@ jsonDataFile.addEventListener("change", function() {
             }
         }
         window.dropdown.setAttribute("value", window.selectedSess);
-        //window.dropdown.setAttribute("onchange", 'window.g.resetZoom(); window.updateGraph()');
         window.dropdown.setAttribute("onchange", 'window.updateGraph(); window.g.resetZoom()');
-        //insert the dropdown before the file selection
-        //document.getElementById("inputline").insertBefore(window.dropdown, document.getElementById("fileinput"));
+
+
 
         //Create the graph
         Dygraph.onDOMready(function onDOMready() {
@@ -120,7 +153,7 @@ jsonDataFile.addEventListener("change", function() {
             });
 
        //create the series toggle buttons
-       document.getElementById("leftButtons").replaceChildren(); //delete any existing buttons on the left
+       document.getElementById("graphLeftButtons").replaceChildren(); //delete any existing buttons on the left
        for(let i = 1; i < window.userData.labels.length; i++) {
             //create the button
             let newButton = document.createElement("button");
@@ -143,10 +176,32 @@ jsonDataFile.addEventListener("change", function() {
             })
             
             //line breaks after buttons that say pb
-            document.getElementById("leftButtons").appendChild(newButton);
+            document.getElementById("graphLeftButtons").appendChild(newButton);
             if(window.userData.labels[i][0] == 'P') {
-                document.getElementById("leftButtons").appendChild(document.createElement("br"));                
+                document.getElementById("graphLeftButtons").appendChild(document.createElement("br"));                
             }
+        }
+
+        //create the list for stats tab
+        let pbStats = document.getElementById("pbStats")
+        for(let i = window.userData.pbData[0][0][1].length-1; i >= 0; i--) {
+            let newRow = document.createElement("tr");
+
+            let dateCol = document.createElement("td");
+            let date = window.userData.pbData[0][0][2][i];
+            let dateStr = date.getDate() + " " + date.getMonth() + " " + date.getFullYear();
+            dateCol.innerHTML = dateStr;
+
+            let solveCol = document.createElement("td")
+            solveCol.innerHTML = window.userData.pbData[0][0][3][i]
+
+            let timeCol = document.createElement("td");
+            timeCol.innerHTML= window.userData.pbData[0][0][1][i]
+
+            newRow.appendChild(dateCol);
+            newRow.appendChild(solveCol);
+            newRow.appendChild(timeCol);
+            pbStats.appendChild(newRow);
         }
 
     }
@@ -258,6 +313,14 @@ class UserData {
         //names of sessions
         this.sessions = [];
 
+        //pb data for stats panel
+        //  pbData[session][series] [0]: title, 
+        //                          [1]: time(s), 
+        //                          [2]: solves since last, 
+        //                          [3]: days since last,
+        //                          [4]: date 
+        this.pbData = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]];
+
         //Add the columns for solve date/time
         for (let s = 1; s <= 15; s++) {
             console.log("S: " + s);
@@ -295,15 +358,15 @@ class UserData {
         }
         
         //create the default data series
-        this.pbsOfLastCol();
+        this.pbsOfLastCol(1);
         this.pushAvg(5);
-        this.pbsOfLastCol();
+        this.pbsOfLastCol(5);
         this.pushAvg(12);
-        this.pbsOfLastCol();
+        this.pbsOfLastCol(12);
         this.pushAvg(100);
-        this.pbsOfLastCol();
+        this.pbsOfLastCol(100);
         this.pushAvg(1000);
-        this.pbsOfLastCol();
+        this.pbsOfLastCol(1000);
 
         //This creates solves2, which is solves but x-axis is solve#
         for(let i = 0; i < 15; i++) {
@@ -317,40 +380,6 @@ class UserData {
     }
 
     //append a column for the average of the x last solves
-    /*
-    pushAvg(x) {
-        console.log("pushing average of " + x)
-
-        //do this for each session
-        for(let j = 0; j < 15; j++) {
-            //iterate through all the solves
-            for(let i = 0; i < this.solves[j].length; i++) {
-                //if i<x-1, there are not enough solves to make an average of x, so average is NaN
-                if(i < x-1) {this.solves[j][i].push(NaN);}
-
-                else{ //holy shit does this guy not know the sliding window method
-
-                    //create array with last x solves
-                    let temp = []
-                    for(let k = 0; k < x; k++) {
-                        temp.push(this.solves[j][i-k][1]);
-                    }
-                    let numToClip = Math.ceil(0.05*x); // get the number of solves to clip off of each side
-                    temp.sort(function(a, b){return a - b});
-
-                    //only sum solves not in the 5% fastest or 5% slowest
-                    let sum = 0;
-                    for(let k = numToClip; k < x-numToClip; k++) {
-                        sum += temp[k]
-                    }
-                    
-                    let mean = (sum)/(x-2*numToClip);
-                    this.solves[j][i].push(mean);
-                }
-            }
-        } 
-    }
-    */
     pushAvg(x) {
         console.log("pushing average of " + x);
         for (let j = 0; j < 15; j++) {
@@ -405,12 +434,16 @@ class UserData {
     }
 
     //Append a col for the pb of the previous col
-    pbsOfLastCol() {
+    pbsOfLastCol(x) {
         console.log("doing pbs of last col")
+        
         //do this for each session
         for(let j = 0; j < 15; j++){
             if(this.solves[j].length != 0) {
                 console.log("   session:" + j)
+
+                let pbStats = [[],[],[],[]];
+                pbStats[0] = x;    
                 
                 //index of the last col in session
                 var idx = this.solves[j][this.solves[j].length-1].length - 1;
@@ -432,13 +465,24 @@ class UserData {
                     //if the time is less than prev pb, update the rolling pb
                     if(this.solves[j][i][idx] < this.solves[j][i-1][idx+1]) {
                         this.solves[j][i].push(this.solves[j][i][idx])
+                        pbStats[1].push(this.solves[j][i][idx]);
+                        pbStats[2].push(this.solves[j][i][0])
+                        pbStats[3].push(i);
                     }
                     //otherwise, keep the current pb
                     else {
                         this.solves[j][i].push(this.solves[j][i-1][idx+1])
                     }
                 }
+
+                this.pbData[j].push(pbStats);
             }
         }
+        
     }
 }
+
+
+
+
+

@@ -34,15 +34,17 @@ div.toolbar > button {
     flex-shrink: 1;
     text-align: center;
     background-color: #E45E3D;
-    border: #E45E3D outset thick;
+    border: #E45E3D inset thick;
 
 }
 div.toolbar > button:hover {
     background-color: #FFC857;
-    border: #FFC857 outset thick
-}
-div.toolbar > button:active {
     border: #FFC857 inset thick
+}
+
+div.toolbar > button.pressed {
+    background-color: #DB3A34;
+    border: #DB3A34 outset thick;
 }
 
 h1, p, a {
@@ -86,17 +88,18 @@ body {
 
 #graphdiv {
     display: grid;
-    width: 80%;
+    width: 80% !important;
+    height: auto !important;
     justify-self: center;
     justify-content: center;
     align-items: start;
     margin: 5px;
 }
 
-#leftButtons {
+#graphLeftButtons, #statsLeftButtons {
     width: 20%;
 }
-#rightButtons {
+#graphRightButtons, #statsRightButtons {
     width: 20%;
 }
 #legendDiv {
@@ -126,7 +129,7 @@ input#UploadFile {
     border: black thin double;
 }
 
-#leftButtons > button {
+#graphLeftButtons > button {
     background-color: #E45E3D;
     border: #E45E3D outset;
     color: black;
@@ -135,11 +138,11 @@ input#UploadFile {
     box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
   }
   
-  #leftButtons > button:hover {
+  #graphLeftButtons > button:hover {
     background-color: #f0f0f0;
   }
   
-  #leftButtons > button.pressed {
+  #graphLeftButtons > button.pressed {
     border: #177E89 inset;
     background-color: #177E89;
     color: white;
