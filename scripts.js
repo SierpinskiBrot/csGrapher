@@ -12,8 +12,18 @@ function round(num, decimalPlaces = 0) {
     return Number(num + "e" + -decimalPlaces);
 }
 
+function createButton(labelText, onClick, className = "") {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.textContent = labelText;
+    if (className) btn.className = className;
+    btn.addEventListener("click", onClick);
+    return btn;
+}
+
 
 //handle the toolbar buttons on the top
+window.currentTab = "graph";
 const graphButton = document.getElementById("graphButton");
 const histogramButton = document.getElementById("histogramButton");
 const statsButton = document.getElementById("statsButton");
@@ -33,16 +43,23 @@ graphButton.addEventListener("click", function() {
     graphContainer.style.display = "flex";
     graphButton.classList.add("pressed");
     window.g.resize();
+    window.updateGraph(); window.g.resetZoom()
+    window.currentTab = "graph";
 })
 histogramButton.addEventListener("click", function() {
     resetContainers();
     histogramContainer.style.display = "flex";
     histogramButton.classList.add("pressed");
+    window.h.resize();
+    window.updateHist(); window.h.resetZoom()
+    window.currentTab = "hist";
 })
 statsButton.addEventListener("click", function() {
     resetContainers();
     statsContainer.style.display = "flex";
     statsButton.classList.add("pressed");
+    window.userData.updatePBTable(window.selectedSess)
+    window.currentTab = "stats";
 })
 
 
@@ -54,17 +71,13 @@ jsonDataFile.addEventListener("change", function() {
     var GetFile = new FileReader;
     GetFile .onload=function(){
         const result = GetFile.result;
-        console.log(result);
+        //console.log(result);
         var jsonData = JSON.parse(result);
-
         //parse the data into better arrays
         window.userData = new UserData(jsonData)
 
         //Create the dropdown for the title of the graph and set its functionality
-        if(document.getElementById("title-dropdown")) {
-            document.getElementById("title-dropdown").remove()
-        }
-
+        if(document.getElementById("title-dropdown")) document.getElementById("title-dropdown").remove()
         window.dropdown = document.createElement("select");
         window.dropdown.setAttribute("id","title-dropdown")
         for (let i = 0; i < 15; i++) {
@@ -76,46 +89,50 @@ jsonDataFile.addEventListener("change", function() {
             }
         }
         window.dropdown.setAttribute("value", window.selectedSess);
-        window.dropdown.setAttribute("onchange", 'window.updateGraph(); window.g.resetZoom()');
+        window.dropdown.addEventListener("change", function() {
+            //Only update what is on screen so it is a bit faster
+            if(window.currentTab == "graph") { window.updateGraph(); window.g.resetZoom() }
+            else if (window.currentTab == "hist") { window.updateHist(); window.h.resetZoom() }
+            else if (window.currentTab == "stats") { window.userData.updatePBTable(window.dropdown.value) }
+        })
         document.getElementById("header").appendChild(window.dropdown)
-
 
 
         //Create the graph
         Dygraph.onDOMready(function onDOMready() {
             window.g = new Dygraph(
-            
-                // containing div
-                document.getElementById("graphdiv"),
-            
-                //Data
-                window.userData.solves[window.selectedSess],
-
+                document.getElementById("graphdiv"), // containing div
+                window.userData.solves[window.selectedSess], //Data
                 //Options
                 {
-                labels: window.userData.labels,
-                xlabel: window.userData.xTitle,
-                ylabel: "Time(s)",
-                legend: "always",
-                //title: window.dropdown.outerHTML,
-                color: "#084C61",
-                labelsDiv: document.getElementById("legendLine"),
-                labelsSeparateLines: false,
-                zoomCallback: function() { //Make sure the title of dropdown stays the same while zooming
-                    window.dropdown = window.document.getElementById("title-dropdown");
-                    console.log("zoomCallback:")
-                    console.log("   dropdown: " + window.dropdown.value + ", selected: " + window.selectedSess)
-                    window.dropdown.value = window.selectedSess;
-                    console.log("   new dropdown: " + window.dropdown.value)
-                }
+                    labels: window.userData.labels,
+                    xlabel: window.userData.xTitle,
+                    ylabel: "Time(s)",
+                    legend: "always",
+                    color: "#084C61",
+                    labelsDiv: document.getElementById("legendLine"),
+                    labelsSeparateLines: false,
                 }
             );
-            });
+            window.h = new Dygraph(
+                document.getElementById("histogramDiv"), //containing div
+                window.userData.hist[window.selectedSess], //Data
+                //Options
+                {
+                    xlabel: "Time(s)",
+                    ylabel: "Frequency",
+                    stepPlot: true,
+                    fillGraph: true,
+                    color: "#DB3A34",
+                    fillAlpha: 0.5
+                }
+            );
+        });
         
         //Line styling for each line
         for(let i = 1; i < window.userData.labels.length; i++) {
-            let label_ = window.userData.labels[i]
-            let color_ = window.userData.colors[i-1]
+            const label_ = window.userData.labels[i]
+            const color_ = window.userData.colors[i-1]
             //Default setup
             window.g.updateOptions({series : { 
                 [label_] : {
@@ -135,37 +152,28 @@ jsonDataFile.addEventListener("change", function() {
                     pointSize: 1}}})
             }
         }
+
        //create the series toggle buttons
        document.getElementById("graphLeftButtons").replaceChildren(); //delete any existing buttons on the left
-       let leftButtonsTitle = document.createElement("div");
-       let leftButtonsTitleText = document.createElement("p");
+       const leftButtonsTitle = document.createElement("div");
+       const leftButtonsTitleText = document.createElement("p");
        leftButtonsTitleText.innerHTML = "Series:"
        leftButtonsTitle.appendChild(leftButtonsTitleText)
        leftButtonsTitle.classList.add("buttonsTitle")
        document.getElementById("graphLeftButtons").appendChild(leftButtonsTitle);
        for(let i = 1; i < window.userData.labels.length; i++) {
             //create the button
-            let newButton = document.createElement("button");
-            newButton.setAttribute("type","button");
-            let newLabel = document.createElement("label");
-            newLabel.innerHTML = window.userData.labels[i];
-            newButton.appendChild(newLabel);
-            let color_ = window.userData.colors[i-1];
-            newButton.style = "background:" + color_ + "; border-color: " + color_
-
-            //redundant as visibility is reset when a file is uploaded
-            if(!window.userData.visibilities[i-1]) newButton.classList.toggle('pressed')
-
-            //create the onclick functino
-            newButton.addEventListener("click", (e) => {
-                let currentVisibility = window.userData.visibilities[i-1];
-                console.log("Button: " + i-1 + ", current: " + currentVisibility)
+            const newButton = createButton(window.userData.labels[i], (e) => {
+                const currentVisibility = window.userData.visibilities[i-1];
                 window.userData.visibilities[i-1] = !currentVisibility;
                 window.g.setVisibility(window.userData.visibilities, true);
                 const tgt = e.target.closest('button');
                 tgt.classList.toggle('pressed');
             })
-            
+            const color_ = window.userData.colors[i-1];
+            newButton.style = "background:" + color_ + "; border-color: " + color_
+            //redundant as visibility is reset when a file is uploaded
+            if(!window.userData.visibilities[i-1]) newButton.classList.toggle('pressed')
             //line breaks after buttons that say pb
             document.getElementById("graphLeftButtons").appendChild(newButton);
             if(window.userData.labels[i][0] == 'P') {
@@ -173,8 +181,22 @@ jsonDataFile.addEventListener("change", function() {
             }
         }
 
-        window.userData.updatePBTable(0);
+        //create the histogram buttons
+        const subdivideHist = createButton("Subdivide", function() {
+            console.log("SUBDIVIDING!!!")
+            window.userData.subdivide();
+            updateHist();
+        })
+        const resetSubdivide = createButton("Reset", function() {
+            window.userData.resetSubdivision();
+            updateHist();
+        })
+        const histLeftButtons = document.getElementById("histLeftButtons")
+        histLeftButtons.appendChild(subdivideHist)
+        histLeftButtons.appendChild(resetSubdivide)
 
+        //create the pb table
+        window.userData.updatePBTable(0);
     }
 
     GetFile.readAsText(this.files[0]);
@@ -225,18 +247,21 @@ ySelectLinear.addEventListener("click", function() { if(logScale[1] == true) ySw
 const ySelectLog = document.getElementById("ySelectLog");
 ySelectLog.addEventListener("click", function() { if(logScale[1] == false) ySwapScale(); });
 
-
 //Update the graph
 window.updateGraph = function() {
-    window.dropdown = window.document.getElementById("title-dropdown");
-    window.selectedSess = window.dropdown.value; 
-    window.userData.updatePBTable(window.selectedSess)
+    window.selectedSess = document.getElementById("title-dropdown").value;
     window.g.updateOptions({
         file: window.userData.solves[window.selectedSess], 
         xlabel: (logScale[0] ? "Log(": "") + window.userData.xTitle + (logScale[0] ? ")": ""),
-        ylabel: (logScale[1] ? "Log(": "") + "Time(s)" + (logScale[1] ? ")": "")});
-    window.dropdown = window.document.getElementById("title-dropdown");
-    window.dropdown.value = window.selectedSess;
+        ylabel: (logScale[1] ? "Log(": "") + "Time(s)" + (logScale[1] ? ")": "")
+    });
+};
+//Update the histogram
+window.updateHist = function() {
+    window.selectedSess = document.getElementById("title-dropdown").value;
+    window.h.updateOptions({
+        file: window.userData.hist[window.selectedSess]
+    });
 };
 
 class UserData {
@@ -250,18 +275,15 @@ class UserData {
          *          {
          *              "sessionData":
          *                  {
-         *                      "1": 
+         *                      "session # (1-15)": 
          *                          {
-         *                              "name": name of session 1,
+         *                              "name": name of session,
          *                              "opt": options like the scramble type,
          *                              "rank": idk
          *                              "stat": [#of solves, #of dnfs, mean time(ms)],
          *                              "date": [solve1 UTC, most recent solve UTC]
          *                          },
-         *                      "same shit for the other sessions...": 
-         *                          {
-         *                              "...": ...
-         *                          }
+         *                      "...": ...
          *                  }
          *              "useMilli": true/false,
          *              "...useless stuff...""
@@ -283,36 +305,38 @@ class UserData {
         //solve #, time, pb s, mo3, pb mo3, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000
         this.solves2 = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]];
 
+        //histogram
+        //this.hist is what is displayed, this.buckets is the data of each solve in its bucket for when we want to subdivide
+        //  hist[session] [0]: bucket name(0,1,...), [1]: # of solves
+        this.hist = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]];
+        this.histOld; //reset to this when reset button clicked
+        this.step = 0.5; //current bucket size / 2
+        //  buckets[session] bucket(0,1,...), [every solve in that bucket]
+        this.buckets = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]];
+        this.bucketsOld; //reset to this when reset button clicked
+
         //names of sessions
         this.sessions = [];
 
         //pb data for stats panel
-        //  pbData[session][series] [0]: title, 
-        //                          [1]: time(s), 
-        //                          [2]: solves since last, 
-        //                          [3]: days since last,
-        //                          [4]: date 
+        //  pbData[session][series] [0]: title, [1]: time(s), [2]: solves since last, [3]: days since last, [4]: date 
         this.pbData = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]];
 
-        //Add the columns for solve date/time
+        //Add the first two columns: solve date, solve tiem
         for (let s = 1; s <= 15; s++) {
-            console.log("S: " + s);
             const sessionKey = `session${s}`;
-            console.log("   sessionKey: " + sessionKey);
             if (data[sessionKey] !== undefined) {
-                console.log("       Wohoo");
                 for (let i = 0; i < data[sessionKey].length; i++) {
                     //Append col for the solve dates
                     this.solves[s - 1].push([new Date(1000 * data[sessionKey][i][3])]);
 
                     //Append col for the solve times
-                    console.log("S: " + s + ", i: " + i)
+                    //console.log("S: " + s + ", i: " + i)
                     this.solves[s - 1][i].push(0.001*this.parseTime(data[sessionKey][i][0]))
                 }
             }
         }
 
-        
         //Delete DNFs
         for(let j = 0; j < 15; j++) {
             for(let i = 0; i < this.solves[j].length; i++) {
@@ -347,22 +371,86 @@ class UserData {
                 this.solves2[i].push(Array.from(this.solves[i][k]))
                 this.solves2[i][k][0] = k+1;
             }
-
         }
-    
+
+        //add the data for histogram
+        for(let j = 0; j < 15; j++) {
+            let max = 0;
+            //find the max time
+            for(let i = 0; i < this.solves[j].length; i++) {
+                const time = this.solves[j][i][1]
+                if(time > max) max = time;
+            }
+            //create the buckets
+            for(let b = 0; b <= max; b++) {
+                this.hist[j].push([b,0]);
+                this.buckets[j].push([b]);
+            }
+            //add the solves to buckets
+            for(let i = 0; i < this.solves[j].length; i++) {
+                const time = this.solves[j][i][1];
+                const bucket = Math.floor(time);
+                this.hist[j][bucket][1] += 1;
+                this.buckets[j][bucket].push(time);
+            }
+        }
+        this.histOld = JSON.parse(JSON.stringify(this.hist));
+        this.bucketsOld = JSON.parse(JSON.stringify(this.buckets));
+
     }
 
+
+    subdivide() {
+        for(let j = 0; j < 15; j++) {
+            //Update the buckets first
+            for(let b = 0; b < this.buckets[j].length; b++) {
+                const bucketVal = this.buckets[j][b][0]
+                
+                const left = [bucketVal]
+                const right = [bucketVal+this.step]
+
+                for(let i = 1; i < this.buckets[j][b].length; i++) {
+                    const time = this.buckets[j][b][i]
+                    if(time > bucketVal+this.step) right.push(time)
+                    else left.push(time)
+                }
+
+                this.buckets[j][b] = left;
+                this.buckets[j].splice(b+1,0,right)
+                b++ //skip over next bucket because IT IS THE ONE WE JUST CREATED
+            }
+            //Get the histogram data from the buckets
+            this.hist[j] = [];
+            for(let b = 0; b < this.buckets[j].length;b++) {
+                this.hist[j].push([this.buckets[j][b][0],this.buckets[j][b].length-1])
+            } 
+        }
+        this.step /= 2
+    }
+
+    resetSubdivision() {
+        this.hist = JSON.parse(JSON.stringify(this.histOld));
+        this.buckets = JSON.parse(JSON.stringify(this.bucketsOld));
+        this.step = 0.5;
+    }
+    
     //append a column for the average of the x last solves
     pushAvg(x) {
-        console.log("pushing average of " + x);
         for (let j = 0; j < 15; j++) {
           const solves = this.solves[j];
-          const clip = Math.ceil(0.05 * x);
+          const clip = Math.ceil(0.05 * x); //Remove top and bottom 5% of solves
           let windo = [];
       
           for (let i = 0; i < solves.length; i++) {
-            if (i < x - 1) {
-              solves[i].push(NaN);
+            if (i < x - 1) { //Cant make an average without enough data
+              solves[i].push(NaN); 
+
+              // Insert new solve time in sorted position
+              const newVal = solves[i][1];
+              const insertIdx = windo.findIndex(val => val > newVal);
+              if (insertIdx === -1) windo.push(newVal);
+              else windo.splice(insertIdx, 0, newVal);
+
             } else {
               // Remove oldest if window is full
               if (windo.length === x) {
@@ -385,7 +473,7 @@ class UserData {
             }
           }
         }
-      }
+    }
 
     /*
     the times are stored in array [t1,t2]
@@ -413,22 +501,19 @@ class UserData {
         //do this for each session
         for(let j = 0; j < 15; j++){
             if(this.solves[j].length != 0) {
-                console.log("   session:" + j)
 
-                let pbStats = [[],[],[],[]];
+                const pbStats = [[],[],[],[]];
                 pbStats[0] = x;    
                 
                 //index of the last col in session
-                var idx = this.solves[j][this.solves[j].length-1].length - 1;
-
+                const idx = this.solves[j][this.solves[j].length-1].length - 1;
                 //find the first valid index - 
                 //for a pb ao12, this would be 12
-                var firstValIdx = 0
+                let firstValIdx = 0
                 for(let i = 0; i < this.solves[j].length; i++) {
                     firstValIdx += 1;
                     this.solves[j][i].push(this.solves[j][i][idx])
                     if(this.solves[j][i][idx] > 0) {
-                        console.log("       First valid index:" + firstValIdx)
                         break;
                     }
                 }
@@ -453,11 +538,13 @@ class UserData {
         }
         
     }
+
+
     updatePBTable(j) {
-        
+        //console.log("Updating pb table to session " + j)
         //create the list for stats tab
-        let pbStats = document.getElementById("pbStats")
-        let headerRow = document.getElementById("pbStatsHeader")
+        const pbStats = document.getElementById("pbStats")
+        const headerRow = document.getElementById("pbStatsHeader")
         pbStats.replaceChildren();
         pbStats.appendChild(headerRow);
 
@@ -483,7 +570,6 @@ class UserData {
                 dateDiff = Math.abs(date2-date)
                 pbForTimeCol.innerHTML = dhm(dateDiff);
             }
-            
             
             //Solve # column
             let solveCol = document.createElement("td")
@@ -514,6 +600,8 @@ class UserData {
         }
     }
 }
+
+
 function dhm (ms) {
     const days = Math.floor(ms / (24*60*60*1000));
     const daysms = ms % (24*60*60*1000);
@@ -535,6 +623,4 @@ function dhm (ms) {
   }
 
 
-
-
-
+  
