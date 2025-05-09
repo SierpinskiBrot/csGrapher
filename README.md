@@ -22,9 +22,9 @@ This tab shows a histogram of the solve times for the selected session
 
 As with the graph tab, you can click and drag to zoom in on the histogram and double click to zoom out
 
-There are buttons on the left to subdivide the histogram buckets and reset to the default 1 second bucket size. 
+There is an input on the left to change the column width for the histogram (default 1) and a button to reset it to default 
 
-*Future updates will implement the ability to choose any bucket size, graph by relative frequency instead of frequency, histogram for all series (ao5,ao12,...) instead of just single, 
+*Future updates will implement the ability to graph by relative frequency instead of frequency, histogram for all series (ao5,ao12,...) instead of just single, 
 option to display an approximate bell curve of the histogram distribution, and a way select a range of solves (ex. last 500 solves) instead of all of them*
 
 ## Statistics Tab
