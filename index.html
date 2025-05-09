@@ -14,7 +14,6 @@
       </div>
       <form id="fileinput">
         <input type="file" id="UploadFile">
-        
       </form>
       <button id="hintButton">?</button>
       <div id="hintOverlay">
@@ -23,8 +22,10 @@
           <button id="closeHint">X</button>
         </div>
       </div>
+      <div id="githubLink">
+        <a href="https://github.com/SierpinskiBrot/csGrapher">GitHub</a>
       </div>
-    
+      </div>
     <div class="toolbar">
       <button type="button" id="graphButton" class="pressed">
         <p>Graph</p>
@@ -72,7 +73,17 @@
       
     </div>
     <div id="histogramContainer" style="display:none;flex-wrap:nowrap;">
-      <div id="histLeftButtons"></div>
+      <div id="histLeftButtons">
+        <table style="width: 100%">
+          <tbody><tr><th colspan="2">Column width(sec)</th></tr></tbody>
+          <tbody>
+            <tr>
+              <td><input style="width: -webkit-fill-available;" type="number" min="0.001" max="1000" placeholder="Size(s)" step="0.001" value="1" id="histBucketInput"></td>
+              <td><button id="histBucketReset" style="width: 100%">Reset</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
       <div id="histogramDiv"></div>
       <div id="histRightButtons"></div>
     </div>

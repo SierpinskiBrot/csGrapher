@@ -35,7 +35,6 @@ div.toolbar > button {
     text-align: center;
     background-color: #E45E3D;
     border: #E45E3D inset thick;
-
 }
 div.toolbar > button:hover {
     background-color: #FFC857;
@@ -79,6 +78,16 @@ input#UploadFile {
     padding: 3px;
     border-radius: 3px;
     box-shadow: black 2px 2px;
+}
+
+#githubLink {
+    flex-grow: 1;
+    align-content: center;
+    text-align: right;
+    margin: 3px;
+    padding: 3px;
+    margin-right: 1em;
+    font-weight: bold;
 }
 
 #legendLine {
@@ -131,6 +140,7 @@ select#title-dropdown {
     box-shadow: black 2px 2px;
     font-weight: 900;
     margin: 3px;
+    margin-left: 1em;
 }
 select#title-dropdown:hover {
     background: #177E89;

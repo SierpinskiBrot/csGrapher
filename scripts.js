@@ -6,7 +6,6 @@ var logScale = [false, false]
 var userData = null;
 window.selectedSess = 0; //selected session from the cstimer
 
-//Why isnt this built into js I miss c++
 function round(num, decimalPlaces = 0) {
     num = Math.round(num + "e" + decimalPlaces);
     return Number(num + "e" + -decimalPlaces);
@@ -78,27 +77,27 @@ function resetContainers() {
     graphButton.classList.remove("pressed");
 }
 graphButton.addEventListener("click", function() {
+    window.currentTab = "graph";
     resetContainers();
     graphContainer.style.display = "flex";
     graphButton.classList.add("pressed");
     window.g.resize();
     window.updateGraph(); window.g.resetZoom()
-    window.currentTab = "graph";
 })
 histogramButton.addEventListener("click", function() {
+    window.currentTab = "hist";
     resetContainers();
     histogramContainer.style.display = "flex";
     histogramButton.classList.add("pressed");
     window.h.resize();
     window.updateHist(); window.h.resetZoom()
-    window.currentTab = "hist";
 })
 statsButton.addEventListener("click", function() {
+    window.currentTab = "stats";
     resetContainers();
     statsContainer.style.display = "flex";
     statsButton.classList.add("pressed");
     window.userData.updatePBTable(window.selectedSess)
-    window.currentTab = "stats";
 })
 //#endregion
 
@@ -177,7 +176,7 @@ jsonDataFile.addEventListener("change", function() {
             else if (window.currentTab == "hist") { window.updateHist(); window.h.resetZoom() }
             else if (window.currentTab == "stats") { window.userData.updatePBTable(window.dropdown.value) }
         })
-        document.getElementById("header").appendChild(window.dropdown)
+        document.getElementById("hintButton").after(window.dropdown)
 
         //Reset the buttons on the right
         xSelectDate.checked = true;
@@ -268,20 +267,17 @@ jsonDataFile.addEventListener("change", function() {
         }
 
         //create the histogram buttons
-        const subdivideHist = createButton("Subdivide", function() {
-            console.log("SUBDIVIDING!!!")
-            window.userData.subdivide();
+        const histBucketInput = document.getElementById("histBucketInput")
+        histBucketInput.addEventListener("change", function() {
+            window.userData.createHist(histBucketInput.value)
             updateHist();
         })
-        const resetSubdivide = createButton("Reset", function() {
-            window.userData.resetSubdivision();
+        const histBucketReset = document.getElementById("histBucketReset")
+        histBucketReset.addEventListener("click", function() {
+            histBucketInput.value = 1
+            window.userData.createHist(histBucketInput.value)
             updateHist();
         })
-        const histLeftButtons = document.getElementById("histLeftButtons")
-        histLeftButtons.replaceChildren();
-        histLeftButtons.appendChild(subdivideHist)
-        histLeftButtons.appendChild(resetSubdivide)
-
         //create the pb table
         window.userData.updatePBTable(0);
     }
@@ -422,6 +418,16 @@ class UserData {
         }
 
         //add the data for histogram
+        this.createHist(1)
+        this.histOld = JSON.parse(JSON.stringify(this.hist));
+        this.bucketsOld = JSON.parse(JSON.stringify(this.buckets));
+
+    }
+
+    createHist(bucketSize) {
+        const bucketSize_ = parseFloat(bucketSize)
+        this.hist = makeArrayOfArrays(this.numSessions);
+        this.buckets = makeArrayOfArrays(this.numSessions);
         for(let j = 0; j < this.numSessions; j++) {
             let max = 0;
             //find the max time
@@ -430,58 +436,20 @@ class UserData {
                 if(time > max) max = time;
             }
             //create the buckets
-            for(let b = 0; b <= max; b++) {
+            for(let b = 0; b <= max+1; b+= bucketSize_) {
                 this.hist[j].push([b,0]);
                 this.buckets[j].push([b]);
             }
             //add the solves to buckets
             for(let i = 0; i < this.solves[j].length; i++) {
                 const time = this.solves[j][i][1];
-                const bucket = Math.floor(time);
+                const bucket = Math.floor(time/bucketSize_);
                 this.hist[j][bucket][1] += 1;
                 this.buckets[j][bucket].push(time);
             }
         }
-        this.histOld = JSON.parse(JSON.stringify(this.hist));
-        this.bucketsOld = JSON.parse(JSON.stringify(this.buckets));
-
     }
 
-
-    subdivide() {
-        for(let j = 0; j < this.numSessions; j++) {
-            //Update the buckets first
-            for(let b = 0; b < this.buckets[j].length; b++) {
-                const bucketVal = this.buckets[j][b][0]
-                
-                const left = [bucketVal]
-                const right = [bucketVal+this.step]
-
-                for(let i = 1; i < this.buckets[j][b].length; i++) {
-                    const time = this.buckets[j][b][i]
-                    if(time > bucketVal+this.step) right.push(time)
-                    else left.push(time)
-                }
-
-                this.buckets[j][b] = left;
-                this.buckets[j].splice(b+1,0,right)
-                b++ //skip over next bucket because IT IS THE ONE WE JUST CREATED
-            }
-            //Get the histogram data from the buckets
-            this.hist[j] = [];
-            for(let b = 0; b < this.buckets[j].length;b++) {
-                this.hist[j].push([this.buckets[j][b][0],this.buckets[j][b].length-1])
-            } 
-        }
-        this.step /= 2
-    }
-
-    resetSubdivision() {
-        this.hist = JSON.parse(JSON.stringify(this.histOld));
-        this.buckets = JSON.parse(JSON.stringify(this.bucketsOld));
-        this.step = 0.5;
-    }
-    
     //append a column for the average of the x last solves
     pushAvg(x) {
         for (let j = 0; j < this.numSessions; j++) {
