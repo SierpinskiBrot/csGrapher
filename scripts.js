@@ -62,6 +62,48 @@ statsButton.addEventListener("click", function() {
     window.currentTab = "stats";
 })
 
+//The buttons on the right of the graph screen
+const xSelectDate = document.getElementById("xSelectDate");
+const xSelectSolve = document.getElementById("xSelectSolve");
+const xSelectLinear = document.getElementById("xSelectLinear");
+const xSelectLog = document.getElementById("xSelectLog");
+const ySelectLinear = document.getElementById("ySelectLinear");
+const ySelectLog = document.getElementById("ySelectLog");
+//Handle swapping between Date and Solve# on the x-axis
+function xSwapData() {
+    if(window.userData != undefined && window.g != undefined) {
+        [window.userData.solves, window.userData.solves2] = [window.userData.solves2, window.userData.solves];
+        [window.userData.xTitle, window.userData.xTitle2] = [window.userData.xTitle2, window.userData.xTitle];
+        window.updateGraph();
+        window.g.resetZoom();
+    }
+};
+xSelectDate.addEventListener("click", function() { if(window.userData.xTitle != "Date") xSwapData(); });
+xSelectSolve.addEventListener("click", function() { if(window.userData.xTitle != "Solve #") xSwapData(); });
+//Handle swapping between Linear and Log on the x-axis
+function xSwapScale() {
+    if(window.userData != undefined && window.g != undefined) {
+        logScale[0] = !logScale[0];
+        window.g.updateOptions({ axes : { x : {  logscale : logScale[0] } } })
+        window.g.updateOptions({ xlabel: (logScale[0] ? "Log(": "") + window.userData.xTitle + (logScale[0] ? ")": "")})
+        window.dropdown = window.document.getElementById("title-dropdown");
+        window.dropdown.value = window.selectedSess;
+    }
+};
+xSelectLinear.addEventListener("click", function() { if(logScale[0] == true) xSwapScale(); });
+xSelectLog.addEventListener("click", function() { if(logScale[0] == false) xSwapScale(); });
+//Handle swapping between Linear and Log on the y-axis
+function ySwapScale() {
+    if(window.userData != undefined && window.g != undefined) {
+        logScale[1] = !logScale[1];
+        window.g.updateOptions({  logscale : logScale[1] })
+        window.g.updateOptions({ ylabel: (logScale[1] ? "Log(": "") + "Time(s)" + (logScale[1] ? ")": "")})
+        window.dropdown = window.document.getElementById("title-dropdown");
+        window.dropdown.value = window.selectedSess;
+    }
+};
+ySelectLinear.addEventListener("click", function() { if(logScale[1] == true) ySwapScale(); });
+ySelectLog.addEventListener("click", function() { if(logScale[1] == false) ySwapScale(); });
 
 
 //This code is run after the user uploads a file
@@ -97,8 +139,12 @@ jsonDataFile.addEventListener("change", function() {
         })
         document.getElementById("header").appendChild(window.dropdown)
 
+        //Reset the buttons on the right
+        xSelectDate.checked = true;
+        xSelectLinear.checked = true;
+        ySelectLinear.checked = true;
 
-        //Create the graph
+        //Create the main graph
         Dygraph.onDOMready(function onDOMready() {
             window.g = new Dygraph(
                 document.getElementById("graphdiv"), // containing div
@@ -149,7 +195,7 @@ jsonDataFile.addEventListener("change", function() {
                 window.g.updateOptions({series : { [label_] : {
                     strokeWidth: 0,
                     drawPoints: true,
-                    pointSize: 1}}})
+                    pointSize: 2}}})
             }
         }
 
@@ -192,6 +238,7 @@ jsonDataFile.addEventListener("change", function() {
             updateHist();
         })
         const histLeftButtons = document.getElementById("histLeftButtons")
+        histLeftButtons.replaceChildren();
         histLeftButtons.appendChild(subdivideHist)
         histLeftButtons.appendChild(resetSubdivide)
 
@@ -203,49 +250,7 @@ jsonDataFile.addEventListener("change", function() {
 });
 
 
-//Handle swapping between Date and Solve# on the x-axis
-function xSwapData() {
-    if(window.userData != undefined && window.g != undefined) {
-        [window.userData.solves, window.userData.solves2] = [window.userData.solves2, window.userData.solves];
-        [window.userData.xTitle, window.userData.xTitle2] = [window.userData.xTitle2, window.userData.xTitle];
-        window.updateGraph();
-        window.g.resetZoom();
-    }
-};
-const xSelectDate = document.getElementById("xSelectDate");
-xSelectDate.addEventListener("click", function() { if(window.userData.xTitle != "Date") xSwapData(); });
-const xSelectSolve = document.getElementById("xSelectSolve");
-xSelectSolve.addEventListener("click", function() { if(window.userData.xTitle != "Solve #") xSwapData(); });
 
-//Handle swapping between Linear and Log on the x-axis
-function xSwapScale() {
-    if(window.userData != undefined && window.g != undefined) {
-        logScale[0] = !logScale[0];
-        window.g.updateOptions({ axes : { x : {  logscale : logScale[0] } } })
-        window.g.updateOptions({ xlabel: (logScale[0] ? "Log(": "") + window.userData.xTitle + (logScale[0] ? ")": "")})
-        window.dropdown = window.document.getElementById("title-dropdown");
-        window.dropdown.value = window.selectedSess;
-    }
-};
-const xSelectLinear = document.getElementById("xSelectLinear");
-xSelectLinear.addEventListener("click", function() { if(logScale[0] == true) xSwapScale(); });
-const xSelectLog = document.getElementById("xSelectLog");
-xSelectLog.addEventListener("click", function() { if(logScale[0] == false) xSwapScale(); });
-
-//Handle swapping between Linear and Log on the y-axis
-function ySwapScale() {
-    if(window.userData != undefined && window.g != undefined) {
-        logScale[1] = !logScale[1];
-        window.g.updateOptions({  logscale : logScale[1] })
-        window.g.updateOptions({ ylabel: (logScale[1] ? "Log(": "") + "Time(s)" + (logScale[1] ? ")": "")})
-        window.dropdown = window.document.getElementById("title-dropdown");
-        window.dropdown.value = window.selectedSess;
-    }
-};
-const ySelectLinear = document.getElementById("ySelectLinear");
-ySelectLinear.addEventListener("click", function() { if(logScale[1] == true) ySwapScale(); });
-const ySelectLog = document.getElementById("ySelectLog");
-ySelectLog.addEventListener("click", function() { if(logScale[1] == false) ySwapScale(); });
 
 //Update the graph
 window.updateGraph = function() {
@@ -623,4 +628,3 @@ function dhm (ms) {
   }
 
 
-  
