@@ -56,14 +56,31 @@ body {
 }
 #fileinput {
     margin: 3px;
+    margin-right: 0;
     padding-left: 1em;
-
-    display: grid;
+    display: flex;
     justify-content: center;
     align-items: center;
-    
     max-height: fit-content;
 }
+input#UploadFile {
+    background: #E45E3D;
+    margin: 3px;
+    margin-right: 0;
+    padding: 3px;
+    border-radius: 3px;
+    box-shadow: black 2px 2px;
+}
+#hintButton {
+    background: #323031;
+    color: #D7D5D6;
+    font-weight: bolder;
+    align-self: center;
+    padding: 3px;
+    border-radius: 3px;
+    box-shadow: black 2px 2px;
+}
+
 #legendLine {
     display: flex;
     flex-wrap: wrap;
@@ -118,13 +135,7 @@ select#title-dropdown {
 select#title-dropdown:hover {
     background: #177E89;
 }
-input#UploadFile {
-    background: #E45E3D;
-    margin: 3px;
-    padding: 3px;
-    border-radius: 3px;
-    box-shadow: black 2px 2px;
-}
+
 
 
 #graphdiv, #toggleButtons, #graphContainer {
@@ -209,6 +220,42 @@ input#UploadFile {
 
 table, th, td {
     border:1px solid black;
+}
+
+#hintOverlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.75);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+  
+#hintContent {
+    position: relative;
+    max-width: 90vw;
+    max-height: 90vh;
+}
+  
+#hintContent img {
+    width: 100%;
+    height: auto;
+    border: 4px solid white;
+    border-radius: 8px;
+}
+  
+#closeHint {
+    position: absolute;
+    top: 10px; right: 10px;
+    background: #DB3A34;
+    border: none;
+    color: white;
+    font-size: 20px;
+    padding: 5px 10px;
+    cursor: pointer;
+    border-radius: 5px;
 }
 
 

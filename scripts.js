@@ -6,12 +6,13 @@ var logScale = [false, false]
 var userData = null;
 window.selectedSess = 0; //selected session from the cstimer
 
-
+//Why isnt this built into js I miss c++
 function round(num, decimalPlaces = 0) {
     num = Math.round(num + "e" + decimalPlaces);
     return Number(num + "e" + -decimalPlaces);
 }
 
+//Creates a button with the given labeltext, onclick function, and optional class parameter
 function createButton(labelText, onClick, className = "") {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -21,8 +22,45 @@ function createButton(labelText, onClick, className = "") {
     return btn;
 }
 
+//Get the days, hours, mins, seconds from a time in ms
+//> 1 day returns days&hours, else > 1hr returns hours&mins, else > 1min returns mins&secs, else returns secs 
+function dhm (ms) {
+    const days = Math.floor(ms / (24*60*60*1000));
+    const daysms = ms % (24*60*60*1000);
+    const hours = Math.floor(daysms / (60*60*1000));
+    const hoursms = ms % (60*60*1000);
+    const minutes = Math.floor(hoursms / (60*1000));
+    const minutesms = ms % (60*1000);
+    const sec = Math.floor(minutesms / 1000);
+    if(days >= 1) {
+        return days + " Days, " + hours + " Hours";
+    } else if(hours >= 1) {
+        return hours + " Hours, " + minutes + " Mins";
+    } else if(minutes >= 1) {
+        return minutes + " Mins, " + sec + " Seconds";
+    } else {
+        return sec + " Seconds";
+    }
+    return days + " Days, " + hours + " Hours, " + minutes + " Mins";
+}
 
-//handle the toolbar buttons on the top
+document.getElementById('hintButton').onclick = () => {
+    document.getElementById('hintOverlay').style.display = 'flex';
+};
+  
+document.getElementById('closeHint').onclick = () => {
+    document.getElementById('hintOverlay').style.display = 'none';
+};
+//clicking outside the image closes it too
+document.getElementById('hintOverlay').onclick = (e) => {
+    if (e.target.id === 'hintOverlay') {
+        document.getElementById('hintOverlay').style.display = 'none';
+    }
+};
+
+// Utility to make N arrays
+const makeArrayOfArrays = (n) => Array(n).fill().map(() => []);
+
 window.currentTab = "graph";
 const graphButton = document.getElementById("graphButton");
 const histogramButton = document.getElementById("histogramButton");
@@ -30,6 +68,7 @@ const statsButton = document.getElementById("statsButton");
 const graphContainer = document.getElementById("graphContainer");
 const histogramContainer = document.getElementById("histogramContainer");
 const statsContainer = document.getElementById("statsContainer");
+//#region handle the toolbar buttons on the top
 function resetContainers() {
     histogramContainer.style.display = "none";
     histogramButton.classList.remove("pressed");
@@ -61,14 +100,15 @@ statsButton.addEventListener("click", function() {
     window.userData.updatePBTable(window.selectedSess)
     window.currentTab = "stats";
 })
+//#endregion
 
-//The buttons on the right of the graph screen
 const xSelectDate = document.getElementById("xSelectDate");
 const xSelectSolve = document.getElementById("xSelectSolve");
 const xSelectLinear = document.getElementById("xSelectLinear");
 const xSelectLog = document.getElementById("xSelectLog");
 const ySelectLinear = document.getElementById("ySelectLinear");
 const ySelectLog = document.getElementById("ySelectLog");
+//#region Handle the buttons on the right of the graph screen
 //Handle swapping between Date and Solve# on the x-axis
 function xSwapData() {
     if(window.userData != undefined && window.g != undefined) {
@@ -104,7 +144,7 @@ function ySwapScale() {
 };
 ySelectLinear.addEventListener("click", function() { if(logScale[1] == true) ySwapScale(); });
 ySelectLog.addEventListener("click", function() { if(logScale[1] == false) ySwapScale(); });
-
+//#endregion
 
 //This code is run after the user uploads a file
 const jsonDataFile = document.getElementById("UploadFile");
@@ -122,7 +162,7 @@ jsonDataFile.addEventListener("change", function() {
         if(document.getElementById("title-dropdown")) document.getElementById("title-dropdown").remove()
         window.dropdown = document.createElement("select");
         window.dropdown.setAttribute("id","title-dropdown")
-        for (let i = 0; i < 15; i++) {
+        for (let i = 0; i < window.userData.numSessions; i++) {
             if(window.userData.sessions[i]) {
                 let child = document.createElement("option");
                 child.value = i;
@@ -250,8 +290,6 @@ jsonDataFile.addEventListener("change", function() {
 });
 
 
-
-
 //Update the graph
 window.updateGraph = function() {
     window.selectedSess = document.getElementById("title-dropdown").value;
@@ -280,7 +318,7 @@ class UserData {
          *          {
          *              "sessionData":
          *                  {
-         *                      "session # (1-15)": 
+         *                      "session # (1-numSessions)": 
          *                          {
          *                              "name": name of session,
          *                              "opt": options like the scramble type,
@@ -297,38 +335,49 @@ class UserData {
          *          }
          * }
          */
-
         this.xTitle = "Date";
         this.xTitle2 = "Solve #";
+
+        this.numSessions = 0;
+        //names of sessions
+        this.sessions = [];
+        //Get the session names
+        if(data.properties.sessionData != undefined){
+            const sessionData = JSON.parse(data.properties.sessionData)
+            for(let i = 0; i < 100; i++) {
+                if(sessionData[i] != undefined){
+                    this.sessions.push(sessionData[i].name)
+                    this.numSessions += 1
+                }
+            }
+        }
 
         this.labels = [ "Date", "Time","PB Single", "ao5", "PB ao5", "ao12", "PB ao12", "ao100","PB ao100", "ao1000","PB ao1000" ];
         this.colors = ["#084C61","#084C61","#177E89","#177E89","#85A06A","#85A06A","#FFAD0A","#FFAD0A","#E45E3D","#E45E3D"];
         this.visibilities = [true,true,true,true,true,true,true,true,true,true];
+        
 
         //   date, time, pb s, mo3, pb mo3, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000
-        this.solves = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]];
+        this.solves = makeArrayOfArrays(this.numSessions);
         //solve #, time, pb s, mo3, pb mo3, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000
-        this.solves2 = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]];
+        this.solves2 = makeArrayOfArrays(this.numSessions);
 
         //histogram
         //this.hist is what is displayed, this.buckets is the data of each solve in its bucket for when we want to subdivide
         //  hist[session] [0]: bucket name(0,1,...), [1]: # of solves
-        this.hist = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]];
+        this.hist = makeArrayOfArrays(this.numSessions);
         this.histOld; //reset to this when reset button clicked
         this.step = 0.5; //current bucket size / 2
         //  buckets[session] bucket(0,1,...), [every solve in that bucket]
-        this.buckets = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]];
+        this.buckets = makeArrayOfArrays(this.numSessions);
         this.bucketsOld; //reset to this when reset button clicked
-
-        //names of sessions
-        this.sessions = [];
 
         //pb data for stats panel
         //  pbData[session][series] [0]: title, [1]: time(s), [2]: solves since last, [3]: days since last, [4]: date 
-        this.pbData = [[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]];
+        this.pbData = makeArrayOfArrays(this.numSessions);
 
         //Add the first two columns: solve date, solve tiem
-        for (let s = 1; s <= 15; s++) {
+        for (let s = 1; s <= this.numSessions; s++) {
             const sessionKey = `session${s}`;
             if (data[sessionKey] !== undefined) {
                 for (let i = 0; i < data[sessionKey].length; i++) {
@@ -343,7 +392,7 @@ class UserData {
         }
 
         //Delete DNFs
-        for(let j = 0; j < 15; j++) {
+        for(let j = 0; j < this.numSessions; j++) {
             for(let i = 0; i < this.solves[j].length; i++) {
                 if(this.solves[j][i][1] == 0) {
                     this.solves[j].splice(i,1);
@@ -351,13 +400,7 @@ class UserData {
             }
         }
 
-        //Get the session names
-        if(data.properties.sessionData != undefined){
-            const sessionData = JSON.parse(data.properties.sessionData)
-            for(let i = 0; i < 15; i++) {
-                if(sessionData[i] != undefined){this.sessions.push(sessionData[i].name)}
-            }
-        }
+        
         
         //create the default data series
         this.pbsOfLastCol(1);
@@ -371,7 +414,7 @@ class UserData {
         this.pbsOfLastCol(1000);
 
         //This creates solves2, which is solves but x-axis is solve#
-        for(let i = 0; i < 15; i++) {
+        for(let i = 0; i < this.numSessions; i++) {
             for(let k = 0; k < this.solves[i].length; k++) {
                 this.solves2[i].push(Array.from(this.solves[i][k]))
                 this.solves2[i][k][0] = k+1;
@@ -379,7 +422,7 @@ class UserData {
         }
 
         //add the data for histogram
-        for(let j = 0; j < 15; j++) {
+        for(let j = 0; j < this.numSessions; j++) {
             let max = 0;
             //find the max time
             for(let i = 0; i < this.solves[j].length; i++) {
@@ -406,7 +449,7 @@ class UserData {
 
 
     subdivide() {
-        for(let j = 0; j < 15; j++) {
+        for(let j = 0; j < this.numSessions; j++) {
             //Update the buckets first
             for(let b = 0; b < this.buckets[j].length; b++) {
                 const bucketVal = this.buckets[j][b][0]
@@ -441,7 +484,7 @@ class UserData {
     
     //append a column for the average of the x last solves
     pushAvg(x) {
-        for (let j = 0; j < 15; j++) {
+        for (let j = 0; j < this.numSessions; j++) {
           const solves = this.solves[j];
           const clip = Math.ceil(0.05 * x); //Remove top and bottom 5% of solves
           let windo = [];
@@ -504,7 +547,7 @@ class UserData {
         console.log("doing pbs of last col")
         
         //do this for each session
-        for(let j = 0; j < 15; j++){
+        for(let j = 0; j < this.numSessions; j++){
             if(this.solves[j].length != 0) {
 
                 const pbStats = [[],[],[],[]];
@@ -607,24 +650,6 @@ class UserData {
 }
 
 
-function dhm (ms) {
-    const days = Math.floor(ms / (24*60*60*1000));
-    const daysms = ms % (24*60*60*1000);
-    const hours = Math.floor(daysms / (60*60*1000));
-    const hoursms = ms % (60*60*1000);
-    const minutes = Math.floor(hoursms / (60*1000));
-    const minutesms = ms % (60*1000);
-    const sec = Math.floor(minutesms / 1000);
-    if(days >= 1) {
-        return days + " Days, " + hours + " Hours";
-    } else if(hours >= 1) {
-        return hours + " Hours, " + minutes + " Mins";
-    } else if(minutes >= 1) {
-        return minutes + " Mins, " + sec + " Seconds";
-    } else {
-        return sec + " Seconds";
-    }
-    return days + " Days, " + hours + " Hours, " + minutes + " Mins";
-  }
+
 
 
