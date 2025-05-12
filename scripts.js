@@ -91,6 +91,10 @@ histogramButton.addEventListener("click", function() {
     histogramButton.classList.add("pressed");
     window.h.resize();
     window.updateHist(); window.h.resetZoom()
+    if(window.userData) {
+        window.userData.genSlidingWindowDefaults()
+        window.userData.genCreationDefaults();
+    }
 })
 statsButton.addEventListener("click", function() {
     window.currentTab = "stats";
@@ -100,6 +104,10 @@ statsButton.addEventListener("click", function() {
     window.userData.updatePBTable(window.selectedSess)
 })
 //#endregion
+
+const sleep = function(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 const xSelectDate = document.getElementById("xSelectDate");
 const xSelectSolve = document.getElementById("xSelectSolve");
@@ -173,7 +181,9 @@ jsonDataFile.addEventListener("change", function() {
         window.dropdown.addEventListener("change", function() {
             //Only update what is on screen so it is a bit faster
             if(window.currentTab == "graph") { window.updateGraph(); window.g.resetZoom() }
-            else if (window.currentTab == "hist") { window.updateHist(); window.h.resetZoom() }
+            else if (window.currentTab == "hist") { 
+                window.updateHist(); window.h.resetZoom(); 
+                window.userData.genSlidingWindowDefaults(); window.userData.genCreationDefaults(); }
             else if (window.currentTab == "stats") { window.userData.updatePBTable(window.dropdown.value) }
         })
         document.getElementById("hintButton").after(window.dropdown)
@@ -267,17 +277,56 @@ jsonDataFile.addEventListener("change", function() {
         }
 
         //create the histogram buttons
+        //col width input
         const histBucketInput = document.getElementById("histBucketInput")
         histBucketInput.addEventListener("change", function() {
             window.userData.createHist(histBucketInput.value)
             updateHist();
         })
+        //reset
         const histBucketReset = document.getElementById("histBucketReset")
         histBucketReset.addEventListener("click", function() {
             histBucketInput.value = 1
             window.userData.createHist(histBucketInput.value)
             updateHist();
         })
+
+        //sliding window reset
+        const sldWinReset = document.getElementById("sldWinReset")
+        sldWinReset.addEventListener("click", function() {
+            histBucketInput.value = 1
+            window.userData.createHist(histBucketInput.value)
+            updateHist();
+        })
+        //sliding window defaults
+        const sldWinDefaults = document.getElementById("sldWinDefaults")
+        sldWinDefaults.addEventListener("click", function() {
+            window.userData.genSlidingWindowDefaults();
+        })
+        //sliding window play
+        const sldWinPlay = document.getElementById("sldWinPlay")
+        sldWinPlay.addEventListener("click", function() {
+            window.userData.animateHistRange();
+        })
+
+        //creation reset
+        const creationReset = document.getElementById("creationReset")
+        creationReset.addEventListener("click", function() {
+            histBucketInput.value = 1
+            window.userData.createHist(histBucketInput.value)
+            updateHist();
+        })
+        //creation defaults
+        const creationDefaults = document.getElementById("creationDefaults")
+        creationDefaults.addEventListener("click", function() {
+            window.userData.genCreationDefaults();
+        })
+        //creation play
+        const creationPlay = document.getElementById("creationPlay")
+        creationPlay.addEventListener("click", function() {
+            window.userData.animateHistCreate();
+        })
+
         //create the pb table
         window.userData.updatePBTable(0);
     }
@@ -363,7 +412,6 @@ class UserData {
         //  hist[session] [0]: bucket name(0,1,...), [1]: # of solves
         this.hist = makeArrayOfArrays(this.numSessions);
         this.histOld; //reset to this when reset button clicked
-        this.step = 0.5; //current bucket size / 2
         //  buckets[session] bucket(0,1,...), [every solve in that bucket]
         this.buckets = makeArrayOfArrays(this.numSessions);
         this.bucketsOld; //reset to this when reset button clicked
@@ -421,13 +469,14 @@ class UserData {
         this.createHist(1)
         this.histOld = JSON.parse(JSON.stringify(this.hist));
         this.bucketsOld = JSON.parse(JSON.stringify(this.buckets));
-
+        this.genSlidingWindowDefaults()
+        this.genCreationDefaults()
     }
 
     createHist(bucketSize) {
         const bucketSize_ = parseFloat(bucketSize)
         this.hist = makeArrayOfArrays(this.numSessions);
-        this.buckets = makeArrayOfArrays(this.numSessions);
+        //this.buckets = makeArrayOfArrays(this.numSessions);
         for(let j = 0; j < this.numSessions; j++) {
             let max = 0;
             //find the max time
@@ -438,17 +487,177 @@ class UserData {
             //create the buckets
             for(let b = 0; b <= max+1; b+= bucketSize_) {
                 this.hist[j].push([b,0]);
-                this.buckets[j].push([b]);
+                //this.buckets[j].push([b]);
             }
             //add the solves to buckets
             for(let i = 0; i < this.solves[j].length; i++) {
                 const time = this.solves[j][i][1];
                 const bucket = Math.floor(time/bucketSize_);
                 this.hist[j][bucket][1] += 1;
-                this.buckets[j][bucket].push(time);
+                //this.buckets[j][bucket].push(time);
             }
         }
     }
+
+    createHistRange(bucketSize, range,offset) {
+        const bucketSize_ = parseFloat(bucketSize)
+        this.hist[window.selectedSess] = [];
+        let j = window.selectedSess
+        const numSolves = this.solves[j].length
+        let max = 0;
+        //find the max time
+        for(let i = numSolves-range-offset; i < numSolves-offset; i++) {
+            const time = this.solves[j][i][1]
+            if(time > max) max = time;
+        }
+        //create the buckets
+        for(let b = 0; b <= max+1; b+= bucketSize_) {
+            this.hist[j].push([b,0]);
+        }
+        //add the solves to buckets
+        for(let i = numSolves-range-offset; i < numSolves-offset; i++) {
+            const time = this.solves[j][i][1];
+            const bucket = Math.floor(time/bucketSize_);
+            this.hist[j][bucket][1] += 1;
+        }
+    }
+
+    async animateHistRange() {
+        const bucketSize = document.getElementById("sldWinWidth").value
+        const range = document.getElementById("sldWinWindow").value
+        const step = document.getElementById("sldWinStep").value 
+        const xmax = document.getElementById("sldWinXmax").value 
+        const frameTime = document.getElementById("sldWinTime").value
+
+        for(let i = this.solves[window.selectedSess].length-range; i > 0; i-=step) {
+            this.createHistRange(bucketSize,range,i)
+            window.h.updateOptions({
+                file: window.userData.hist[window.selectedSess],
+                dateWindow: [0,xmax],
+            });
+            await sleep(frameTime)
+        }
+    }
+
+
+    async animateHistCreate() {
+
+        const step = parseFloat(document.getElementById("creationStep").value)
+        const Xmax = parseFloat(document.getElementById("creationXmax").value)
+        const bucketSize = parseFloat(document.getElementById("creationWidth").value)
+
+        this.hist[window.selectedSess] = [];
+        let j = window.selectedSess
+        const numSolves = this.solves[j].length
+        let max = 0;
+        //find the max time
+        for(let i = 0; i < numSolves; i++) {
+            const time = this.solves[j][i][1]
+            if(time > max) max = time;
+        }
+        //create the buckets
+        for(let b = 0; b <= max+1; b+= bucketSize) {
+            this.hist[j].push([b,0]);
+        }
+        //add the solves to buckets
+        for(let i = 0; i < numSolves; i++) {
+            const time = this.solves[j][i][1];
+            const bucket = Math.floor(time/bucketSize);
+            this.hist[j][bucket][1] += 1;
+
+            if(i % step == 0) {
+                window.h.updateOptions({
+                    file: window.userData.hist[window.selectedSess],
+                    dateWindow: [0,Xmax],
+                });
+
+                await sleep(1)
+            } 
+        }
+    }
+
+    genSlidingWindowDefaults() {
+        let numSolves = this.solves[window.selectedSess].length
+        let mean = 0;
+        let deviation = 0;
+        let max = 0;
+        for(let i = 0; i < numSolves; i++) {
+            const time = this.solves[window.selectedSess][i][1]
+            if(time > max) max = time;
+            mean += time;
+        }
+        mean /= numSolves;
+        for(let i = 0; i < numSolves; i++) {
+            const time = this.solves[window.selectedSess][i][1]
+            deviation += (time - mean) ** 2
+        }
+        deviation /= numSolves;
+        deviation = deviation ** 0.5
+        console.log("mean: " + mean)
+        console.log("max: " + max)
+        console.log("stddev: " + deviation)
+
+        //-----width-----
+        const rawWidth = deviation / 6;
+        //  Snap to closest power-of-two fraction (0.25, 0.5, 1, 2, 4, ...)
+        const log2 = Math.round(Math.log2(rawWidth));
+        const sldWinWidth = Math.pow(2, log2);
+
+        //-----window - 1/5 of total solves-----
+        const sldWinWindow = Math.round(numSolves * 0.2 + 1);
+
+        //-----step-----
+        const sldWinStep = Math.round(sldWinWindow / 100 + 1)
+
+        //-----xmax - 2 standard deviations-----
+        const sldWinXmax = Math.round(mean+3*deviation+1);
+
+        //-----time-----
+        const sldWinTime = 1
+
+        document.getElementById("sldWinWidth").value = sldWinWidth
+        document.getElementById("sldWinWindow").value = sldWinWindow
+        document.getElementById("sldWinStep").value = sldWinStep
+        document.getElementById("sldWinXmax").value = sldWinXmax
+        document.getElementById("sldWinTime").value = sldWinTime
+    }
+
+    genCreationDefaults() {
+        let numSolves = this.solves[window.selectedSess].length
+        let mean = 0;
+        let deviation = 0;
+        let max = 0;
+        for(let i = 0; i < numSolves; i++) {
+            const time = this.solves[window.selectedSess][i][1]
+            if(time > max) max = time;
+            mean += time;
+        }
+        mean /= numSolves;
+        for(let i = 0; i < numSolves; i++) {
+            const time = this.solves[window.selectedSess][i][1]
+            deviation += (time - mean) ** 2
+        }
+        deviation /= numSolves;
+        deviation = deviation ** 0.5
+
+        //-----width-----
+        const rawWidth = deviation / 6;
+        //  Snap to closest power-of-two fraction (0.25, 0.5, 1, 2, 4, ...)
+        const log2 = Math.round(Math.log2(rawWidth));
+        const creationWidth = Math.pow(2, log2);
+
+        //-----step-----
+        const creationStep = Math.round(numSolves / 1000 + 1)
+
+        //-----xmax - 2 standard deviations-----
+        const creationXmax = Math.round(mean+6*deviation+1);
+
+        document.getElementById("creationWidth").value = creationWidth
+        document.getElementById("creationStep").value = creationStep
+        document.getElementById("creationXmax").value = creationXmax
+    }
+
+
 
     //append a column for the average of the x last solves
     pushAvg(x) {
@@ -512,7 +721,6 @@ class UserData {
 
     //Append a col for the pb of the previous col
     pbsOfLastCol(x) {
-        console.log("doing pbs of last col")
         
         //do this for each session
         for(let j = 0; j < this.numSessions; j++){

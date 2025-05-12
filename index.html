@@ -83,6 +83,84 @@
             </tr>
           </tbody>
         </table>
+        <br>
+        <br>
+        <table style="width: 100%">
+          <tbody>
+            <tr>
+              <th colspan="2">
+                <div style="display: flex;">
+                  <p>Sliding window animation</p>
+                  <button id="sldWinHelp" style="flex-grow: 1;">?</button>
+                </div>
+              </th>
+            </tr>
+          </tbody>
+          <tbody>
+            <tr>
+              <td>Width</td>
+              <td><input style="width: -webkit-fill-available;" type="number" min="0.001" max="1000000" placeholder="Width" step="0.001" value="1" id="sldWinWidth"></td>
+            </tr>
+            <tr>
+              <td>Window</td>
+              <td><input style="width: -webkit-fill-available;" type="number" min="1"  max="1000000" placeholder="Window" step="1" value="1" id="sldWinWindow"></td>
+            </tr>
+            <tr>
+              <td>Step</td>
+              <td><input style="width: -webkit-fill-available;" type="number" min="1" max="1000000" placeholder="Step" step="1" value="1" id="sldWinStep"></td>
+            </tr>
+            <tr>
+              <td>X max</td>
+              <td><input style="width: -webkit-fill-available;" type="number" min="0.1" max="1000000" placeholder="X max" step="0.1" value="1" id="sldWinXmax"></td>
+            </tr>
+            <tr>
+              <td>Time</td>
+              <td><input style="width: -webkit-fill-available;" type="number" min="1" max="1000000" placeholder="Time" step="1" value="1" id="sldWinTime"></td>
+            </tr>
+            <tr>
+              <td><button id="sldWinReset" style="width: -webkit-fill-available;">Reset</button></td>
+              <td><button id="sldWinDefaults" style="width: -webkit-fill-available;">Defaults</button></td>
+            </tr>
+            <tr>
+              <td colspan="2"><button id="sldWinPlay" style="width: -webkit-fill-available;">Play</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <br>
+        <br>
+        <table style="width: 100%">
+          <tbody>
+            <tr>
+              <th colspan="2">
+                <div style="display: flex;">
+                  <p>Creation animation</p>
+                  <button id="creationHelp" style="flex-grow: 1;">?</button>
+                </div>
+              </th>
+            </tr>
+          </tbody>
+          <tbody>
+            <tr>
+              <td>Width</td>
+              <td><input style="width: -webkit-fill-available;" type="number" min="0.001" max="1000000" placeholder="Width" step="0.001" value="1" id="creationWidth"></td>
+            </tr>
+            <tr>
+              <td>Step</td>
+              <td><input style="width: -webkit-fill-available;" type="number" min="1" max="1000000" placeholder="Step" step="1" value="1" id="creationStep"></td>
+            </tr>
+            <tr>
+              <td>X max</td>
+              <td><input style="width: -webkit-fill-available;" type="number" min="0.1" max="1000000" placeholder="X max" step="0.1" value="1" id="creationXmax"></td>
+            </tr>
+            <tr>
+              <td><button id="creationReset" style="width: -webkit-fill-available;">Reset</button></td>
+              <td><button id="creationDefaults" style="width: -webkit-fill-available;">Defaults</button></td>
+            </tr>
+            <tr>
+              <td colspan="2"><button id="creationPlay" style="width: -webkit-fill-available;">Play</button></td>
+            </tr>
+          </tbody>
+        </table>
       </div>
       <div id="histogramDiv"></div>
       <div id="histRightButtons"></div>
