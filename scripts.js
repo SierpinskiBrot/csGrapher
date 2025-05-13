@@ -60,6 +60,7 @@ document.getElementById('hintOverlay').onclick = (e) => {
 // Utility to make N arrays
 const makeArrayOfArrays = (n) => Array(n).fill().map(() => []);
 
+//#region handle the toolbar buttons on the top
 window.currentTab = "graph";
 const graphButton = document.getElementById("graphButton");
 const histogramButton = document.getElementById("histogramButton");
@@ -67,7 +68,6 @@ const statsButton = document.getElementById("statsButton");
 const graphContainer = document.getElementById("graphContainer");
 const histogramContainer = document.getElementById("histogramContainer");
 const statsContainer = document.getElementById("statsContainer");
-//#region handle the toolbar buttons on the top
 function resetContainers() {
     histogramContainer.style.display = "none";
     histogramButton.classList.remove("pressed");
@@ -109,14 +109,10 @@ const sleep = function(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const xSelectDate = document.getElementById("xSelectDate");
-const xSelectSolve = document.getElementById("xSelectSolve");
-const xSelectLinear = document.getElementById("xSelectLinear");
-const xSelectLog = document.getElementById("xSelectLog");
-const ySelectLinear = document.getElementById("ySelectLinear");
-const ySelectLog = document.getElementById("ySelectLog");
 //#region Handle the buttons on the right of the graph screen
 //Handle swapping between Date and Solve# on the x-axis
+const xSelectDate = document.getElementById("xSelectDate");
+const xSelectSolve = document.getElementById("xSelectSolve");
 function xSwapData() {
     if(window.userData != undefined && window.g != undefined) {
         [window.userData.solves, window.userData.solves2] = [window.userData.solves2, window.userData.solves];
@@ -127,7 +123,10 @@ function xSwapData() {
 };
 xSelectDate.addEventListener("click", function() { if(window.userData.xTitle != "Date") xSwapData(); });
 xSelectSolve.addEventListener("click", function() { if(window.userData.xTitle != "Solve #") xSwapData(); });
+
 //Handle swapping between Linear and Log on the x-axis
+const xSelectLinear = document.getElementById("xSelectLinear");
+const xSelectLog = document.getElementById("xSelectLog");
 function xSwapScale() {
     if(window.userData != undefined && window.g != undefined) {
         logScale[0] = !logScale[0];
@@ -139,7 +138,10 @@ function xSwapScale() {
 };
 xSelectLinear.addEventListener("click", function() { if(logScale[0] == true) xSwapScale(); });
 xSelectLog.addEventListener("click", function() { if(logScale[0] == false) xSwapScale(); });
+
 //Handle swapping between Linear and Log on the y-axis
+const ySelectLinear = document.getElementById("ySelectLinear");
+const ySelectLog = document.getElementById("ySelectLog");
 function ySwapScale() {
     if(window.userData != undefined && window.g != undefined) {
         logScale[1] = !logScale[1];
@@ -179,7 +181,7 @@ jsonDataFile.addEventListener("change", function() {
         }
         window.dropdown.setAttribute("value", window.selectedSess);
         window.dropdown.addEventListener("change", function() {
-            //Only update what is on screen so it is a bit faster
+            //Only update what is on screen
             if(window.currentTab == "graph") { window.updateGraph(); window.g.resetZoom() }
             else if (window.currentTab == "hist") { 
                 window.updateHist(); window.h.resetZoom(); 
@@ -193,8 +195,9 @@ jsonDataFile.addEventListener("change", function() {
         xSelectLinear.checked = true;
         ySelectLinear.checked = true;
 
-        //Create the main graph
+       //create dygraphs
         Dygraph.onDOMready(function onDOMready() {
+            //Create the main graph
             window.g = new Dygraph(
                 document.getElementById("graphdiv"), // containing div
                 window.userData.solves[window.selectedSess], //Data
@@ -209,6 +212,7 @@ jsonDataFile.addEventListener("change", function() {
                     labelsSeparateLines: false,
                 }
             );
+             //Create the histogram
             window.h = new Dygraph(
                 document.getElementById("histogramDiv"), //containing div
                 window.userData.hist[window.selectedSess], //Data
@@ -278,57 +282,38 @@ jsonDataFile.addEventListener("change", function() {
 
         //create the histogram buttons
         //col width input
-        const histBucketInput = document.getElementById("histBucketInput")
-        histBucketInput.addEventListener("change", function() {
+        document.getElementById("histBucketInput").addEventListener("change", function() {
             window.userData.createHist(histBucketInput.value)
             updateHist();
         })
         //reset
-        const histBucketReset = document.getElementById("histBucketReset")
-        histBucketReset.addEventListener("click", function() {
+        document.getElementById("histBucketReset").addEventListener("click", function() {
             histBucketInput.value = 1
             window.userData.createHist(histBucketInput.value)
             updateHist();
         })
-
         //sliding window reset
-        const sldWinReset = document.getElementById("sldWinReset")
-        sldWinReset.addEventListener("click", function() {
+        document.getElementById("sldWinReset").addEventListener("click", function() {
             histBucketInput.value = 1
             window.userData.createHist(histBucketInput.value)
             updateHist();
         })
         //sliding window defaults
-        const sldWinDefaults = document.getElementById("sldWinDefaults")
-        sldWinDefaults.addEventListener("click", function() {
-            window.userData.genSlidingWindowDefaults();
-        })
+        document.getElementById("sldWinDefaults").addEventListener("click", function() {window.userData.genSlidingWindowDefaults();})
         //sliding window play
-        const sldWinPlay = document.getElementById("sldWinPlay")
-        sldWinPlay.addEventListener("click", function() {
-            window.userData.animateHistRange();
-        })
-
+        document.getElementById("sldWinPlay").addEventListener("click", function() {window.userData.animateHistRange();})
         //creation reset
-        const creationReset = document.getElementById("creationReset")
-        creationReset.addEventListener("click", function() {
+        document.getElementById("creationReset").addEventListener("click", function() {
             histBucketInput.value = 1
             window.userData.createHist(histBucketInput.value)
             updateHist();
         })
         //creation defaults
-        const creationDefaults = document.getElementById("creationDefaults")
-        creationDefaults.addEventListener("click", function() {
-            window.userData.genCreationDefaults();
-        })
+        document.getElementById("creationDefaults").addEventListener("click", function() {window.userData.genCreationDefaults();})
         //creation play
-        const creationPlay = document.getElementById("creationPlay")
-        creationPlay.addEventListener("click", function() {
-            window.userData.animateHistCreate();
-        })
+        document.getElementById("creationPlay").addEventListener("click", function() {window.userData.animateHistCreate();})
 
-        //create the pb table
-        window.userData.updatePBTable(0);
+        
     }
 
     GetFile.readAsText(this.files[0]);
@@ -401,7 +386,6 @@ class UserData {
         this.colors = ["#084C61","#084C61","#177E89","#177E89","#85A06A","#85A06A","#FFAD0A","#FFAD0A","#E45E3D","#E45E3D"];
         this.visibilities = [true,true,true,true,true,true,true,true,true,true];
         
-
         //   date, time, pb s, mo3, pb mo3, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000
         this.solves = makeArrayOfArrays(this.numSessions);
         //solve #, time, pb s, mo3, pb mo3, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000
@@ -411,26 +395,18 @@ class UserData {
         //this.hist is what is displayed, this.buckets is the data of each solve in its bucket for when we want to subdivide
         //  hist[session] [0]: bucket name(0,1,...), [1]: # of solves
         this.hist = makeArrayOfArrays(this.numSessions);
-        this.histOld; //reset to this when reset button clicked
-        //  buckets[session] bucket(0,1,...), [every solve in that bucket]
-        this.buckets = makeArrayOfArrays(this.numSessions);
-        this.bucketsOld; //reset to this when reset button clicked
 
         //pb data for stats panel
         //  pbData[session][series] [0]: title, [1]: time(s), [2]: solves since last, [3]: days since last, [4]: date 
         this.pbData = makeArrayOfArrays(this.numSessions);
 
-        //Add the first two columns: solve date, solve tiem
+        //Add the first two columns: solve date, solve time
         for (let s = 1; s <= this.numSessions; s++) {
             const sessionKey = `session${s}`;
             if (data[sessionKey] !== undefined) {
                 for (let i = 0; i < data[sessionKey].length; i++) {
-                    //Append col for the solve dates
-                    this.solves[s - 1].push([new Date(1000 * data[sessionKey][i][3])]);
-
-                    //Append col for the solve times
-                    //console.log("S: " + s + ", i: " + i)
-                    this.solves[s - 1][i].push(0.001*this.parseTime(data[sessionKey][i][0]))
+                    this.solves[s - 1].push([new Date(1000 * data[sessionKey][i][3])]);         //solve date
+                    this.solves[s - 1][i].push(0.001*this.parseTime(data[sessionKey][i][0]))    //solve time
                 }
             }
         }
@@ -438,14 +414,10 @@ class UserData {
         //Delete DNFs
         for(let j = 0; j < this.numSessions; j++) {
             for(let i = 0; i < this.solves[j].length; i++) {
-                if(this.solves[j][i][1] == 0) {
-                    this.solves[j].splice(i,1);
-                }
+                if(this.solves[j][i][1] == 0) {this.solves[j].splice(i,1);}
             }
         }
 
-        
-        
         //create the default data series
         this.pbsOfLastCol(1);
         this.pushAvg(5);
@@ -467,10 +439,11 @@ class UserData {
 
         //add the data for histogram
         this.createHist(1)
-        this.histOld = JSON.parse(JSON.stringify(this.hist));
-        this.bucketsOld = JSON.parse(JSON.stringify(this.buckets));
         this.genSlidingWindowDefaults()
         this.genCreationDefaults()
+
+        //create the pb table
+        this.updatePBTable(0);
     }
 
     createHist(bucketSize) {
@@ -772,12 +745,12 @@ class UserData {
         pbStats.replaceChildren();
         pbStats.appendChild(headerRow);
 
-        for(let i = window.userData.pbData[j][0][1].length-1; i >= 0; i--) {
+        for(let i = this.pbData[j][0][1].length-1; i >= 0; i--) {
             let newRow = document.createElement("tr");
 
             //Date column
             let dateCol = document.createElement("td");
-            let date = window.userData.pbData[j][0][2][i];
+            let date = this.pbData[j][0][2][i];
             let dateStr = date.getDate() + "/" + date.getMonth() + "/" + date.getFullYear();
             dateCol.innerHTML = dateStr;
 
@@ -785,34 +758,34 @@ class UserData {
             let date2 = new Date();
             let dateDiff = 0;
             let pbForTimeCol = document.createElement("td")
-            if(i == window.userData.pbData[j][0][1].length-1) {
+            if(i == this.pbData[j][0][1].length-1) {
                 dateDiff = Math.abs(date2-date);
                 pbForTimeCol.innerHTML = dhm(dateDiff) + " and counting";
             }
             else {
-                date2 = window.userData.pbData[j][0][2][i+1];
+                date2 = this.pbData[j][0][2][i+1];
                 dateDiff = Math.abs(date2-date)
                 pbForTimeCol.innerHTML = dhm(dateDiff);
             }
             
             //Solve # column
             let solveCol = document.createElement("td")
-            solveCol.innerHTML = window.userData.pbData[j][0][3][i]
+            solveCol.innerHTML = this.pbData[j][0][3][i]
 
             //PB for # solves column
-            let solves = window.userData.pbData[j][0][3][i]
-            let nextSolves = window.userData.solves[j].length;
-            if(i < window.userData.pbData[j][0][1].length-1) {
-                nextSolves = window.userData.pbData[j][0][3][i+1]
+            let solves = this.pbData[j][0][3][i]
+            let nextSolves = this.solves[j].length;
+            if(i < this.pbData[j][0][1].length-1) {
+                nextSolves = this.pbData[j][0][3][i+1]
             }
             let solvesPassed = nextSolves-solves;
-            if(i == window.userData.pbData[j][0][1].length-1) solvesPassed += " and counting"
+            if(i == this.pbData[j][0][1].length-1) solvesPassed += " and counting"
             let pbForSolvesCol = document.createElement("td");
             pbForSolvesCol.innerHTML = solvesPassed;
 
             //Solve time column
             let timeCol = document.createElement("td");
-            timeCol.innerHTML= round(window.userData.pbData[j][0][1][i],3)
+            timeCol.innerHTML= round(this.pbData[j][0][1][i],3)
 
             newRow.appendChild(timeCol);
             newRow.appendChild(dateCol);
