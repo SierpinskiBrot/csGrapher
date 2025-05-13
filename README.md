@@ -22,9 +22,16 @@ This tab shows a histogram of the solve times for the selected session
 
 As with the graph tab, you can click and drag to zoom in on the histogram and double click to zoom out
 
-There is an input on the left to change the column width for the histogram (default 1) and a button to reset it to default 
+There is an input on the left to change the column width for the histogram (default 1 second) and a button to reset it to default 
 
-*Future updates will implement the ability to graph by relative frequency instead of frequency, histogram for all series (ao5,ao12,...) instead of just single, 
+**Sliding window animation:** the sliding window animation panel will create a histogram for a certain sized window of solves (ex. 1000 solves) and animate the 
+change as this moves from your first 1000 solves to your latest 1000 solves. There are options to change settings for the animation, such as the column width (in seconds), 
+the amount of solves in the window, the step by which the window increments each frame, the length of the x-axis, and the delay between each frame
+
+**Creation animation:** the creation animation panel shows how the histogram evolved as more and more solves were added into it. There are settings to change 
+the column width (in seconds), the amount of solves added each frame, and the length of the x-axis
+
+*Future updates will implement the ability to graph histogram for all series (ao5,ao12,...) instead of just single, 
 option to display an approximate bell curve of the histogram distribution, and a way select a range of solves (ex. last 500 solves) instead of all of them*
 
 ## Statistics Tab
