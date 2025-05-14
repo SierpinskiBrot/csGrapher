@@ -11,12 +11,12 @@ This tab shows a more extensive version of csTimer's graph for the selected sess
 
 Click and drag to zoom on the graph, double click to zoom out
 
-The buttons on the left allow you to toggle which series you want to see on the graph (ex. PB Single, ao5, ao100).
+The buttons on the left allow you to toggle which series you want to see on the graph (ex. PB Single, ao5, ao100) and change their colors and thicknesses
 
 The buttons on the right are to edit the axes of the graph. You can choose whether to have the date or the solve # on the x axis, 
 and can change the scale of either axis from linear to logarithmic. Note that using logarithmic on the x-axis will only works with solve #, not date
 
-*Future updates will implement the ability to add new series and change the color of the series*
+*Future updates will implement the ability to add new series*
 
 ## Histogram tab
 ![Histogram Tab Screenshot](https://github.com/user-attachments/assets/fd1a558b-444b-478b-b193-56fc566eddd7)
