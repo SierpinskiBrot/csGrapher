@@ -152,21 +152,32 @@ select#title-dropdown:hover {
     border: black thin double;
 }
 
-#graphLeftButtons > button {
+button.seriesToggle {
     background-color: #E45E3D;
     border: #E45E3D outset;
     color: black;
-    width: 50%;
+    width: 100%;
+    padding: 4px;
+    transition: all 0.3s ease-in-out;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+button.seriesSettings {
+    background-color: #323031;
+    border: #323031 outset;
+    color: white;
+    font-weight: bolder;
+    width: 100%;
     padding: 4px;
     transition: all 0.3s ease-in-out;
     box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
 }
   
-#graphLeftButtons > button:hover {
+button.seriesToggle:hover {
     background-color: #f0f0f0;
 }
   
-#graphLeftButtons > button.pressed {
+button.seriesToggle.pressed {
     border: #323031 inset !important;
     background-color: #323031 !important;
     color: white;
@@ -188,7 +199,7 @@ select#title-dropdown:hover {
 }
 .radio > label {
     padding: 4px;
-    background: #323031 ;
+    background: #323031;
     border: #323031  inset;
     border-radius: 5px;
     color: #D7D5D6;
@@ -228,8 +239,11 @@ select#title-dropdown:hover {
     font-size: larger;
 }
 
-table, th, td {
-    border:1px solid black;
+#toggleTable {
+    border-spacing: 0px;
+    background: #323031;
+    margin: 0px;
+    padding: 0px;
 }
 
 .hintOverlay {
@@ -266,6 +280,50 @@ table, th, td {
     padding: 5px 10px;
     cursor: pointer;
     border-radius: 5px;
+}
+
+.settings-box {
+    position: absolute;
+    top: 30px;
+    left: 0;
+    background: #fdf6e3;
+    border: 1px solid #999;
+    border-radius: 5px;
+    padding: 8px;
+    display: none;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+.settings-box label {
+    display: block;
+    margin: 5px 0;
+    font-size: 12px;
+}
+
+.close-settings {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 3px 6px;
+    font-size: 12px;
+    border-radius: 4px;
+    margin-top: 5px;
+    cursor: pointer;
+}
+
+.formTable {
+    border: double thick #323031;
+}
+table.formTable > tbody > tr > th > div > button {
+    margin-left: 5px;
+}
+
+div.hintContent > table, div.hintContent > tr, div.hintContent > td {
+    border: 3px solid #323031;
+}
+div.hintContent > table > tbody > tr > th, div.hintContent > table > tbody > tr > td {
+    border: 1px solid #323031;
 }
 
 

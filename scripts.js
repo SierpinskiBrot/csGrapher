@@ -43,6 +43,7 @@ function dhm (ms) {
     return days + " Days, " + hours + " Hours, " + minutes + " Mins";
 }
 
+
 document.getElementById('hintButton').onclick = () => {
     document.getElementById('fileHintOverlay').style.display = 'flex';
 };
@@ -183,6 +184,55 @@ ySelectLinear.addEventListener("click", function() { if(logScale[1] == true) ySw
 ySelectLog.addEventListener("click", function() { if(logScale[1] == false) ySwapScale(); });
 //#endregion
 
+//#region handle series settings box
+//the color selector
+const colorSelector = document.getElementById("seriesColorSelector")
+colorSelector.addEventListener("change", function () {
+    // debugger;
+    const seriesNumber = parseInt(document.getElementById("seriesSettingsBox").name)
+    const label1 = window.userData.labels[seriesNumber]
+    const label2 = window.userData.labels[seriesNumber - 1]
+    window.userData.colors[seriesNumber - 1] = this.value;
+    window.userData.colors[seriesNumber - 2] = this.value;
+    //update color on the graph
+    window.g.updateOptions({
+        series: {
+            [label1]: { color: window.userData.colors[seriesNumber - 1] },
+            [label2]: { color: window.userData.colors[seriesNumber - 2] }
+        }
+    })
+    //update the color of the series toggle buttons
+    const toggleButtons = document.getElementsByClassName("seriesToggle")
+    for (let i = 1; i <= 2; i++) {
+        toggleButtons[seriesNumber - i].style.background = window.userData.colors[seriesNumber - i]
+        toggleButtons[seriesNumber - i].style.borderColor = window.userData.colors[seriesNumber - i]
+    }
+})
+//the width selector
+const widthSelector = document.getElementById("seriesWidthSelector")
+widthSelector.addEventListener("change", function () {
+    // debugger;
+    const seriesNumber = parseInt(document.getElementById("seriesSettingsBox").name)
+    for (let i = 0; i <= 1; i++) {
+        const label_ = window.userData.labels[seriesNumber - i]
+        const width_ = this.value
+        window.userData.widths[seriesNumber - (i+1)] = width_;
+        //update width on the graph
+        if (label_ == 'Time') {
+            window.g.updateOptions({series: {[label_]: {pointSize: width_}}})
+        }
+        else {
+            window.g.updateOptions({series: {[label_]: { strokeWidth: width_ }}})
+        }
+    } 
+})
+//the close button
+const closeSelector = document.getElementById("seriesCloseSelector")
+closeSelector.addEventListener("click", function () {
+    document.getElementById("seriesSettingsBox").style.display = "none"
+})
+//#endregion
+
 //This code is run after the user uploads a file
 const jsonDataFile = document.getElementById("UploadFile");
 jsonDataFile.addEventListener("change", function() {
@@ -259,12 +309,13 @@ jsonDataFile.addEventListener("change", function() {
         //Line styling for each line
         for(let i = 1; i < window.userData.labels.length; i++) {
             const label_ = window.userData.labels[i]
-            const color_ = window.userData.colors[i-1]
+            const color_ = window.userData.colors[i - 1]
+            const width_ = window.userData.widths[i - 1]
             //Default setup
             window.g.updateOptions({series : { 
                 [label_] : {
                     color : color_,
-                    strokeWidth : 2
+                    strokeWidth : width_
                 }
             }})
             //Dashed line for pb
@@ -276,37 +327,95 @@ jsonDataFile.addEventListener("change", function() {
                 window.g.updateOptions({series : { [label_] : {
                     strokeWidth: 0,
                     drawPoints: true,
-                    pointSize: 2}}})
+                    pointSize: width_}}})
             }
         }
+        
+        //-----create the series toggle buttons-----
+        const graphLeftButtons = document.getElementById("graphLeftButtons")
+        document.getElementById("graphLeftButtons").replaceChildren(); //delete any existing buttons on the left
+        const toggleTable = document.createElement("table");
+        toggleTable.id = "toggleTable"
+        toggleTable.style = "width: 100%"
 
-       //create the series toggle buttons
-       document.getElementById("graphLeftButtons").replaceChildren(); //delete any existing buttons on the left
-       const leftButtonsTitle = document.createElement("div");
-       const leftButtonsTitleText = document.createElement("p");
-       leftButtonsTitleText.innerHTML = "Series:"
-       leftButtonsTitle.appendChild(leftButtonsTitleText)
-       leftButtonsTitle.classList.add("buttonsTitle")
-       document.getElementById("graphLeftButtons").appendChild(leftButtonsTitle);
-       for(let i = 1; i < window.userData.labels.length; i++) {
-            //create the button
-            const newButton = createButton(window.userData.labels[i], (e) => {
-                const currentVisibility = window.userData.visibilities[i-1];
-                window.userData.visibilities[i-1] = !currentVisibility;
+        //create the title "Series:"
+        const toggleTableHeader = document.createElement("tbody")
+        const toggleTableHeaderRow = document.createElement("tr")
+        const toggleTableHeaderData = document.createElement("th")
+        toggleTableHeaderData.innerText = "Series: "
+        toggleTableHeaderData.setAttribute("colspan", "3")
+        toggleTableHeaderData.classList.add("buttonsTitle")
+        toggleTableHeaderRow.appendChild(toggleTableHeaderData)
+        toggleTableHeader.appendChild(toggleTableHeaderRow)
+        toggleTable.appendChild(toggleTableHeader)
+        graphLeftButtons.appendChild(toggleTable)
+        
+        //create the buttons
+        const toggleTableBody = document.createElement("tbody")
+        for (let i = 1; i < window.userData.labels.length; i+=2) {
+            //create 1st the toggle button
+            const newButton1 = createButton(window.userData.labels[i], (e) => {
+                const currentVisibility = window.userData.visibilities[i - 1];
+                window.userData.visibilities[i - 1] = !currentVisibility;
                 window.g.setVisibility(window.userData.visibilities, true);
                 const tgt = e.target.closest('button');
                 tgt.classList.toggle('pressed');
-            })
-            const color_ = window.userData.colors[i-1];
-            newButton.style = "background:" + color_ + "; border-color: " + color_
+            }, "seriesToggle")
+            //set the color
+            const color1 = window.userData.colors[i - 1];
+            newButton1.style = "background:" + color1 + "; border-color: " + color1
             //redundant as visibility is reset when a file is uploaded
-            if(!window.userData.visibilities[i-1]) newButton.classList.toggle('pressed')
-            //line breaks after buttons that say pb
-            document.getElementById("graphLeftButtons").appendChild(newButton);
-            if(window.userData.labels[i][0] == 'P') {
-                document.getElementById("graphLeftButtons").appendChild(document.createElement("br"));                
-            }
+            if (!window.userData.visibilities[i - 1]) newButton1.classList.toggle('pressed')
+
+            //create 2nd the toggle button
+            const newButton2 = createButton(window.userData.labels[i+1], (e) => {
+                const currentVisibility = window.userData.visibilities[i];
+                window.userData.visibilities[i] = !currentVisibility;
+                window.g.setVisibility(window.userData.visibilities, true);
+                const tgt = e.target.closest('button');
+                tgt.classList.toggle('pressed');
+            }, "seriesToggle")
+            //set the color
+            const color2 = window.userData.colors[i];
+            newButton2.style = "background:" + color2 + "; border-color: " + color2
+            //redundant as visibility is reset when a file is uploaded
+            if (!window.userData.visibilities[i]) newButton2.classList.toggle('pressed')
+
+
+            //create the settings button
+            const seriesSettings = createButton(">", (e) => {
+                const settings = document.getElementById("seriesSettingsBox")
+                //make the settings box visible and move it to the cursor
+                settings.style.display = settings.style.display === 'block' ? 'none' : 'block';
+                settings.style.top = e.pageY + "px"
+                settings.style.left = e.pageX + 10 + "px"
+                settings.name = i+1 //use the name attribute to know which series is being edited
+
+                //set the value of the color selector to the color of the buttons
+                const colorSelector = document.getElementById("seriesColorSelector");
+                colorSelector.value = window.userData.colors[i - 1];
+
+                //set the value of the width selector the the width of the series
+                const widthSelector = document.getElementById("seriesWidthSelector")
+                widthSelector.value = window.userData.widths[i - 1];
+            }, "seriesSettings")
+
+
+            const cell1 = document.createElement("td")
+            cell1.appendChild(newButton1)
+            const cell2 = document.createElement("td")
+            cell2.appendChild(newButton2)
+            const cell3 = document.createElement("td")
+            cell3.appendChild(seriesSettings)
+            const newRow = document.createElement("tr")
+            newRow.appendChild(cell1)
+            newRow.appendChild(cell2)
+            newRow.appendChild(cell3)
+            toggleTableBody.appendChild(newRow)
         }
+        toggleTable.appendChild(toggleTableBody)
+
+        
 
         //create the histogram buttons
         //col width input
@@ -411,7 +520,8 @@ class UserData {
         }
 
         this.labels = [ "Date", "Time","PB Single", "ao5", "PB ao5", "ao12", "PB ao12", "ao100","PB ao100", "ao1000","PB ao1000" ];
-        this.colors = ["#084C61","#084C61","#177E89","#177E89","#85A06A","#85A06A","#FFAD0A","#FFAD0A","#E45E3D","#E45E3D"];
+        this.colors = ["#084C61", "#084C61", "#177E89", "#177E89", "#85A06A", "#85A06A", "#FFAD0A", "#FFAD0A", "#E45E3D", "#E45E3D"];
+        this.widths = [2,2,2,2,2,2,2,2,2,2]
         this.visibilities = [true,true,true,true,true,true,true,true,true,true];
         
         //   date, time, pb s, mo3, pb mo3, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000

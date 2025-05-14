@@ -68,7 +68,7 @@
     </div>
     <div id="histogramContainer" style="display:none;flex-wrap:nowrap;">
         <div id="histLeftButtons">
-            <table style="width: 100%">
+            <table style="width: 100%" class="formTable">
                 <tbody><tr><th colspan="2">Column width(sec)</th></tr></tbody>
                 <tbody>
                     <tr>
@@ -79,12 +79,12 @@
             </table>
             <br>
             <br>
-            <table style="width: 100%">
+            <table style="width: 100%" class="formTable">
                 <tbody>
                     <tr>
                         <th colspan="2">
                             <div style="display: flex;">
-                                <p>Sliding window animation</p>
+                                Sliding window animation
                                 <button id="slidingWindowHelpButton" style="flex-grow: 1;">?</button>
                             </div>
                         </th>
@@ -122,12 +122,12 @@
             </table>
             <br>
             <br>
-            <table style="width: 100%">
+            <table style="width: 100%" class="formTable">
                 <tbody>
                     <tr>
                         <th colspan="2">
                             <div style="display: flex;">
-                                <p>Creation animation</p>
+                                Creation animation
                                 <button id="creationHelpButton" style="flex-grow: 1;">?</button>
                             </div>
                         </th>
@@ -250,9 +250,20 @@
                         <td><b>Width:</b> column width measured in seconds. <br />Defaults to (round(log2(standard deviation/6)))^2</td>
                         <td><b>Step:</b> number of solves to move forward each frame <br />Defaults to 1/1000 of the solves in the dataset</td>
                         <td><b>X max:</b> max value displayed on the x-axis <br />Defaults to mean+6*standard deviation+1</td>
-                    </tr> 
+                    </tr>
                 </tbody>
             </table>
         </div>
+    </div>
+    <div id="seriesSettingsBox" class="settings-box">
+        <label>
+            Color:
+            <input id="seriesColorSelector" type="color" class="color-input">
+        </label>
+        <label>
+            Width:
+            <input id="seriesWidthSelector" type="number" class="width-input" min="1" max="10">
+        </label>
+        <button id="seriesCloseSelector" class="close-settings">X</button>
     </div>
 </body>
