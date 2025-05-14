@@ -1,4 +1,4 @@
-# csGrapher
+# csGrapher - https://sierpinskibrot.github.io/csGrapher/
  Tool for graphing and analyzing solve data from csTimer
 
 ### How to get csTimer file
