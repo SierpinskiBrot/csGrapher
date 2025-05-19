@@ -6,6 +6,17 @@ var logScale = [false, false]
 var userData = null;
 window.selectedSess = 0; //selected session from the cstimer
 
+
+function binarySearchInsertIdx(arr, val) {
+    let low = 0, high = arr.length;
+    while (low < high) {
+        const mid = Math.floor((low + high) / 2);
+        if (arr[mid] < val) low = mid + 1;
+        else high = mid;
+    }
+    return low;
+}
+
 function round(num, decimalPlaces = 0) {
     num = Math.round(num + "e" + decimalPlaces);
     return Number(num + "e" + -decimalPlaces);
@@ -243,8 +254,9 @@ jsonDataFile.addEventListener("change", function() {
         //console.log(result);
         var jsonData = JSON.parse(result);
         //parse the data into better arrays
+  
         window.userData = new UserData(jsonData)
-
+        
         //Create the dropdown for the title of the graph and set its functionality
         if(document.getElementById("title-dropdown")) document.getElementById("title-dropdown").remove()
         window.dropdown = document.createElement("select");
@@ -342,7 +354,7 @@ jsonDataFile.addEventListener("change", function() {
         const toggleTableHeader = document.createElement("tbody")
         const toggleTableHeaderRow = document.createElement("tr")
         const toggleTableHeaderData = document.createElement("th")
-        toggleTableHeaderData.innerText = "Series: "
+        toggleTableHeaderData.innerHTML = "<p>Series: </p>"
         toggleTableHeaderData.setAttribute("colspan", "3")
         toggleTableHeaderData.classList.add("buttonsTitle")
         toggleTableHeaderRow.appendChild(toggleTableHeaderData)
@@ -368,7 +380,7 @@ jsonDataFile.addEventListener("change", function() {
             if (!window.userData.visibilities[i - 1]) newButton1.classList.toggle('pressed')
 
             //create 2nd the toggle button
-            const newButton2 = createButton(window.userData.labels[i+1], (e) => {
+            const newButton2 = createButton("PB", (e) => {
                 const currentVisibility = window.userData.visibilities[i];
                 window.userData.visibilities[i] = !currentVisibility;
                 window.g.setVisibility(window.userData.visibilities, true);
@@ -509,6 +521,7 @@ class UserData {
         //names of sessions
         this.sessions = [];
         //Get the session names
+        const sessNamesStartTime = performance.now() 
         if(data.properties.sessionData != undefined){
             const sessionData = JSON.parse(data.properties.sessionData)
             for(let i = 0; i < 100; i++) {
@@ -518,6 +531,9 @@ class UserData {
                 }
             }
         }
+        const sessNamesEndTime = performance.now()
+        console.log(`get session names: ${round(sessNamesEndTime - sessNamesStartTime)} milliseconds`)
+        
 
         this.labels = [ "Date", "Time","PB Single", "ao5", "PB ao5", "ao12", "PB ao12", "ao100","PB ao100", "ao1000","PB ao1000" ];
         this.colors = ["#084C61", "#084C61", "#177E89", "#177E89", "#85A06A", "#85A06A", "#FFAD0A", "#FFAD0A", "#E45E3D", "#E45E3D"];
@@ -539,6 +555,7 @@ class UserData {
         this.pbData = makeArrayOfArrays(this.numSessions);
 
         //Add the first two columns: solve date, solve time
+        const fcstartTime = performance.now() 
         for (let s = 1; s <= this.numSessions; s++) {
             const sessionKey = `session${s}`;
             if (data[sessionKey] !== undefined) {
@@ -548,15 +565,26 @@ class UserData {
                 }
             }
         }
+        const fcendTime = performance.now()
+        console.log(`first 2 cols: ${round(fcendTime - fcstartTime)} milliseconds`)
+        
 
         //Delete DNFs
+        const ddstartTime = performance.now() 
         for(let j = 0; j < this.numSessions; j++) {
             for(let i = 0; i < this.solves[j].length; i++) {
-                if(this.solves[j][i][1] == 0) {this.solves[j].splice(i,1);}
+                if(this.solves[j][i][1] == 0) {
+                    this.solves[j].splice(i,1);
+                    i-=1;
+                }
             }
         }
+        const ddendTime = performance.now()
+        console.log(`delete dnfs: ${round(ddendTime - ddstartTime)} milliseconds`)
+        
 
         //create the default data series
+        const ddsstartTime = performance.now() 
         this.pbsOfLastCol(1);
         this.pushAvg(5);
         this.pbsOfLastCol(5);
@@ -566,22 +594,37 @@ class UserData {
         this.pbsOfLastCol(100);
         this.pushAvg(1000);
         this.pbsOfLastCol(1000);
+        const ddsendTime = performance.now()
+        console.log(`default series: ${round(ddsendTime - ddsstartTime)} milliseconds`)
+        
 
         //This creates solves2, which is solves but x-axis is solve#
+        const s2startTime = performance.now() 
         for(let i = 0; i < this.numSessions; i++) {
             for(let k = 0; k < this.solves[i].length; k++) {
                 this.solves2[i].push(Array.from(this.solves[i][k]))
                 this.solves2[i][k][0] = k+1;
             }
         }
+        const s2endTime = performance.now()
+        console.log(`create solves2: ${round(s2endTime - s2startTime)} milliseconds`)
+        
 
         //add the data for histogram
+        const chstartTime = performance.now() 
         this.createHist(1)
         this.genSlidingWindowDefaults()
         this.genCreationDefaults()
+        const chendTime = performance.now()
+        console.log(`create histogram: ${round(chendTime - chstartTime)} milliseconds`)
+        
 
         //create the pb table
+        const pbstartTime = performance.now() 
         this.updatePBTable(0);
+        const pbendTime = performance.now()
+        console.log(`pb table: ${round(pbendTime - pbstartTime)} milliseconds`)
+        
     }
 
     createHist(bucketSize) {
@@ -704,9 +747,9 @@ class UserData {
         }
         deviation /= numSolves;
         deviation = deviation ** 0.5
-        console.log("mean: " + mean)
-        console.log("max: " + max)
-        console.log("stddev: " + deviation)
+        //console.log("mean: " + mean)
+        //console.log("max: " + max)
+        //console.log("stddev: " + deviation)
 
         //-----width-----
         const rawWidth = deviation / 6;
@@ -772,43 +815,47 @@ class UserData {
 
     //append a column for the average of the x last solves
     pushAvg(x) {
+        const pastartTime = performance.now() 
+        let sum,mean
+        
         for (let j = 0; j < this.numSessions; j++) {
-          const solves = this.solves[j];
-          const clip = Math.ceil(0.05 * x); //Remove top and bottom 5% of solves
-          let windo = [];
-      
-          for (let i = 0; i < solves.length; i++) {
-            if (i < x - 1) { //Cant make an average without enough data
-              solves[i].push(NaN); 
+            const solves = this.solves[j];
 
-              // Insert new solve time in sorted position
-              const newVal = solves[i][1];
-              const insertIdx = windo.findIndex(val => val > newVal);
-              if (insertIdx === -1) windo.push(newVal);
-              else windo.splice(insertIdx, 0, newVal);
+            const clip = Math.ceil(0.05 * x); //Remove top and bottom 5% of solves
+            const trimmedSize = x-clip*2
+            let windo = [];
+            
+            for (let i = 0; i < solves.length; i++) {
+                const newVal = solves[i][1];
+                if (i < x) { //Cant make an average without enough data
+                    solves[i].push(NaN); 
+                    // Insert new solve time in sorted position
+                    const insertIdx = binarySearchInsertIdx(windo, newVal);
+                    if (insertIdx === -1) windo.push(newVal);
+                    else windo.splice(insertIdx, 0, newVal);
+                } else {
+                    // Remove oldest if window is full
+                    const old = solves[i - x][1];
+                    const removeIdx = binarySearchInsertIdx(windo, old);
+                    if (removeIdx !== -1) windo.splice(removeIdx, 1);
+                    
+                    // Insert new solve time in sorted position
+                    const insertIdx = binarySearchInsertIdx(windo, newVal);
+                    if (insertIdx === -1) windo.push(newVal);
+                    else windo.splice(insertIdx, 0, newVal);
+            
+                    //mean of clipped portion
+                    sum = 0;
+                    for(let k = clip; k < x-clip; k++) {sum+=windo[k]}
+                    mean = sum/trimmedSize
 
-            } else {
-              // Remove oldest if window is full
-              if (windo.length === x) {
-                const old = solves[i - x][1];
-                const idx = windo.findIndex(val => val === old);
-                if (idx !== -1) windo.splice(idx, 1);
-              }
-      
-              // Insert new solve time in sorted position
-              const newVal = solves[i][1];
-              const insertIdx = windo.findIndex(val => val > newVal);
-              if (insertIdx === -1) windo.push(newVal);
-              else windo.splice(insertIdx, 0, newVal);
-      
-              // Copy clipped portion
-              const trimmed = windo.slice(clip, x - clip);
-              const sum = trimmed.reduce((a, b) => a + b, 0);
-              const mean = sum / trimmed.length;
-              solves[i].push(mean);
+                    solves[i].push(mean);
+                }
             }
-          }
         }
+
+        const paendTime = performance.now()
+        console.log(`   push ao${x}: ${round(paendTime - pastartTime)} milliseconds`)
     }
 
     /*
@@ -832,6 +879,8 @@ class UserData {
 
     //Append a col for the pb of the previous col
     pbsOfLastCol(x) {
+        const pblstartTime = performance.now() 
+        
         
         //do this for each session
         for(let j = 0; j < this.numSessions; j++){
@@ -871,6 +920,9 @@ class UserData {
                 this.pbData[j].push(pbStats);
             }
         }
+
+        const pblendTime = performance.now()
+        console.log(`   pb ao${x}: ${round(pblendTime - pblstartTime)} milliseconds`)
         
     }
 

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <head>
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1, user-scalable=0">
     <link rel="stylesheet" type="text/css" href="lib/dygraph.css" />
     <link rel="stylesheet" type="text/css" href="style.css">
     <script type="text/javascript" src="lib/dygraph.js"></script>
@@ -15,7 +16,7 @@
         <form id="fileinput">
             <input type="file" id="UploadFile">
         </form>
-        <button id="hintButton">?</button>
+        <button id="hintButton" class="helpButton">?</button>
         <div id="githubLink">
             <a href="https://github.com/SierpinskiBrot/csGrapher">GitHub</a>
         </div>
@@ -69,7 +70,7 @@
     <div id="histogramContainer" style="display:none;flex-wrap:nowrap;">
         <div id="histLeftButtons">
             <table style="width: 100%" class="formTable">
-                <tbody><tr><th colspan="2">Column width(sec)</th></tr></tbody>
+                <tbody><tr><th colspan="2"><p>Column width(sec)</p></th></tr></tbody>
                 <tbody>
                     <tr>
                         <td><input style="width: -webkit-fill-available;" type="number" min="0.001" max="1000" placeholder="Size(s)" step="0.001" value="1" id="histBucketInput"></td>
@@ -84,8 +85,8 @@
                     <tr>
                         <th colspan="2">
                             <div style="display: flex;">
-                                Sliding window animation
-                                <button id="slidingWindowHelpButton" style="flex-grow: 1;">?</button>
+                                <p style="flex-grow: 1;">Sliding window animation</p>
+                                <button id="slidingWindowHelpButton" class="helpButton">?</button>
                             </div>
                         </th>
                     </tr>
@@ -127,8 +128,8 @@
                     <tr>
                         <th colspan="2">
                             <div style="display: flex;">
-                                Creation animation
-                                <button id="creationHelpButton" style="flex-grow: 1;">?</button>
+                                <p style="flex-grow: 1;">Creation animation</p>
+                                <button id="creationHelpButton" class="helpButton">?</button>
                             </div>
                         </th>
                     </tr>
