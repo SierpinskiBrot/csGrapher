@@ -57,6 +57,133 @@ const sleep = function(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+function doSeriesLineStyling(i) {
+    const label_ = window.userData.labels[i]
+    const color_ = window.userData.colors[i - 1]
+    const width_ = window.userData.widths[i - 1]
+    //Default setup
+    window.g.updateOptions({series : { 
+        [label_] : {
+            color : color_,
+            strokeWidth : width_
+        }
+    }})
+    //Dashed line for pb
+    if(label_[0] == 'P') {
+        window.g.updateOptions({series : { [label_] : {strokePattern: Dygraph.DASHED_LINE}}})
+    }
+    //Points for time
+    if(label_ == 'Time') {
+        window.g.updateOptions({series : { [label_] : {
+            strokeWidth: 0,
+            drawPoints: true,
+            pointSize: width_}}})
+    }
+}
+
+function createSeriesRow(i) {
+    //create 1st the toggle button
+    const newButton1 = createButton(window.userData.labels[i], (e) => {
+        const currentVisibility = window.userData.visibilities[i - 1];
+        window.userData.visibilities[i - 1] = !currentVisibility;
+        window.g.setVisibility(window.userData.visibilities, true);
+        const tgt = e.target.closest('button');
+        tgt.classList.toggle('pressed');
+    }, "seriesToggle")
+    //set the color
+    const color1 = window.userData.colors[i - 1];
+    newButton1.style = "background:" + color1 + "; border-color: " + color1
+    //redundant as visibility is reset when a file is uploaded
+    if (!window.userData.visibilities[i - 1]) newButton1.classList.toggle('pressed')
+
+    //create 2nd the toggle button
+    const newButton2 = createButton("PB", (e) => {
+        const currentVisibility = window.userData.visibilities[i];
+        window.userData.visibilities[i] = !currentVisibility;
+        window.g.setVisibility(window.userData.visibilities, true);
+        const tgt = e.target.closest('button');
+        tgt.classList.toggle('pressed');
+    }, "seriesToggle")
+    //set the color
+    const color2 = window.userData.colors[i];
+    newButton2.style = "background:" + color2 + "; border-color: " + color2
+    //redundant as visibility is reset when a file is uploaded
+    if (!window.userData.visibilities[i]) newButton2.classList.toggle('pressed')
+
+
+    //create the settings button
+    const seriesSettings = createButton(">", (e) => {
+        const settings = document.getElementById("seriesSettingsBox")
+        //make the settings box visible and move it to the cursor
+        settings.style.display = settings.style.display === 'block' ? 'none' : 'block';
+        settings.style.top = e.pageY + "px"
+        settings.style.left = e.pageX + 10 + "px"
+        settings.name = i+1 //use the name attribute to know which series is being edited
+
+        //set the value of the color selector to the color of the buttons
+        const colorSelector = document.getElementById("seriesColorSelector");
+        colorSelector.value = window.userData.colors[i - 1];
+
+        //set the value of the width selector the the width of the series
+        const widthSelector = document.getElementById("seriesWidthSelector")
+        widthSelector.value = window.userData.widths[i - 1];
+    }, "seriesSettings")
+
+
+    const cell1 = document.createElement("td")
+    cell1.appendChild(newButton1)
+    const cell2 = document.createElement("td")
+    cell2.appendChild(newButton2)
+    const cell3 = document.createElement("td")
+    cell3.appendChild(seriesSettings)
+    const newRow = document.createElement("tr")
+    newRow.appendChild(cell1)
+    newRow.appendChild(cell2)
+    newRow.appendChild(cell3)
+    return newRow
+}
+
+document.getElementById("addSeriesBtn").addEventListener("click", () => {
+    const type = document.getElementById("newAvgType").value; // 'ao' or 'mo'
+    const size = parseInt(document.getElementById("newAvgSize").value);
+    const width = parseInt(document.getElementById('newAvgWidth').value)
+    if (isNaN(size) || size < 1) return alert("Please enter a valid number.");
+  
+    const label1 = `${type}${size}`;
+    const label2 = "PB "+label1
+    const color = document.getElementById("newAvgColor").value
+    const index = window.userData.labels.length;
+  
+    // Avoid duplicates
+    if (window.userData.labels.includes(label1)) {
+      alert("This series already exists.");
+      return;
+    }
+  
+    window.userData.labels.push(label1);window.userData.labels.push(label2);
+    window.userData.colors.push(color);window.userData.colors.push(color);
+    window.userData.widths.push(width);window.userData.widths.push(width);
+    window.userData.visibilities.push(true);window.userData.visibilities.push(true);
+  
+    if (type === "ao") {
+      window.userData.pushAvg(size);
+    } else {
+      window.userData.pushMean(size);
+    }
+    window.userData.pbsOfLastCol(size)
+    window.userData.createSolves2();
+  
+    //window.userData.updateVisibility();
+    //window.userData.updateLegend();
+    //window.userData.updateSeriesTable(); // re-render buttons
+    const newRow = createSeriesRow(index);
+    document.getElementById("toggleTableBody").appendChild(newRow)
+    doSeriesLineStyling(index)
+    doSeriesLineStyling(index+1)
+    updateGraph();
+    
+  });
+
 // Utility to make N arrays
 const makeArrayOfArrays = (n) => Array(n).fill().map(() => []);
 
@@ -315,113 +442,16 @@ jsonDataFile.addEventListener("change", function() {
         
         //Line styling for each line
         for(let i = 1; i < window.userData.labels.length; i++) {
-            const label_ = window.userData.labels[i]
-            const color_ = window.userData.colors[i - 1]
-            const width_ = window.userData.widths[i - 1]
-            //Default setup
-            window.g.updateOptions({series : { 
-                [label_] : {
-                    color : color_,
-                    strokeWidth : width_
-                }
-            }})
-            //Dashed line for pb
-            if(label_[0] == 'P') {
-                window.g.updateOptions({series : { [label_] : {strokePattern: Dygraph.DASHED_LINE}}})
-            }
-            //Points for time
-            if(label_ == 'Time') {
-                window.g.updateOptions({series : { [label_] : {
-                    strokeWidth: 0,
-                    drawPoints: true,
-                    pointSize: width_}}})
-            }
+            doSeriesLineStyling(i)
         }
         
         //-----create the series toggle buttons-----
-        const graphLeftButtons = document.getElementById("graphLeftButtons")
-        document.getElementById("graphLeftButtons").replaceChildren(); //delete any existing buttons on the left
-        const toggleTable = document.createElement("table");
-        toggleTable.id = "toggleTable"
-        toggleTable.style = "width: 100%"
-
-        //create the title "Series:"
-        const toggleTableHeader = document.createElement("tbody")
-        const toggleTableHeaderRow = document.createElement("tr")
-        const toggleTableHeaderData = document.createElement("th")
-        toggleTableHeaderData.innerHTML = "<p>Series: </p>"
-        toggleTableHeaderData.setAttribute("colspan", "3")
-        toggleTableHeaderData.classList.add("buttonsTitle")
-        toggleTableHeaderRow.appendChild(toggleTableHeaderData)
-        toggleTableHeader.appendChild(toggleTableHeaderRow)
-        toggleTable.appendChild(toggleTableHeader)
-        graphLeftButtons.appendChild(toggleTable)
-        
-        //create the buttons
-        const toggleTableBody = document.createElement("tbody")
+        const toggleTableBody = document.getElementById("toggleTableBody")
+        toggleTableBody.replaceChildren();
         for (let i = 1; i < window.userData.labels.length; i+=2) {
-            //create 1st the toggle button
-            const newButton1 = createButton(window.userData.labels[i], (e) => {
-                const currentVisibility = window.userData.visibilities[i - 1];
-                window.userData.visibilities[i - 1] = !currentVisibility;
-                window.g.setVisibility(window.userData.visibilities, true);
-                const tgt = e.target.closest('button');
-                tgt.classList.toggle('pressed');
-            }, "seriesToggle")
-            //set the color
-            const color1 = window.userData.colors[i - 1];
-            newButton1.style = "background:" + color1 + "; border-color: " + color1
-            //redundant as visibility is reset when a file is uploaded
-            if (!window.userData.visibilities[i - 1]) newButton1.classList.toggle('pressed')
-
-            //create 2nd the toggle button
-            const newButton2 = createButton("PB", (e) => {
-                const currentVisibility = window.userData.visibilities[i];
-                window.userData.visibilities[i] = !currentVisibility;
-                window.g.setVisibility(window.userData.visibilities, true);
-                const tgt = e.target.closest('button');
-                tgt.classList.toggle('pressed');
-            }, "seriesToggle")
-            //set the color
-            const color2 = window.userData.colors[i];
-            newButton2.style = "background:" + color2 + "; border-color: " + color2
-            //redundant as visibility is reset when a file is uploaded
-            if (!window.userData.visibilities[i]) newButton2.classList.toggle('pressed')
-
-
-            //create the settings button
-            const seriesSettings = createButton(">", (e) => {
-                const settings = document.getElementById("seriesSettingsBox")
-                //make the settings box visible and move it to the cursor
-                settings.style.display = settings.style.display === 'block' ? 'none' : 'block';
-                settings.style.top = e.pageY + "px"
-                settings.style.left = e.pageX + 10 + "px"
-                settings.name = i+1 //use the name attribute to know which series is being edited
-
-                //set the value of the color selector to the color of the buttons
-                const colorSelector = document.getElementById("seriesColorSelector");
-                colorSelector.value = window.userData.colors[i - 1];
-
-                //set the value of the width selector the the width of the series
-                const widthSelector = document.getElementById("seriesWidthSelector")
-                widthSelector.value = window.userData.widths[i - 1];
-            }, "seriesSettings")
-
-
-            const cell1 = document.createElement("td")
-            cell1.appendChild(newButton1)
-            const cell2 = document.createElement("td")
-            cell2.appendChild(newButton2)
-            const cell3 = document.createElement("td")
-            cell3.appendChild(seriesSettings)
-            const newRow = document.createElement("tr")
-            newRow.appendChild(cell1)
-            newRow.appendChild(cell2)
-            newRow.appendChild(cell3)
+            const newRow = createSeriesRow(i);
             toggleTableBody.appendChild(newRow)
         }
-        toggleTable.appendChild(toggleTableBody)
-
         
 
         //create the histogram buttons
@@ -592,12 +622,7 @@ class UserData {
 
         //This creates solves2, which is solves but x-axis is solve#
         const s2startTime = performance.now() 
-        for(let i = 0; i < this.numSessions; i++) {
-            for(let k = 0; k < this.solves[i].length; k++) {
-                this.solves2[i].push(Array.from(this.solves[i][k]))
-                this.solves2[i][k][0] = k+1;
-            }
-        }
+        this.createSolves2();
         const s2endTime = performance.now()
         console.log(`create solves2: ${round(s2endTime - s2startTime)} milliseconds`)
         
@@ -619,6 +644,16 @@ class UserData {
         const pbendTime = performance.now()
         console.log(`pb table: ${round(pbendTime - pbstartTime)} milliseconds`)
         
+    }
+
+    createSolves2() {
+        this.solves2 = makeArrayOfArrays(this.numSessions);
+        for(let i = 0; i < this.numSessions; i++) {
+            for(let k = 0; k < this.solves[i].length; k++) {
+                this.solves2[i].push(Array.from(this.solves[i][k]))
+                this.solves2[i][k][0] = k+1;
+            }
+        }
     }
 
     createHist(bucketSize) {

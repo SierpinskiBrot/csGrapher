@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <head>
+    <title>csGrapher</title>
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1, user-scalable=0">
     <link rel="stylesheet" type="text/css" href="lib/dygraph.css" />
     <link rel="stylesheet" type="text/css" href="style.css">
@@ -38,7 +39,52 @@
     </div>
 
     <div id="graphContainer" style="display: flex; flex-wrap: nowrap;">
-        <div id="graphLeftButtons"></div>
+        <div id="graphLeftButtons">
+            <table id="toggleTable">
+                <tbody>
+                    <tr>
+                        <th colspan="3" class="buttonsTitle">
+                            <p>Series:</p>
+                        </th>
+                    </tr>
+                </tbody>
+                <tbody id="toggleTableBody">
+                    <tr><td colspan="3">Waiting for file upload...</td></tr>
+                    <tr><td colspan="3">Waiting for file upload...</td></tr>
+                    <tr><td colspan="3">Waiting for file upload...</td></tr>
+                    <tr><td colspan="3">Waiting for file upload...</td></tr>
+                    <tr><td colspan="3">Waiting for file upload...</td></tr>
+                </tbody>
+            </table>
+            <br>
+            <table class="formTable">
+                <tbody>
+                    <tr><th colspan="2"><p>Create:</p></th></tr>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td>
+                            <select id="newAvgType">
+                                <option value="ao">aoX</option>
+                                <option value="mo">moX</option>
+                            </select>
+                        </td>
+                        <td><input type="number" id="newAvgSize" min="1" max="1000000" value="2000"></td>
+                    </tr>
+                    <tr>
+                        <td>Color:</td>
+                        <td><input id="newAvgColor" type="color" value="#D6D6D6"></td>
+                    </tr>
+                    <tr>
+                        <td>Width:</td>
+                        <td><input id="newAvgWidth" type="number" value=2 min="1" max="10"></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"><button id="addSeriesBtn">Add</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <div id="graphdiv"></div>
 
         <div id="graphRightButtons">
@@ -72,18 +118,18 @@
     </div>
     <div id="histogramContainer" style="display:none;flex-wrap:nowrap;">
         <div id="histLeftButtons">
-            <table style="width: 100%" class="formTable">
+            <table class="formTable">
                 <tbody><tr><th colspan="2"><p>Column width(sec)</p></th></tr></tbody>
                 <tbody>
                     <tr>
-                        <td><input style="width: -webkit-fill-available;" type="number" min="0.001" max="1000" placeholder="Size(s)" step="0.001" value="1" id="histBucketInput"></td>
+                        <td><input type="number" min="0.001" max="1000" placeholder="Size(s)" step="0.001" value="1" id="histBucketInput"></td>
                         <td><button id="histBucketReset" style="width: 100%">Reset</button></td>
                     </tr>
                 </tbody>
             </table>
             <br>
             <br>
-            <table style="width: 100%" class="formTable">
+            <table class="formTable">
                 <tbody>
                     <tr>
                         <th colspan="2">
@@ -97,30 +143,30 @@
                 <tbody>
                     <tr>
                         <td>Width</td>
-                        <td><input style="width: -webkit-fill-available;" type="number" min="0.001" max="1000000" placeholder="Width" step="0.001" value="1" id="sldWinWidth"></td>
+                        <td><input type="number" min="0.001" max="1000000" placeholder="Width" step="0.001" value="1" id="sldWinWidth"></td>
                     </tr>
                     <tr>
                         <td>Window</td>
-                        <td><input style="width: -webkit-fill-available;" type="number" min="1" max="1000000" placeholder="Window" step="1" value="1" id="sldWinWindow"></td>
+                        <td><input type="number" min="1" max="1000000" placeholder="Window" step="1" value="1" id="sldWinWindow"></td>
                     </tr>
                     <tr>
                         <td>Step</td>
-                        <td><input style="width: -webkit-fill-available;" type="number" min="1" max="1000000" placeholder="Step" step="1" value="1" id="sldWinStep"></td>
+                        <td><input type="number" min="1" max="1000000" placeholder="Step" step="1" value="1" id="sldWinStep"></td>
                     </tr>
                     <tr>
                         <td>X max</td>
-                        <td><input style="width: -webkit-fill-available;" type="number" min="0.1" max="1000000" placeholder="X max" step="0.1" value="1" id="sldWinXmax"></td>
+                        <td><input type="number" min="0.1" max="1000000" placeholder="X max" step="0.1" value="1" id="sldWinXmax"></td>
                     </tr>
                     <tr>
                         <td>Time</td>
-                        <td><input style="width: -webkit-fill-available;" type="number" min="1" max="1000000" placeholder="Time" step="1" value="1" id="sldWinTime"></td>
+                        <td><input type="number" min="1" max="1000000" placeholder="Time" step="1" value="1" id="sldWinTime"></td>
                     </tr>
                     <tr>
-                        <td><button id="sldWinReset" style="width: -webkit-fill-available;">Reset</button></td>
-                        <td><button id="sldWinDefaults" style="width: -webkit-fill-available;">Defaults</button></td>
+                        <td><button id="sldWinReset">Reset</button></td>
+                        <td><button id="sldWinDefaults">Defaults</button></td>
                     </tr>
                     <tr>
-                        <td colspan="2"><button id="sldWinPlay" style="width: -webkit-fill-available;">Play</button></td>
+                        <td colspan="2"><button id="sldWinPlay">Play</button></td>
                     </tr>
                     <tr>
                         <td colspan="2" id="sldWinProgressBar" class="animationProgressBar"><div></div></td>
@@ -129,7 +175,7 @@
             </table>
             <br>
             <br>
-            <table style="width: 100%" class="formTable">
+            <table class="formTable">
                 <tbody>
                     <tr>
                         <th colspan="2">
@@ -143,22 +189,22 @@
                 <tbody>
                     <tr>
                         <td>Width</td>
-                        <td><input style="width: -webkit-fill-available;" type="number" min="0.001" max="1000000" placeholder="Width" step="0.001" value="1" id="creationWidth"></td>
+                        <td><input type="number" min="0.001" max="1000000" placeholder="Width" step="0.001" value="1" id="creationWidth"></td>
                     </tr>
                     <tr>
                         <td>Step</td>
-                        <td><input style="width: -webkit-fill-available;" type="number" min="1" max="1000000" placeholder="Step" step="1" value="1" id="creationStep"></td>
+                        <td><input type="number" min="1" max="1000000" placeholder="Step" step="1" value="1" id="creationStep"></td>
                     </tr>
                     <tr>
                         <td>X max</td>
-                        <td><input style="width: -webkit-fill-available;" type="number" min="0.1" max="1000000" placeholder="X max" step="0.1" value="1" id="creationXmax"></td>
+                        <td><input type="number" min="0.1" max="1000000" placeholder="X max" step="0.1" value="1" id="creationXmax"></td>
                     </tr>
                     <tr>
-                        <td><button id="creationReset" style="width: -webkit-fill-available;">Reset</button></td>
-                        <td><button id="creationDefaults" style="width: -webkit-fill-available;">Defaults</button></td>
+                        <td><button id="creationReset">Reset</button></td>
+                        <td><button id="creationDefaults">Defaults</button></td>
                     </tr>
                     <tr>
-                        <td colspan="2"><button id="creationPlay" style="width: -webkit-fill-available;">Play</button></td>
+                        <td colspan="2"><button id="creationPlay">Play</button></td>
                     </tr>
                     <tr>
                         <td colspan="2" id="creationProgressBar" class="animationProgressBar"><div></div></td>

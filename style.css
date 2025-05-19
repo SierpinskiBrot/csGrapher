@@ -234,10 +234,15 @@ button.seriesToggle.pressed {
 }
 
 #toggleTable {
+    width: 100%;
     border-spacing: 0px;
-    background: #323031;
+    background: #D6D6D6;
     margin: 0px;
     padding: 0px;
+}
+
+#toggleTableBody > tr:nth-child(even) {
+    background-color: #CCCCCC;
 }
 
 .hintOverlay {
@@ -307,8 +312,14 @@ button.seriesToggle.pressed {
 }
 
 .formTable {
+    width: 100%;
     border-spacing: 0px;
     border: solid thin #323031;
+    background-color: #CCCCCC;
+}
+
+.formTable tr:nth-child(even) {
+    background-color: #D6D6D6;
 }
 
 table.formTable > tbody > tr > th > div > button {
@@ -376,5 +387,9 @@ div.hintContent > table > tbody > tr > th, div.hintContent > table > tbody > tr 
     background-color: #DB3A34;
     width: 0%;
     height: 100%;
+}
+
+.formTable input, .formTable button {
+    width: -webkit-fill-available;
 }
 
