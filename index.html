@@ -16,7 +16,7 @@
         <form id="fileinput">
             <input type="file" id="UploadFile">
         </form>
-        <button id="hintButton" class="helpButton">?</button>
+        <button id="hintButton" class="helpButton" onclick="document.getElementById('fileHintOverlay').style.display = 'flex';">?</button>
         <div id="githubLink">
             <a href="https://github.com/SierpinskiBrot/csGrapher">GitHub</a>
         </div>
@@ -32,7 +32,10 @@
             <p>Statistics</p>
         </button>
     </div>
-    <div id="legendLine"></div>
+    <div id="legendLine">
+        <div id="graphLegend"></div>
+        <div id="histLegend"></div>
+    </div>
 
     <div id="graphContainer" style="display: flex; flex-wrap: nowrap;">
         <div id="graphLeftButtons"></div>
@@ -86,7 +89,7 @@
                         <th colspan="2">
                             <div style="display: flex;">
                                 <p style="flex-grow: 1;">Sliding window animation</p>
-                                <button id="slidingWindowHelpButton" class="helpButton">?</button>
+                                <button id="slidingWindowHelpButton" class="helpButton" onclick="document.getElementById('slidingWindowHintOverlay').style.display = 'flex';">?</button>
                             </div>
                         </th>
                     </tr>
@@ -119,6 +122,9 @@
                     <tr>
                         <td colspan="2"><button id="sldWinPlay" style="width: -webkit-fill-available;">Play</button></td>
                     </tr>
+                    <tr>
+                        <td colspan="2" id="sldWinProgressBar" class="animationProgressBar"><div></div></td>
+                    </tr>
                 </tbody>
             </table>
             <br>
@@ -129,7 +135,7 @@
                         <th colspan="2">
                             <div style="display: flex;">
                                 <p style="flex-grow: 1;">Creation animation</p>
-                                <button id="creationHelpButton" class="helpButton">?</button>
+                                <button id="creationHelpButton" class="helpButton" onclick="document.getElementById('creationHintOverlay').style.display = 'flex';">?</button>
                             </div>
                         </th>
                     </tr>
@@ -154,6 +160,9 @@
                     <tr>
                         <td colspan="2"><button id="creationPlay" style="width: -webkit-fill-available;">Play</button></td>
                     </tr>
+                    <tr>
+                        <td colspan="2" id="creationProgressBar" class="animationProgressBar"><div></div></td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -163,13 +172,18 @@
     <div id="statsContainer" style="display:none; flex-wrap:nowrap">
         <div id="statsLeftButtons"></div>
         <table id="pbStats" style="width: 80%">
-            <tr id="pbStatsHeader">
-                <th>Time</th>
-                <th>DD/MM/YYYY</th>
-                <th>PB For Time</th>
-                <th>Solve #</th>
-                <th>PB For # Solves</th>
-            </tr>
+            <tbody id="pbStatsHead">
+                <tr id="pbStatsHeader">
+                    <th>Time</th>
+                    <th>DD/MM/YYYY</th>
+                    <th>PB For Time</th>
+                    <th>Solve #</th>
+                    <th>PB For # Solves</th>
+                </tr>
+            </tbody>
+            <tbody id="pbStatsBody">
+
+            </tbody>
         </table>
         <div id="statsRightButtons"></div>
     </div>
@@ -200,7 +214,7 @@
     <div id="fileHintOverlay" class="hintOverlay">
         <div id="fileHintContent" class="hintContent">
             <img src="resources/cstimer-export-help.jpg" alt="Export instructions for csTimer">
-            <button id="fileCloseHint" class="closeHint">X</button>
+            <button id="fileCloseHint" class="closeHint" onclick="document.getElementById('fileHintOverlay').style.display = 'none';">X</button>
         </div>
     </div>
     <div id="slidingWindowHintOverlay" class="hintOverlay">
@@ -208,7 +222,7 @@
             <video controls autoplay width="960" height="540" alt="Sliding window diagram">
                 <source src="resources/slidingWindowAnimation.mp4" type="video/mp4" />
             </video>
-            <button id="slidingWindowCloseHint" class="closeHint">X</button>
+            <button id="slidingWindowCloseHint" class="closeHint" onclick="document.getElementById('slidingWindowHintOverlay').style.display = 'none';">X</button>
             <table style="background: #FFC857 ">
                 <tbody>
                     <tr>
@@ -239,7 +253,7 @@
             <video controls autoplay width="960" height="540" alt="Creatiom diagram">
                 <source src="resources/creationAnimation.mp4" type="video/mp4" />
             </video>
-            <button id="creationCloseHint" class="closeHint">X</button>
+            <button id="creationCloseHint" class="closeHint" onclick="document.getElementById('creationHintOverlay').style.display = 'none';">X</button>
             <table style="background: #FFC857 ">
                 <tbody>
                     <tr>
@@ -265,6 +279,6 @@
             Width:
             <input id="seriesWidthSelector" type="number" class="width-input" min="1" max="10">
         </label>
-        <button id="seriesCloseSelector" class="close-settings">X</button>
+        <button id="seriesCloseSelector" class="close-settings" onclick="document.getElementById('seriesSettingsBox').style.display = 'none'">X</button>
     </div>
 </body>

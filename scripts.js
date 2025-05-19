@@ -3,7 +3,6 @@ import "./lib/dygraph.js";
 //              x,     y
 var logScale = [false, false]
 
-var userData = null;
 window.selectedSess = 0; //selected session from the cstimer
 
 
@@ -54,51 +53,49 @@ function dhm (ms) {
     return days + " Days, " + hours + " Hours, " + minutes + " Mins";
 }
 
+const sleep = function(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
 
-document.getElementById('hintButton').onclick = () => {
-    document.getElementById('fileHintOverlay').style.display = 'flex';
+// Utility to make N arrays
+const makeArrayOfArrays = (n) => Array(n).fill().map(() => []);
+
+//Update the graph
+window.updateGraph = function() {
+    window.selectedSess = document.getElementById("title-dropdown").value;
+    window.g.updateOptions({
+        file: window.userData.solves[window.selectedSess], 
+        xlabel: (logScale[0] ? "Log(": "") + window.userData.xTitle + (logScale[0] ? ")": ""),
+        ylabel: (logScale[1] ? "Log(": "") + "Time(s)" + (logScale[1] ? ")": "")
+    });
 };
-  
-document.getElementById('fileCloseHint').onclick = () => {
-    document.getElementById('fileHintOverlay').style.display = 'none';
-};
+
+//Update the histogram
+window.updateHist = function() {
+    window.selectedSess = document.getElementById("title-dropdown").value;
+    window.h.updateOptions({
+        file: window.userData.hist[window.selectedSess]
+    });
+};  
+
+
 //clicking outside the image closes it too
 document.getElementById('fileHintOverlay').onclick = (e) => {
     if (e.target.id === 'fileHintOverlay') {
         document.getElementById('fileHintOverlay').style.display = 'none';
     }
 };
-
-document.getElementById('slidingWindowHelpButton').onclick = () => {
-    document.getElementById('slidingWindowHintOverlay').style.display = 'flex';
-};
-
-document.getElementById('slidingWindowCloseHint').onclick = () => {
-    document.getElementById('slidingWindowHintOverlay').style.display = 'none';
-};
-//clicking outside the image closes it too
 document.getElementById('slidingWindowHintOverlay').onclick = (e) => {
     if (e.target.id === 'slidingWindowHintOverlay') {
         document.getElementById('slidingWindowHintOverlay').style.display = 'none';
     }
 };
-
-document.getElementById('creationHelpButton').onclick = () => {
-    document.getElementById('creationHintOverlay').style.display = 'flex';
-};
-
-document.getElementById('creationCloseHint').onclick = () => {
-    document.getElementById('creationHintOverlay').style.display = 'none';
-};
-//clicking outside the image closes it too
 document.getElementById('creationHintOverlay').onclick = (e) => {
     if (e.target.id === 'creationHintOverlay') {
         document.getElementById('creationHintOverlay').style.display = 'none';
     }
 };
 
-// Utility to make N arrays
-const makeArrayOfArrays = (n) => Array(n).fill().map(() => []);
 
 //#region handle the toolbar buttons on the top
 window.currentTab = "graph";
@@ -108,6 +105,8 @@ const statsButton = document.getElementById("statsButton");
 const graphContainer = document.getElementById("graphContainer");
 const histogramContainer = document.getElementById("histogramContainer");
 const statsContainer = document.getElementById("statsContainer");
+const graphLegend = document.getElementById("graphLegend")
+const histLegend = document.getElementById("histLegend")
 function resetContainers() {
     histogramContainer.style.display = "none";
     histogramButton.classList.remove("pressed");
@@ -115,6 +114,8 @@ function resetContainers() {
     statsButton.classList.remove("pressed");
     graphContainer.style.display = "none";
     graphButton.classList.remove("pressed");
+    graphLegend.style.display = "none"
+    histLegend.style.display = "none"
 }
 graphButton.addEventListener("click", function() {
     window.currentTab = "graph";
@@ -123,6 +124,7 @@ graphButton.addEventListener("click", function() {
     graphButton.classList.add("pressed");
     window.g.resize();
     window.updateGraph(); window.g.resetZoom()
+    graphLegend.style.display = "block"
 })
 histogramButton.addEventListener("click", function() {
     window.currentTab = "hist";
@@ -135,6 +137,7 @@ histogramButton.addEventListener("click", function() {
         window.userData.genSlidingWindowDefaults()
         window.userData.genCreationDefaults();
     }
+    histLegend.style.display = "block"
 })
 statsButton.addEventListener("click", function() {
     window.currentTab = "stats";
@@ -145,9 +148,7 @@ statsButton.addEventListener("click", function() {
 })
 //#endregion
 
-const sleep = function(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
+
 
 //#region Handle the buttons on the right of the graph screen
 //Handle swapping between Date and Solve# on the x-axis
@@ -161,8 +162,8 @@ function xSwapData() {
         window.g.resetZoom();
     }
 };
-xSelectDate.addEventListener("click", function() { if(window.userData.xTitle != "Date") xSwapData(); });
-xSelectSolve.addEventListener("click", function() { if(window.userData.xTitle != "Solve #") xSwapData(); });
+xSelectDate.addEventListener("click", function() { if(window.userData.xTitle == "Solve #") xSwapData(); });
+xSelectSolve.addEventListener("click", function() { if(window.userData.xTitle == "Date") xSwapData(); });
 
 //Handle swapping between Linear and Log on the x-axis
 const xSelectLinear = document.getElementById("xSelectLinear");
@@ -199,7 +200,6 @@ ySelectLog.addEventListener("click", function() { if(logScale[1] == false) ySwap
 //the color selector
 const colorSelector = document.getElementById("seriesColorSelector")
 colorSelector.addEventListener("change", function () {
-    // debugger;
     const seriesNumber = parseInt(document.getElementById("seriesSettingsBox").name)
     const label1 = window.userData.labels[seriesNumber]
     const label2 = window.userData.labels[seriesNumber - 1]
@@ -222,7 +222,6 @@ colorSelector.addEventListener("change", function () {
 //the width selector
 const widthSelector = document.getElementById("seriesWidthSelector")
 widthSelector.addEventListener("change", function () {
-    // debugger;
     const seriesNumber = parseInt(document.getElementById("seriesSettingsBox").name)
     for (let i = 0; i <= 1; i++) {
         const label_ = window.userData.labels[seriesNumber - i]
@@ -237,11 +236,6 @@ widthSelector.addEventListener("change", function () {
         }
     } 
 })
-//the close button
-const closeSelector = document.getElementById("seriesCloseSelector")
-closeSelector.addEventListener("click", function () {
-    document.getElementById("seriesSettingsBox").style.display = "none"
-})
 //#endregion
 
 //This code is run after the user uploads a file
@@ -251,10 +245,9 @@ jsonDataFile.addEventListener("change", function() {
     var GetFile = new FileReader;
     GetFile .onload=function(){
         const result = GetFile.result;
-        //console.log(result);
         var jsonData = JSON.parse(result);
-        //parse the data into better arrays
-  
+        
+        //create our userData
         window.userData = new UserData(jsonData)
         
         //Create the dropdown for the title of the graph and set its functionality
@@ -298,11 +291,11 @@ jsonDataFile.addEventListener("change", function() {
                     ylabel: "Time(s)",
                     legend: "always",
                     color: "#084C61",
-                    labelsDiv: document.getElementById("legendLine"),
+                    labelsDiv: document.getElementById("graphLegend"),
                     labelsSeparateLines: false,
                 }
             );
-             //Create the histogram
+            //Create the histogram
             window.h = new Dygraph(
                 document.getElementById("histogramDiv"), //containing div
                 window.userData.hist[window.selectedSess], //Data
@@ -313,7 +306,9 @@ jsonDataFile.addEventListener("change", function() {
                     stepPlot: true,
                     fillGraph: true,
                     color: "#DB3A34",
-                    fillAlpha: 0.5
+                    fillAlpha: 0.5,
+                    labelsDiv: document.getElementById("histLegend"),
+                    labelsSeparateLines: false,
                 }
             );
         });
@@ -450,7 +445,14 @@ jsonDataFile.addEventListener("change", function() {
         //sliding window defaults
         document.getElementById("sldWinDefaults").addEventListener("click", function() {window.userData.genSlidingWindowDefaults();})
         //sliding window play
-        document.getElementById("sldWinPlay").addEventListener("click", function() {window.userData.animateHistRange();})
+        document.getElementById("sldWinPlay").addEventListener("click", function() {
+            if(window.userData.sldWinPlaying) {
+                window.userData.sldWinPlaying = false;
+            } else {
+                window.userData.creationPlaying = false
+                window.userData.animateHistRange();
+            }
+        })
         //creation reset
         document.getElementById("creationReset").addEventListener("click", function() {
             histBucketInput.value = 1
@@ -460,31 +462,21 @@ jsonDataFile.addEventListener("change", function() {
         //creation defaults
         document.getElementById("creationDefaults").addEventListener("click", function() {window.userData.genCreationDefaults();})
         //creation play
-        document.getElementById("creationPlay").addEventListener("click", function() {window.userData.animateHistCreate();})
+        document.getElementById("creationPlay").addEventListener("click", function() {
+            if(window.userData.creationPlaying) {
+                window.userData.creationPlaying = false
+            } else {
+                window.userData.sldWinPlaying = false;
+                window.userData.animateHistCreate();
+            }
+            
+        })
 
-        
     }
 
     GetFile.readAsText(this.files[0]);
 });
 
-
-//Update the graph
-window.updateGraph = function() {
-    window.selectedSess = document.getElementById("title-dropdown").value;
-    window.g.updateOptions({
-        file: window.userData.solves[window.selectedSess], 
-        xlabel: (logScale[0] ? "Log(": "") + window.userData.xTitle + (logScale[0] ? ")": ""),
-        ylabel: (logScale[1] ? "Log(": "") + "Time(s)" + (logScale[1] ? ")": "")
-    });
-};
-//Update the histogram
-window.updateHist = function() {
-    window.selectedSess = document.getElementById("title-dropdown").value;
-    window.h.updateOptions({
-        file: window.userData.hist[window.selectedSess]
-    });
-};
 
 class UserData {
     constructor(data) {
@@ -617,6 +609,8 @@ class UserData {
         this.genCreationDefaults()
         const chendTime = performance.now()
         console.log(`create histogram: ${round(chendTime - chstartTime)} milliseconds`)
+        this.sldWinPlaying = false;
+        this.creationPlaying = false;
         
 
         //create the pb table
@@ -677,28 +671,59 @@ class UserData {
     }
 
     async animateHistRange() {
+        const playBtn = document.getElementById("sldWinPlay")
+        const progressBar = document.querySelector("#sldWinProgressBar div")
+        //Flip button state and reset progress
+        this.sldWinPlaying = true;
+        playBtn.textContent = "Stop"
+        progressBar.style.width = "0%"
+
         const bucketSize = document.getElementById("sldWinWidth").value
         const range = document.getElementById("sldWinWindow").value
         const step = document.getElementById("sldWinStep").value 
         const xmax = document.getElementById("sldWinXmax").value 
         const frameTime = document.getElementById("sldWinTime").value
 
+        const totalFrames = Math.floor((this.solves[window.selectedSess].length - range) / step)
+        let frame = 0;
+
         for(let i = this.solves[window.selectedSess].length-range; i > 0; i-=step) {
+            if(!this.sldWinPlaying) break;
+
             this.createHistRange(bucketSize,range,i)
             window.h.updateOptions({
-                file: window.userData.hist[window.selectedSess],
+                file: this.hist[window.selectedSess],
                 dateWindow: [0,xmax],
             });
+
+            //update progress bar
+            frame++
+            progressBar.style.width = `${(frame/totalFrames)*100}%`
+
             await sleep(frameTime)
         }
+
+        //reset button
+        playBtn.textContent = "Play";
+        this.sldWinPlaying = false;
+        progressBar.style.width = "0%"
     }
 
 
     async animateHistCreate() {
+        const playBtn = document.getElementById("creationPlay")
+        const progressBar = document.querySelector("#creationProgressBar div")
+        //Flip button state and reset progress
+        this.creationPlaying = true;
+        playBtn.textContent = "Stop"
+        progressBar.style.width = "0%"
 
         const step = parseFloat(document.getElementById("creationStep").value)
         const Xmax = parseFloat(document.getElementById("creationXmax").value)
         const bucketSize = parseFloat(document.getElementById("creationWidth").value)
+
+        const totalFrames = Math.floor(this.solves[window.selectedSess].length/step)
+        let frame = 0;
 
         this.hist[window.selectedSess] = [];
         let j = window.selectedSess
@@ -715,6 +740,8 @@ class UserData {
         }
         //add the solves to buckets
         for(let i = 0; i < numSolves; i++) {
+            if(!this.creationPlaying) break;
+
             const time = this.solves[j][i][1];
             const bucket = Math.floor(time/bucketSize);
             this.hist[j][bucket][1] += 1;
@@ -725,9 +752,18 @@ class UserData {
                     dateWindow: [0,Xmax],
                 });
 
+                //update progress bar
+                frame++
+                progressBar.style.width = `${(frame/totalFrames)*100}%`
+
                 await sleep(1)
             } 
         }
+
+        //reset button
+        playBtn.textContent = "Play";
+        this.creationPlaying = false;
+        progressBar.style.width = "0%"
     }
 
     genSlidingWindowDefaults() {
@@ -816,11 +852,10 @@ class UserData {
     //append a column for the average of the x last solves
     pushAvg(x) {
         const pastartTime = performance.now() 
-        let sum,mean
         
+        let sum,mean
         for (let j = 0; j < this.numSessions; j++) {
             const solves = this.solves[j];
-
             const clip = Math.ceil(0.05 * x); //Remove top and bottom 5% of solves
             const trimmedSize = x-clip*2
             let windo = [];
@@ -834,7 +869,7 @@ class UserData {
                     if (insertIdx === -1) windo.push(newVal);
                     else windo.splice(insertIdx, 0, newVal);
                 } else {
-                    // Remove oldest if window is full
+                    // Remove oldest solve from window
                     const old = solves[i - x][1];
                     const removeIdx = binarySearchInsertIdx(windo, old);
                     if (removeIdx !== -1) windo.splice(removeIdx, 1);
@@ -930,10 +965,10 @@ class UserData {
     updatePBTable(j) {
         //console.log("Updating pb table to session " + j)
         //create the list for stats tab
-        const pbStats = document.getElementById("pbStats")
-        const headerRow = document.getElementById("pbStatsHeader")
-        pbStats.replaceChildren();
-        pbStats.appendChild(headerRow);
+        const pbStatsBody = document.getElementById("pbStatsBody")
+        //const headerRow = document.getElementById("pbStatsHeader")
+        pbStatsBody.replaceChildren();
+        //pbStats.appendChild(headerRow);
 
         for(let i = this.pbData[j][0][1].length-1; i >= 0; i--) {
             let newRow = document.createElement("tr");
@@ -983,7 +1018,7 @@ class UserData {
             newRow.appendChild(solveCol);
             newRow.appendChild(pbForSolvesCol);
 
-            pbStats.appendChild(newRow);
+            pbStatsBody.appendChild(newRow);
         }
     }
 }

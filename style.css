@@ -310,15 +310,44 @@ button.seriesToggle.pressed {
     border-spacing: 0px;
     border: solid thin #323031;
 }
+
 table.formTable > tbody > tr > th > div > button {
     margin-left: 5px;
     align-self: flex-end;
     width:  2em;
 }
+
 table.formTable > tbody > tr > th {
     font-weight: bolder;
     border: double thick #323031;
     background-color: #DB3A34;
+}
+
+#pbStats {
+    border-spacing: 0px;
+    border: solid thin #323031;
+    background-color: #CCCCCC;
+}
+#pbStatsHead {
+    height: 40px;
+}
+
+#pbStatsHeader {
+    font-weight: bolder;
+    background-color: #DB3A34;
+}
+#pbStatsHeader > th {
+    border: solid thin #323031;
+    border-top: double thick #323031;
+    border-bottom: double thick #323031;
+}
+#pbStatsBody > tr:nth-child(even) {
+    background-color: #D6D6D6;
+}
+#pbStatsBody > tr > td {
+    border-left: solid thin #323031;
+    border-right: solid thin #323031;
+    text-align: center;
 }
 
 .helpButton {
@@ -338,4 +367,14 @@ div.hintContent > table > tbody > tr > th, div.hintContent > table > tbody > tr 
     border: 1px solid #323031;
 }
 
+.animationProgressBar {
+    height: 4px;
+    background-color: #D6D6D6;
+    width: 100%;
+}
+.animationProgressBar div {
+    background-color: #DB3A34;
+    width: 0%;
+    height: 100%;
+}
 
