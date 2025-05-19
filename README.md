@@ -2,24 +2,23 @@
  Tool for graphing and analyzing solve data from csTimer
 
 ### How to get csTimer file
-![Screenshot](/resources/cstimer-export-help.jpg)
+![cstimer help](/resources/cstimer-export-help.jpg)
 
 # Usage
 ## Graph tab
-![Graph Tab Screenshot](https://github.com/user-attachments/assets/d0771ed5-7cd2-495e-a92d-9bf97a55d462)
+![Graph Tab Screenshot](/resources/previews/graphTabV2.png)
 This tab shows a more extensive version of csTimer's graph for the selected session
 
 Click and drag to zoom on the graph, double click to zoom out
 
-The buttons on the left allow you to toggle which series you want to see on the graph (ex. PB Single, ao5, ao100) and change their colors and thicknesses
+The buttons on the left allow you to toggle which series you want to see on the graph (ex. PB Single, ao5, ao100) and change their colors and thicknesses. You can add a new series with the form underneath
 
 The buttons on the right are to edit the axes of the graph. You can choose whether to have the date or the solve # on the x axis, 
 and can change the scale of either axis from linear to logarithmic. Note that using logarithmic on the x-axis will only works with solve #, not date
 
-*Future updates will implement the ability to add new series*
 
 ## Histogram tab
-![Histogram Tab Screenshot](https://github.com/user-attachments/assets/fd1a558b-444b-478b-b193-56fc566eddd7)
+![Histogram Tab Screenshot](/resources/previews/histTabV2.png)
 This tab shows a histogram of the solve times for the selected session
 
 As with the graph tab, you can click and drag to zoom in on the histogram and double click to zoom out
@@ -45,7 +44,7 @@ the column width (in seconds), the amount of solves added each frame, and the le
 option to display an approximate bell curve of the histogram distribution, and a way select a range of solves (ex. last 500 solves) instead of all of them*
 
 ## Statistics Tab
-![Screenshot 2025-05-13 193951](https://github.com/user-attachments/assets/6a3697db-6196-46c3-9841-bde044f3f784)
+![Screenshot 2025-05-13 193951](/resources/previews/statsTabV2.png)
 This tab displays data about your pbs for the selected session
 
 Currently displays a table of the pbs with columns for the solve time, solve date, how long it took to beat the pb, solve #, and how many solves it took to beat the pb
