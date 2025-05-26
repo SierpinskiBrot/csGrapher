@@ -941,6 +941,41 @@ class UserData {
         console.log(`   push ao${x}: ${round(paendTime - pastartTime)} milliseconds`)
     }
 
+    //append a column for the average of the x last solves
+    pushMean(x) {
+        const pmstartTime = performance.now() 
+        
+        let sum,mean
+        for (let j = 0; j < this.numSessions; j++) {
+            const solves = this.solves[j];
+            let windo = [];
+            
+            for (let i = 0; i < solves.length; i++) {
+                const newVal = solves[i][1];
+                if (i < x) { //Cant make an average without enough data
+                    solves[i].push(NaN); 
+                    windo.push(newVal)
+                } else {
+                    // Remove oldest solve from window
+                    windo.splice(0,1)
+                    
+                    // Insert new solve time in window
+                    windo.push(newVal)
+            
+                    //mean of window
+                    sum = 0;
+                    for(let k = 0; k < x; k++) {sum+=windo[k]}
+                    mean = sum/x
+
+                    solves[i].push(mean);
+                }
+            }
+        }
+
+        const pmendTime = performance.now()
+        console.log(`   push mo${x}: ${round(pmendTime - pmstartTime)} milliseconds`)
+    }
+
     /*
     the times are stored in array [t1,t2]
         t2: solve time in milliseconds
