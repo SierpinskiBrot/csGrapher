@@ -190,11 +190,20 @@ const makeArrayOfArrays = (n) => Array(n).fill().map(() => []);
 //Update the graph
 window.updateGraph = function() {
     window.selectedSess = document.getElementById("title-dropdown").value;
-    window.g.updateOptions({
+    if(window.userData.xTitle == "Date") {
+        window.g.updateOptions({
         file: window.userData.solves[window.selectedSess], 
         xlabel: (logScale[0] ? "Log(": "") + window.userData.xTitle + (logScale[0] ? ")": ""),
         ylabel: (logScale[1] ? "Log(": "") + "Time(s)" + (logScale[1] ? ")": "")
     });
+    } else if (window.userData.xTitle == "Solve #") {
+        window.g.updateOptions({
+        file: window.userData.solves2[window.selectedSess], 
+        xlabel: (logScale[0] ? "Log(": "") + window.userData.xTitle + (logScale[0] ? ")": ""),
+        ylabel: (logScale[1] ? "Log(": "") + "Time(s)" + (logScale[1] ? ")": "")
+    });
+    }
+    
 };
 
 //Update the histogram
@@ -281,16 +290,20 @@ statsButton.addEventListener("click", function() {
 //Handle swapping between Date and Solve# on the x-axis
 const xSelectDate = document.getElementById("xSelectDate");
 const xSelectSolve = document.getElementById("xSelectSolve");
-function xSwapData() {
-    if(window.userData != undefined && window.g != undefined) {
-        [window.userData.solves, window.userData.solves2] = [window.userData.solves2, window.userData.solves];
-        [window.userData.xTitle, window.userData.xTitle2] = [window.userData.xTitle2, window.userData.xTitle];
+xSelectDate.addEventListener("click", function() { 
+    if(window.userData.xTitle == "Solve #")  {
+        window.userData.xTitle = "Date"
         window.updateGraph();
         window.g.resetZoom();
     }
-};
-xSelectDate.addEventListener("click", function() { if(window.userData.xTitle == "Solve #") xSwapData(); });
-xSelectSolve.addEventListener("click", function() { if(window.userData.xTitle == "Date") xSwapData(); });
+});
+xSelectSolve.addEventListener("click", function() { 
+    if(window.userData.xTitle == "Date") {
+        window.userData.xTitle = "Solve #"
+        window.updateGraph();
+        window.g.resetZoom();
+    }
+});
 
 //Handle swapping between Linear and Log on the x-axis
 const xSelectLinear = document.getElementById("xSelectLinear");
