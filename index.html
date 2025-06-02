@@ -73,7 +73,7 @@
                     </tr>
                     <tr>
                         <td>Color:</td>
-                        <td><input id="newAvgColor" type="color" value="#D6D6D6"></td>
+                        <td><input id="newAvgColor" type="color" value="#DB3A34"></td>
                     </tr>
                     <tr>
                         <td>Width:</td>
@@ -85,7 +85,9 @@
                 </tbody>
             </table>
         </div>
-        <div id="graphdiv"></div>
+        <div id="graphdiv">
+            <h1 style="align-self: center;">Waiting for file upload...</h1>
+        </div>
 
         <div id="graphRightButtons">
             <div>
@@ -103,6 +105,7 @@
                     <label for="xSelectLog">Log</label>
                 </div>
             </div>
+            <br>
             <div>
                 <div class="buttonsTitle"> <p>Y-axis:</p></div>
                 <div class="radio">
@@ -212,7 +215,9 @@
                 </tbody>
             </table>
         </div>
-        <div id="histogramDiv"></div>
+        <div id="histogramDiv">
+            <h1 style="align-self: center;">Waiting for file upload...</h1>
+        </div>
         <div id="histRightButtons"></div>
     </div>
     <div id="statsContainer" style="display:none; flex-wrap:nowrap">
@@ -228,13 +233,18 @@
                 </tr>
             </tbody>
             <tbody id="pbStatsBody">
-
+                <tr>
+                    <td colspan="5">
+                        <h1 style="align-self: center;">Waiting for file upload...</h1>
+                    </td>
+                </tr>
             </tbody>
         </table>
         <div id="statsRightButtons"></div>
     </div>
     <script type="module" src="scripts.js"></script>
     <script type="text/javascript">
+        /*
         Dygraph.onDOMready(function onDOMready() {
             g = new Dygraph(
                 document.getElementById("graphdiv"),
@@ -244,6 +254,7 @@
                 }
             );
         });
+        */
     </script>
     <script type="text/javascript">
         (function (l) {

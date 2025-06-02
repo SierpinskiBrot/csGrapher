@@ -6,6 +6,7 @@ html, body {
     margin: 0;
     row-gap: 0;
     grid-template-rows: min-content min-content min-content auto min-content;
+    overflow: hidden;
 }
 
 body > div {
@@ -27,23 +28,25 @@ div.toolbar {
     background-color: #E45E3D;
 }
 div.toolbar > button {
+    transition: flex-grow 0.25s;
     font-weight: bold;
     padding: 0.5em;
     font-size: large;
-    flex-grow: 1;
+    flex-grow: 3;
     flex-shrink: 1;
     text-align: center;
     background-color: #E45E3D;
     border: #E45E3D inset thick;
 }
 div.toolbar > button:hover {
-    background-color: #FFC857;
-    border: #FFC857 inset thick
+    background-color: #E04C39;
+    border-color: #E04C39;
 }
 
 div.toolbar > button.pressed {
     background-color: #DB3A34;
     border: #DB3A34 outset thick;
+    flex-grow: 4;
 }
 
 h1, p, a {
@@ -105,13 +108,15 @@ input#UploadFile {
 }
 
 #graphdiv, #histogramDiv {
+    background: #D6D6D6;
     display: grid;
     width: 80% !important;
     height: auto !important;
     justify-self: center;
     justify-content: center;
     align-items: start;
-    margin: 5px;
+    border: 3px solid #323031;
+
 }
 
 #graphLeftButtons, #statsLeftButtons, #histLeftButtons {
@@ -139,10 +144,6 @@ select#title-dropdown:hover {
 }
 
 
-
-#graphdiv, #toggleButtons, #graphContainer {
-    border: #323031 thin double;
-}
 
 button.seriesToggle {
     background-color: #E45E3D;
@@ -194,20 +195,9 @@ button.seriesToggle.pressed {
     padding: 4px;
     background: #323031;
     border: #323031  inset;
-    border-radius: 5px;
     color: #D6D6D6;
     font-weight: bold;
     width: 50%;
-}
-.radio > label:not(:last-of-type) {
-    margin-left: 4px;
-    border-top-right-radius: 0px;
-    border-bottom-right-radius: 0px;
-}
-.radio > label:is(:last-of-type) {
-    margin-right: 4px;
-    border-top-left-radius: 0px;
-    border-bottom-left-radius: 0px;
 }
 
 .radio > input[type="radio"]:checked + label {
@@ -220,7 +210,6 @@ button.seriesToggle.pressed {
     font-size: large;
     width: 100%;
     background-color: #DB3A34;
-    margin-top: 4px;
     box-sizing: border-box;
     border: double thick #323031;
 }
@@ -285,13 +274,12 @@ button.seriesToggle.pressed {
     position: absolute;
     top: 30px;
     left: 0;
-    background: #fdf6e3;
-    border: 1px solid #999;
-    border-radius: 5px;
+    background: #CCCCCC;
+    border: 5px outset #CCCCCC;
     padding: 8px;
     display: none;
     z-index: 10;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.75);
 }
 
 .settings-box label {
@@ -328,6 +316,10 @@ table.formTable > tbody > tr > th > div > button {
     width:  2em;
 }
 
+table.formTable > tbody > tr > td {
+    text-align: right;
+}
+
 table.formTable > tbody > tr > th {
     font-weight: bolder;
     border: double thick #323031;
@@ -352,7 +344,7 @@ table.formTable > tbody > tr > th {
     border-top: double thick #323031;
     border-bottom: double thick #323031;
 }
-#pbStatsBody > tr:nth-child(even) {
+#pbStatsBody > tr:nth-child(odd) {
     background-color: #D6D6D6;
 }
 #pbStatsBody > tr > td {

@@ -418,6 +418,10 @@ jsonDataFile.addEventListener("change", function() {
         xSelectLinear.checked = true;
         ySelectLinear.checked = true;
 
+        //Make sure these are empty
+        document.getElementById("graphdiv").replaceChildren();
+        document.getElementById("histogramDiv").replaceChildren();
+
        //create dygraphs
         Dygraph.onDOMready(function onDOMready() {
             //Create the main graph
@@ -571,7 +575,7 @@ class UserData {
         
 
         this.labels = [ "Date", "Time","PB Single", "ao5", "PB ao5", "ao12", "PB ao12", "ao100","PB ao100", "ao1000","PB ao1000" ];
-        this.colors = ["#084C61", "#084C61", "#177E89", "#177E89", "#85A06A", "#85A06A", "#FFAD0A", "#FFAD0A", "#E45E3D", "#E45E3D"];
+        this.colors = ["#084C61", "#084C61", "#177E89", "#177E89", "#86A06A", "#86A06A", "#F2934A", "#F2934A", "#E45E3D", "#E45E3D"];
         this.widths = [2,2,2,2,2,2,2,2,2,2]
         this.visibilities = [true,true,true,true,true,true,true,true,true,true];
         
