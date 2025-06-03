@@ -152,7 +152,7 @@ button.seriesToggle {
     font-weight: bold;
     width: 100%;
     padding: 4px;
-    transition: all 0.3s ease-in-out;
+    transition: all 0.1s ease-in-out;
     box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
 }
 
@@ -310,7 +310,7 @@ button.seriesToggle.pressed {
     background-color: #D6D6D6;
 }
 
-table.formTable > tbody > tr > th > div > button {
+table.formTable button.helpButton {
     margin-left: 5px;
     align-self: flex-end;
     width:  2em;
@@ -324,6 +324,10 @@ table.formTable > tbody > tr > th {
     font-weight: bolder;
     border: double thick #323031;
     background-color: #DB3A34;
+}
+
+.formTable input, .formTable button {
+    width: -webkit-fill-available;
 }
 
 #pbStats {
@@ -381,7 +385,5 @@ div.hintContent > table > tbody > tr > th, div.hintContent > table > tbody > tr 
     height: 100%;
 }
 
-.formTable input, .formTable button {
-    width: -webkit-fill-available;
-}
+
 

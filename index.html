@@ -59,15 +59,21 @@
             <br>
             <table class="formTable">
                 <tbody>
-                    <tr><th colspan="2"><p>Create:</p></th></tr>
+                    <tr><th colspan="2">
+                        <div style="display: flex;">
+                            <p style="flex-grow: 1;">Create:</p>
+                            <button id="createHelpButton" class="helpButton" onclick="document.getElementById('createHintOverlay').style.display = 'flex';">?</button>
+                        </div>
+                         </th></tr>
                 </tbody>
                 <tbody>
                     <tr>
                         <td>
-                            <select id="newAvgType">
+                            <select id="newAvgType" style="flex-grow: 1;">
                                 <option value="ao">aoX</option>
                                 <option value="mo">moX</option>
                             </select>
+                            
                         </td>
                         <td><input type="number" id="newAvgSize" min="1" max="1000000" value="2000"></td>
                     </tr>
@@ -272,6 +278,20 @@
         <div id="fileHintContent" class="hintContent">
             <img src="resources/cstimer-export-help.jpg" alt="Export instructions for csTimer">
             <button id="fileCloseHint" class="closeHint" onclick="document.getElementById('fileHintOverlay').style.display = 'none';">X</button>
+        </div>
+    </div>
+    <div id="createHintOverlay" class="hintOverlay">
+        <div id="createHintContent" class="hintContent">
+            <table style="background: #FFC857;">
+                <th colspan="3" style="height: 40px;">
+                    <p>Create new series</p>
+                </th>
+                <tr>
+                    <td>aoX</td><td>average of X</td><td><p>The top and bottom 5% of solves will be removed from the average. </p><p>The number of solves that will be removed is rounded up, so you cannot have an average of 2 or less.</p></td>
+                </tr>
+                <tr><td>moX</td><td>mean of X</td><td>Computes the mean of the last X solves, with every solve considered.</td></tr>
+            </table>
+            <button id="createCloseHint" class="closeHint" onclick="document.getElementById('createHintOverlay').style.display = 'none';">X</button>
         </div>
     </div>
     <div id="slidingWindowHintOverlay" class="hintOverlay">

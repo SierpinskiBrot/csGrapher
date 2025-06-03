@@ -81,8 +81,17 @@ function doSeriesLineStyling(i) {
     }
 }
 
+function createAllSeriesRows() {
+    const toggleTableBody = document.getElementById("toggleTableBody")
+    toggleTableBody.replaceChildren();
+    for (let i = 1; i < window.userData.labels.length; i+=2) {
+        const newRow = createSeriesRow(i);
+        toggleTableBody.appendChild(newRow)
+    }
+}
+
 function createSeriesRow(i) {
-    //create 1st the toggle button
+    //create 1st toggle button
     const newButton1 = createButton(window.userData.labels[i], (e) => {
         const currentVisibility = window.userData.visibilities[i - 1];
         window.userData.visibilities[i - 1] = !currentVisibility;
@@ -96,7 +105,7 @@ function createSeriesRow(i) {
     //redundant as visibility is reset when a file is uploaded
     if (!window.userData.visibilities[i - 1]) newButton1.classList.toggle('pressed')
 
-    //create 2nd the toggle button
+    //create 2nd toggle button
     const newButton2 = createButton("PB", (e) => {
         const currentVisibility = window.userData.visibilities[i];
         window.userData.visibilities[i] = !currentVisibility;
@@ -148,40 +157,61 @@ document.getElementById("addSeriesBtn").addEventListener("click", () => {
     const size = parseInt(document.getElementById("newAvgSize").value);
     const width = parseInt(document.getElementById('newAvgWidth').value)
     if (isNaN(size) || size < 1) return alert("Please enter a valid number.");
+    if (size == 1 || (type == "ao" && size == 2)) return alert("Bro")
   
     const label1 = `${type}${size}`;
     const label2 = "PB "+label1
     const color = document.getElementById("newAvgColor").value
-    const index = window.userData.labels.length;
   
     // Avoid duplicates
     if (window.userData.labels.includes(label1)) {
       alert("This series already exists.");
       return;
     }
-  
-    window.userData.labels.push(label1);window.userData.labels.push(label2);
-    window.userData.colors.push(color);window.userData.colors.push(color);
-    window.userData.widths.push(width);window.userData.widths.push(width);
-    window.userData.visibilities.push(true);window.userData.visibilities.push(true);
-  
-    if (type === "ao") {
-      window.userData.pushAvg(size);
-    } else {
-      window.userData.pushMean(size);
+
+    //Find where to insert the new series, they should be in order
+    let index = window.userData.labels.length;
+    for(let i = 3; i < window.userData.labels.length; i++) {
+        const x = parseInt(window.userData.labels[i].substring(2))
+        //console.log(`looking at label ${i}, it is a ${x}`)
+        if(x > size) {
+            //console.log("i should go here")
+            index = i;
+            break;
+        }
+        //mean should go behind average
+        if(x == size) {
+            if(type == "ao") {index = i+2;}
+            else {index = i;}
+            break;
+        }
+        i++
     }
-    window.userData.pbsOfLastCol(size)
+
+    //splice it in in the right location
+    window.userData.labels.splice(index,0,label1);window.userData.labels.splice(index+1,0,label2)
+    window.userData.colors.splice(index-1,0,color);window.userData.colors.splice(index-1,0,color);
+    window.userData.widths.splice(index-1,0,width);window.userData.widths.splice(index-1,0,width);
+    window.userData.visibilities.splice(index-1,0,true);window.userData.visibilities.splice(index-1,0,true);
+    
+    //calc the average/mean column
+    if (type === "ao") window.userData.pushAvg(size, index);
+    else window.userData.pushMean(size, index);
+    //calc the pb column
+    window.userData.pbsOfLastCol(size, index)
+
+    
     window.userData.createSolves2();
   
-    //window.userData.updateVisibility();
-    //window.userData.updateLegend();
-    //window.userData.updateSeriesTable(); // re-render buttons
-    const newRow = createSeriesRow(index);
-    document.getElementById("toggleTableBody").appendChild(newRow)
+    //Do the line styling for ao/mo and pb
     doSeriesLineStyling(index)
     doSeriesLineStyling(index+1)
-    updateGraph();
+
+    //just remake the whole table cuz its quick and im lazy
+    createAllSeriesRows();
     
+    updateGraph();
+    window.g.setVisibility(window.userData.visibilities, true);
   });
 
 // Utility to make N arrays
@@ -229,6 +259,11 @@ document.getElementById('slidingWindowHintOverlay').onclick = (e) => {
 document.getElementById('creationHintOverlay').onclick = (e) => {
     if (e.target.id === 'creationHintOverlay') {
         document.getElementById('creationHintOverlay').style.display = 'none';
+    }
+};
+document.getElementById('createHintOverlay').onclick = (e) => {
+    if (e.target.id === 'createHintOverlay') {
+        document.getElementById('createHintOverlay').style.display = 'none';
     }
 };
 
@@ -280,7 +315,7 @@ statsButton.addEventListener("click", function() {
     resetContainers();
     statsContainer.style.display = "flex";
     statsButton.classList.add("pressed");
-    window.userData.updatePBTable(window.selectedSess)
+    window.userData.updatePBTable(window.selectedSess,0)
 })
 //#endregion
 
@@ -409,7 +444,7 @@ jsonDataFile.addEventListener("change", function() {
             else if (window.currentTab == "hist") { 
                 window.updateHist(); window.h.resetZoom(); 
                 window.userData.genSlidingWindowDefaults(); window.userData.genCreationDefaults(); }
-            else if (window.currentTab == "stats") { window.userData.updatePBTable(window.dropdown.value) }
+            else if (window.currentTab == "stats") { window.userData.updatePBTable(window.dropdown.value,0) }
         })
         document.getElementById("hintButton").after(window.dropdown)
 
@@ -463,12 +498,7 @@ jsonDataFile.addEventListener("change", function() {
         }
         
         //-----create the series toggle buttons-----
-        const toggleTableBody = document.getElementById("toggleTableBody")
-        toggleTableBody.replaceChildren();
-        for (let i = 1; i < window.userData.labels.length; i+=2) {
-            const newRow = createSeriesRow(i);
-            toggleTableBody.appendChild(newRow)
-        }
+        createAllSeriesRows();
         
 
         //create the histogram buttons
@@ -579,7 +609,7 @@ class UserData {
         this.widths = [2,2,2,2,2,2,2,2,2,2]
         this.visibilities = [true,true,true,true,true,true,true,true,true,true];
         
-        //   date, time, pb s, mo3, pb mo3, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000
+        //   date, time, pb s, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000
         this.solves = makeArrayOfArrays(this.numSessions);
         //solve #, time, pb s, mo3, pb mo3, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000
         this.solves2 = makeArrayOfArrays(this.numSessions);
@@ -657,7 +687,7 @@ class UserData {
 
         //create the pb table
         const pbstartTime = performance.now() 
-        this.updatePBTable(0);
+        this.updatePBTable(0,0);
         const pbendTime = performance.now()
         console.log(`pb table: ${round(pbendTime - pbstartTime)} milliseconds`)
         
@@ -902,7 +932,7 @@ class UserData {
 
 
     //append a column for the average of the x last solves
-    pushAvg(x) {
+    pushAvg(x, index = undefined) {
         const pastartTime = performance.now() 
         
         let sum,mean
@@ -915,7 +945,11 @@ class UserData {
             for (let i = 0; i < solves.length; i++) {
                 const newVal = solves[i][1];
                 if (i < x) { //Cant make an average without enough data
-                    solves[i].push(NaN); 
+                    if(index == undefined) {
+                        solves[i].push(NaN); 
+                    } else {
+                        solves[i].splice(index,0,NaN); 
+                    }
                     // Insert new solve time in sorted position
                     const insertIdx = binarySearchInsertIdx(windo, newVal);
                     if (insertIdx === -1) windo.push(newVal);
@@ -936,7 +970,11 @@ class UserData {
                     for(let k = clip; k < x-clip; k++) {sum+=windo[k]}
                     mean = sum/trimmedSize
 
-                    solves[i].push(mean);
+                    if (index === undefined) {
+                        solves[i].push(mean);
+                    } else {
+                        solves[i].splice(index, 0, mean);
+                    }
                 }
             }
         }
@@ -946,7 +984,7 @@ class UserData {
     }
 
     //append a column for the average of the x last solves
-    pushMean(x) {
+    pushMean(x, index = undefined) {
         const pmstartTime = performance.now() 
         
         let sum,mean
@@ -957,7 +995,11 @@ class UserData {
             for (let i = 0; i < solves.length; i++) {
                 const newVal = solves[i][1];
                 if (i < x) { //Cant make an average without enough data
-                    solves[i].push(NaN); 
+                    if(index == undefined) {
+                        solves[i].push(NaN); 
+                    } else {
+                        solves[i].splice(index,0,NaN); 
+                    }
                     windo.push(newVal)
                 } else {
                     // Remove oldest solve from window
@@ -971,7 +1013,14 @@ class UserData {
                     for(let k = 0; k < x; k++) {sum+=windo[k]}
                     mean = sum/x
 
-                    solves[i].push(mean);
+                    //solves[i].push(mean);
+
+                    if (index === undefined) {
+                        solves[i].push(mean);
+                    } else {
+                        solves[i].splice(index, 0, mean);
+                    }
+
                 }
             }
         }
@@ -1000,9 +1049,9 @@ class UserData {
     }
 
     //Append a col for the pb of the previous col
-    pbsOfLastCol(x) {
+    //lowkey you can provide an index of the col to calc pbs for but thats beside the point
+    pbsOfLastCol(x, index = undefined) {
         const pblstartTime = performance.now() 
-        
         
         //do this for each session
         for(let j = 0; j < this.numSessions; j++){
@@ -1012,13 +1061,20 @@ class UserData {
                 pbStats[0] = x;    
                 
                 //index of the last col in session
-                const idx = this.solves[j][this.solves[j].length-1].length - 1;
+                let idx = this.solves[j][this.solves[j].length-1].length - 1;
+                if(index != undefined) idx = index;
+
                 //find the first valid index - 
                 //for a pb ao12, this would be 12
                 let firstValIdx = 0
                 for(let i = 0; i < this.solves[j].length; i++) {
                     firstValIdx += 1;
-                    this.solves[j][i].push(this.solves[j][i][idx])
+                    if(index == undefined) {
+                        this.solves[j][i].push(this.solves[j][i][idx])
+                    } else {
+                        this.solves[j][i].splice(idx+1,0,this.solves[j][i][idx])
+                    }
+                    
                     if(this.solves[j][i][idx] > 0) {
                         break;
                     }
@@ -1028,14 +1084,25 @@ class UserData {
                 for(let i = firstValIdx; i < this.solves[j].length; i++) {
                     //if the time is less than prev pb, update the rolling pb
                     if(this.solves[j][i][idx] < this.solves[j][i-1][idx+1]) {
-                        this.solves[j][i].push(this.solves[j][i][idx])
+                        if(index == undefined) {
+                            this.solves[j][i].push(this.solves[j][i][idx])
+                        }
+                        else {
+                            this.solves[j][i].splice(idx+1,0,this.solves[j][i][idx])
+                        }
+                        
                         pbStats[1].push(this.solves[j][i][idx]);
                         pbStats[2].push(this.solves[j][i][0])
                         pbStats[3].push(i);
                     }
                     //otherwise, keep the current pb
                     else {
-                        this.solves[j][i].push(this.solves[j][i-1][idx+1])
+                        if(index == undefined) {
+                            this.solves[j][i].push(this.solves[j][i-1][idx+1])
+                        } else {
+                            this.solves[j][i].splice(idx+1,0,this.solves[j][i-1][idx+1])
+                        }
+                        
                     }
                 }
 
@@ -1049,7 +1116,7 @@ class UserData {
     }
 
 
-    updatePBTable(j) {
+    updatePBTable(sess,series) {
         //console.log("Updating pb table to session " + j)
         //create the list for stats tab
         const pbStatsBody = document.getElementById("pbStatsBody")
@@ -1057,12 +1124,12 @@ class UserData {
         pbStatsBody.replaceChildren();
         //pbStats.appendChild(headerRow);
 
-        for(let i = this.pbData[j][0][1].length-1; i >= 0; i--) {
+        for(let i = this.pbData[sess][series][1].length-1; i >= 0; i--) {
             let newRow = document.createElement("tr");
 
             //Date column
             let dateCol = document.createElement("td");
-            let date = this.pbData[j][0][2][i];
+            let date = this.pbData[sess][series][2][i];
             let dateStr = date.getDate() + "/" + date.getMonth() + "/" + date.getFullYear();
             dateCol.innerHTML = dateStr;
 
@@ -1070,34 +1137,34 @@ class UserData {
             let date2 = new Date();
             let dateDiff = 0;
             let pbForTimeCol = document.createElement("td")
-            if(i == this.pbData[j][0][1].length-1) {
+            if(i == this.pbData[sess][series][1].length-1) {
                 dateDiff = Math.abs(date2-date);
                 pbForTimeCol.innerHTML = dhm(dateDiff) + " and counting";
             }
             else {
-                date2 = this.pbData[j][0][2][i+1];
+                date2 = this.pbData[sess][series][2][i+1];
                 dateDiff = Math.abs(date2-date)
                 pbForTimeCol.innerHTML = dhm(dateDiff);
             }
             
             //Solve # column
             let solveCol = document.createElement("td")
-            solveCol.innerHTML = this.pbData[j][0][3][i]
+            solveCol.innerHTML = this.pbData[sess][series][3][i]
 
             //PB for # solves column
-            let solves = this.pbData[j][0][3][i]
-            let nextSolves = this.solves[j].length;
-            if(i < this.pbData[j][0][1].length-1) {
-                nextSolves = this.pbData[j][0][3][i+1]
+            let solves = this.pbData[sess][series][3][i]
+            let nextSolves = this.solves[sess].length;
+            if(i < this.pbData[sess][series][1].length-1) {
+                nextSolves = this.pbData[sess][series][3][i+1]
             }
             let solvesPassed = nextSolves-solves;
-            if(i == this.pbData[j][0][1].length-1) solvesPassed += " and counting"
+            if(i == this.pbData[sess][series][1].length-1) solvesPassed += " and counting"
             let pbForSolvesCol = document.createElement("td");
             pbForSolvesCol.innerHTML = solvesPassed;
 
             //Solve time column
             let timeCol = document.createElement("td");
-            timeCol.innerHTML= round(this.pbData[j][0][1][i],3)
+            timeCol.innerHTML= round(this.pbData[sess][series][1][i],3)
 
             newRow.appendChild(timeCol);
             newRow.appendChild(dateCol);
