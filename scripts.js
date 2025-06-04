@@ -333,6 +333,17 @@ statsButton.addEventListener("click", function() {
     statsContainer.style.display = "flex";
     statsButton.classList.add("pressed");
     pageBody.style.overflow = "auto"
+    let clickOccured = false;
+    const buttons = document.getElementsByClassName('pbSeriesSelectButton pressed')
+    for(let btn of buttons) {
+        if(btn.innerText == window.userData.currentPbSeries) {
+            btn.click()
+            clickOccured = true
+        }
+    }
+    if(!clickOccured) {
+        window.userData.updatePBTable(window.dropdown.value,0) 
+    }
     //window.userData.updatePBTable(window.selectedSess,0)
 })
 //#endregion
@@ -462,7 +473,20 @@ jsonDataFile.addEventListener("change", function() {
             else if (window.currentTab == "hist") { 
                 window.updateHist(); window.h.resetZoom(); 
                 window.userData.genSlidingWindowDefaults(); window.userData.genCreationDefaults(); }
-            else if (window.currentTab == "stats") { window.userData.updatePBTable(window.dropdown.value,0) }
+            else if (window.currentTab == "stats") { 
+                let clickOccured = false;
+                const buttons = document.getElementsByClassName('pbSeriesSelectButton pressed')
+                for(let btn of buttons) {
+                    if(btn.innerText == window.userData.currentPbSeries) {
+                        btn.click()
+                        clickOccured = true
+                    }
+                }
+                if(!clickOccured) {
+                    window.userData.updatePBTable(window.dropdown.value,0) 
+                }
+                
+            }
         })
         document.getElementById("hintButton").after(window.dropdown)
 
