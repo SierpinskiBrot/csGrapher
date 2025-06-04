@@ -46,7 +46,7 @@ div.toolbar > button:hover {
 div.toolbar > button.pressed {
     background-color: #DB3A34;
     border: #DB3A34 outset thick;
-    flex-grow: 4;
+    flex-grow: 3;
 }
 
 h1, p, a {
@@ -107,6 +107,51 @@ input#UploadFile {
     justify-content: center;
 }
 
+button.seriesToggle {
+    background-color: #E45E3D;
+    border: #E45E3D outset;
+    color: #141414;
+    font-weight: bold;
+    width: 100%;
+    padding: 4px;
+    transition: all 0.1s ease-in-out;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+button.seriesSettings {
+    background-color: #323031;
+    border: #323031 outset;
+    color: #D6D6D6;
+    font-weight: bolder;
+    width: 100%;
+    padding: 4px;
+    transition: all 0.3s ease-in-out;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+}
+  
+button.seriesToggle:hover {
+    background-color: #f0f0f0;
+}
+  
+button.seriesToggle.pressed {
+    border: #323031 inset !important;
+    background-color: #323031 !important;
+    color: #D6D6D6;
+    box-shadow: 2px 2px 10px rgba(255, 0, 0, 0.5);
+}
+#toggleTable, #pbSeriesTable {
+    width: 100%;
+    border-spacing: 0px;
+    background: #D6D6D6;
+    margin: 0px;
+    padding: 0px;
+}
+
+#toggleTableBody > tr:nth-child(even), #pbSeriesTableBody > tr:nth-child(even) {
+    background-color: #CCCCCC;
+}
+
+
 #graphdiv, #histogramDiv {
     background: #D6D6D6;
     display: grid;
@@ -145,38 +190,7 @@ select#title-dropdown:hover {
 
 
 
-button.seriesToggle {
-    background-color: #E45E3D;
-    border: #E45E3D outset;
-    color: #141414;
-    font-weight: bold;
-    width: 100%;
-    padding: 4px;
-    transition: all 0.1s ease-in-out;
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-}
 
-button.seriesSettings {
-    background-color: #323031;
-    border: #323031 outset;
-    color: #D6D6D6;
-    font-weight: bolder;
-    width: 100%;
-    padding: 4px;
-    transition: all 0.3s ease-in-out;
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-}
-  
-button.seriesToggle:hover {
-    background-color: #f0f0f0;
-}
-  
-button.seriesToggle.pressed {
-    border: #323031 inset !important;
-    background-color: #323031 !important;
-    color: #D6D6D6;
-    box-shadow: 2px 2px 10px rgba(255, 0, 0, 0.5);
-}
 
 
 
@@ -212,6 +226,7 @@ button.seriesToggle.pressed {
     background-color: #DB3A34;
     box-sizing: border-box;
     border: double thick #323031;
+    text-align: center;
 }
 .buttonsTitle > p {
     padding-left: 4px;
@@ -222,17 +237,7 @@ button.seriesToggle.pressed {
     font-size: larger;
 }
 
-#toggleTable {
-    width: 100%;
-    border-spacing: 0px;
-    background: #D6D6D6;
-    margin: 0px;
-    padding: 0px;
-}
 
-#toggleTableBody > tr:nth-child(even) {
-    background-color: #CCCCCC;
-}
 
 .hintOverlay {
     position: fixed;

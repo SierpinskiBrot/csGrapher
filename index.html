@@ -9,7 +9,7 @@
     
     
 </head>
-<body>
+<body id="body">
     <div class="header" id="header" style="display: flex">
         <div>
             <h1 id="output">csGrapher</h1>
@@ -44,7 +44,7 @@
                 <tbody>
                     <tr>
                         <th colspan="3" class="buttonsTitle">
-                            <p>Series:</p>
+                            <p>Toggle Series</p>
                         </th>
                     </tr>
                 </tbody>
@@ -61,7 +61,7 @@
                 <tbody>
                     <tr><th colspan="2">
                         <div style="display: flex;">
-                            <p style="flex-grow: 1;">Create:</p>
+                            <p style="flex-grow: 1;">Create Series</p>
                             <button id="createHelpButton" class="helpButton" onclick="document.getElementById('createHintOverlay').style.display = 'flex';">?</button>
                         </div>
                          </th></tr>
@@ -97,7 +97,7 @@
 
         <div id="graphRightButtons">
             <div>
-                <div class="buttonsTitle"><p>X-axis:</p></div>
+                <div class="buttonsTitle"><p>Edit X-axis</p></div>
                 <div class="radio">
                     <input type="radio" id="xSelectDate" name="xAxisData" checked>
                     <label for="xSelectDate">Date</label>
@@ -113,7 +113,7 @@
             </div>
             <br>
             <div>
-                <div class="buttonsTitle"> <p>Y-axis:</p></div>
+                <div class="buttonsTitle"> <p>Edit Y-axis</p></div>
                 <div class="radio">
                     <input type="radio" id="ySelectLinear" name="yAxisScale" checked>
                     <label for="ySelectLinear">Linear</label>
@@ -227,7 +227,24 @@
         <div id="histRightButtons"></div>
     </div>
     <div id="statsContainer" style="display:none; flex-wrap:nowrap">
-        <div id="statsLeftButtons"></div>
+        <div id="statsLeftButtons">
+            <table id="pbSeriesTable">
+                <tbody>
+                    <tr>
+                        <th colspan="3" class="buttonsTitle">
+                            <p>Select Series</p>
+                        </th>
+                    </tr>
+                </tbody>
+                <tbody id="pbSeriesTableBody">
+                    <tr><td colspan="3">Waiting for file upload...</td></tr>
+                    <tr><td colspan="3">Waiting for file upload...</td></tr>
+                    <tr><td colspan="3">Waiting for file upload...</td></tr>
+                    <tr><td colspan="3">Waiting for file upload...</td></tr>
+                    <tr><td colspan="3">Waiting for file upload...</td></tr>
+                </tbody>
+            </table>
+        </div>
         <table id="pbStats" style="width: 80%">
             <tbody id="pbStatsHead">
                 <tr id="pbStatsHeader">

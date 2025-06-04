@@ -84,10 +84,14 @@ function doSeriesLineStyling(i) {
 function createAllSeriesRows() {
     const toggleTableBody = document.getElementById("toggleTableBody")
     toggleTableBody.replaceChildren();
+    const pbSeriesTableBody = document.getElementById("pbSeriesTableBody")
+    pbSeriesTableBody.replaceChildren();
     for (let i = 1; i < window.userData.labels.length; i+=2) {
         const newRow = createSeriesRow(i);
-        toggleTableBody.appendChild(newRow)
+        toggleTableBody.appendChild(newRow[0])
+        pbSeriesTableBody.appendChild(newRow[1])
     }
+
 }
 
 function createSeriesRow(i) {
@@ -138,6 +142,17 @@ function createSeriesRow(i) {
         widthSelector.value = window.userData.widths[i - 1];
     }, "seriesSettings")
 
+    const pbSeriesButton = createButton(window.userData.labels[i+1], (e) => {
+        //make all the other buttons untoggled
+        const allButtons = document.getElementsByClassName('pbSeriesSelectButton pressed');
+        for(let btn of allButtons) { btn.classList.toggle('pressed'); }
+        const sess = document.getElementById("title-dropdown").value;
+        window.userData.updatePBTable(sess,(i-1)/2);
+        const tgt = e.target.closest('button');
+        tgt.classList.toggle('pressed');
+        window.userData.currentPbSeries = window.userData.labels[i+1]
+    }, "seriesToggle pbSeriesSelectButton")
+    if(window.userData.currentPbSeries == window.userData.labels[i+1]) {pbSeriesButton.classList.toggle('pressed')}
 
     const cell1 = document.createElement("td")
     cell1.appendChild(newButton1)
@@ -149,7 +164,7 @@ function createSeriesRow(i) {
     newRow.appendChild(cell1)
     newRow.appendChild(cell2)
     newRow.appendChild(cell3)
-    return newRow
+    return [newRow, pbSeriesButton]
 }
 
 document.getElementById("addSeriesBtn").addEventListener("click", () => {
@@ -278,6 +293,7 @@ const histogramContainer = document.getElementById("histogramContainer");
 const statsContainer = document.getElementById("statsContainer");
 const graphLegend = document.getElementById("graphLegend")
 const histLegend = document.getElementById("histLegend")
+const pageBody = document.getElementById("body")
 function resetContainers() {
     histogramContainer.style.display = "none";
     histogramButton.classList.remove("pressed");
@@ -287,6 +303,7 @@ function resetContainers() {
     graphButton.classList.remove("pressed");
     graphLegend.style.display = "none"
     histLegend.style.display = "none"
+    pageBody.style.overflow = "hidden"
 }
 graphButton.addEventListener("click", function() {
     window.currentTab = "graph";
@@ -315,7 +332,8 @@ statsButton.addEventListener("click", function() {
     resetContainers();
     statsContainer.style.display = "flex";
     statsButton.classList.add("pressed");
-    window.userData.updatePBTable(window.selectedSess,0)
+    pageBody.style.overflow = "auto"
+    //window.userData.updatePBTable(window.selectedSess,0)
 })
 //#endregion
 
@@ -622,6 +640,7 @@ class UserData {
         //pb data for stats panel
         //  pbData[session][series] [0]: title, [1]: time(s), [2]: solves since last, [3]: days since last, [4]: date 
         this.pbData = makeArrayOfArrays(this.numSessions);
+        this.currentPbSeries = "PB Single"
 
         //Add the first two columns: solve date, solve time
         const fcstartTime = performance.now() 
@@ -1105,8 +1124,11 @@ class UserData {
                         
                     }
                 }
-
-                this.pbData[j].push(pbStats);
+                if(index == undefined) {
+                    this.pbData[j].push(pbStats);
+                } else {
+                    this.pbData[j].splice((idx-1)/2,0,pbStats)
+                }
             }
         }
 
