@@ -6,7 +6,7 @@
 
 # Usage
 ## Graph tab
-![Graph Tab Screenshot](/resources/previews/graphTabV3.png)
+![Graph Tab Screenshot](/resources/previews/graphTabV4.png)
 This tab shows a more extensive version of csTimer's graph for the selected session
 
 Click and drag to zoom on the graph, double click to zoom out
@@ -18,7 +18,7 @@ and can change the scale of either axis from linear to logarithmic. Note that us
 
 
 ## Histogram tab
-![Histogram Tab Screenshot](/resources/previews/histTabV3.png)
+![Histogram Tab Screenshot](/resources/previews/histTabV4.png)
 This tab shows a histogram of the solve times for the selected session
 
 As with the graph tab, you can click and drag to zoom in on the histogram and double click to zoom out
@@ -41,13 +41,13 @@ The creation animation panel shows how the histogram evolved as more and more so
 the column width (in seconds), the amount of solves added each frame, and the length of the x-axis
 
 *Future updates will implement the ability to graph histogram for all series (ao5,ao12,...) instead of just single, 
-option to display an approximate bell curve of the histogram distribution, and a way select a range of solves (ex. last 500 solves) instead of all of them*
+option to display an approximate bell curve of the histogram distribution, show where the mean and median lie, and a way select a range of solves (ex. last 500 solves) instead of all of them*
 
 ## Statistics Tab
-![Screenshot 2025-05-13 193951](/resources/previews/statsTabV3.png)
+![Screenshot 2025-05-13 193951](/resources/previews/statsTabV4.png)
 This tab displays data about your pbs for the selected session
 
 Currently displays a table of the pbs with columns for the solve time, solve date, how long it took to beat the pb, solve #, and how many solves it took to beat the pb
 
-*Future updates will implement the ability to view pbs for all series (ao5, ao100,...) instead of just single, and tools for visualizing other statistics 
+*Future updates will implement tools for visualizing other statistics 
 such as standard deviation, relative standard deviation, time spent, etc*
