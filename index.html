@@ -18,6 +18,15 @@
             <input type="file" id="UploadFile">
         </form>
         <button id="hintButton" class="helpButton" onclick="document.getElementById('fileHintOverlay').style.display = 'flex';">?</button>
+        <div class="spacer"></div>
+        <div class="radio" id="themeRadio">
+            <input type="radio" id="themeGold" name="themeSelector" checked>
+            <label for="themeGold">Gold</label>
+            <input type="radio" id="themeGreen" name="themeSelector">
+            <label for="themeGreen">Green</label>
+            <input type="radio" id="themeBlue" name="themeSelector">
+            <label for="themeBlue">Blue</label>
+        </div>
         <div id="githubLink">
             <a href="https://github.com/SierpinskiBrot/csGrapher">GitHub</a>
         </div>
@@ -33,11 +42,6 @@
             <p>Statistics</p>
         </button>
     </div>
-    <div id="legendLine">
-        <div id="graphLegend"></div>
-        <div id="histLegend"></div>
-    </div>
-
     <div id="graphContainer" style="display: flex; flex-wrap: nowrap;">
         <div id="graphLeftButtons">
             <table id="toggleTable">
@@ -299,7 +303,7 @@
     </div>
     <div id="createHintOverlay" class="hintOverlay">
         <div id="createHintContent" class="hintContent">
-            <table style="background: #FFC857;">
+            <table>
                 <th colspan="3" style="height: 40px;">
                     <p>Create new series</p>
                 </th>
@@ -317,7 +321,7 @@
                 <source src="resources/slidingWindowAnimation.mp4" type="video/mp4" />
             </video>
             <button id="slidingWindowCloseHint" class="closeHint" onclick="document.getElementById('slidingWindowHintOverlay').style.display = 'none';">X</button>
-            <table style="background: #FFC857 ">
+            <table>
                 <tbody>
                     <tr>
                         <th colspan="3">Options:</th>
@@ -333,7 +337,7 @@
                         <td><b>X max:</b> maximum value displayed on the x-axis <br />Defaults to mean+3*standard deviation+1</td>
                         <td colspan="2"><b>Time:</b> additional delay to add between frames measured in milliseconds <br />Defaults to 1. Increasing this number will slow down the animation by lowering the fps</td>
                     </tr>
-                    <tr style="background: #DB3A34; text-align: center">
+                    <tr class="hintWarning">
                         <td colspan="3">
                             <b>THIS FUNCTION IS NOT RECOMMENDED FOR SESSIONS WITH LESS THAN ~1000 SOLVES</b>
                         </td>
@@ -348,7 +352,7 @@
                 <source src="resources/creationAnimation.mp4" type="video/mp4" />
             </video>
             <button id="creationCloseHint" class="closeHint" onclick="document.getElementById('creationHintOverlay').style.display = 'none';">X</button>
-            <table style="background: #FFC857 ">
+            <table>
                 <tbody>
                     <tr>
                         <th colspan="3">Options:</th>

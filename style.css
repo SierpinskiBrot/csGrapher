@@ -1,3 +1,20 @@
+:root {
+  --color-primary: #db3a34;
+  --color-primary-variant: #ad201c;
+  --color-secondary: #e4a547;
+  --color-secondary-variant: #eec98c;
+  --color-background: #e3e673;
+  --color-surface: #f3f4c2;
+  --color-surface-odd: #fafbe7;
+  --color-error: #ad201c;
+
+  --on-primary: #fafbe7;
+  --on-secondary: #ad201c;
+  --on-background: #877614;
+  --on-surface: #ad201c;
+  --on-error: #fafbe7;
+}
+
 html, body {
     margin: 0px;
     height: 100vh;
@@ -5,7 +22,7 @@ html, body {
     padding: 0;
     margin: 0;
     row-gap: 0;
-    grid-template-rows: min-content min-content min-content auto min-content;
+    grid-template-rows: min-content min-content auto;
     overflow: hidden;
 }
 
@@ -14,8 +31,9 @@ body > div {
     margin: 0;
 }
 
-div.header, div.footer {
-    background-color: #DB3A34;
+div.header {
+    background: var(--color-primary);
+    color: var(--on-primary);
     align-items: start;
 }
 h1 {
@@ -25,8 +43,9 @@ div.toolbar {
     width: 100%;
     display: flex;
     flex-wrap: wrap;
-    background-color: #E45E3D;
+    background: var(--color-primary-variant);
 }
+
 div.toolbar > button {
     transition: flex-grow 0.25s;
     font-weight: bold;
@@ -35,26 +54,26 @@ div.toolbar > button {
     flex-grow: 3;
     flex-shrink: 1;
     text-align: center;
-    background-color: #E45E3D;
-    border: #E45E3D inset thick;
+    background: var(--color-primary-variant);
+    color: var(--on-primary);
+    border: var(--color-primary-variant) inset thick;
 }
+
 div.toolbar > button:hover {
-    background-color: #E04C39;
-    border-color: #E04C39;
+    border: var(--color-primary) outset thick;
 }
 
 div.toolbar > button.pressed {
-    background-color: #DB3A34;
-    border: #DB3A34 outset thick;
+    background-color: var(--color-primary);
+    border: var(--color-primary) outset thick;
     flex-grow: 3;
 }
 
 h1, p, a {
     margin: 0px;
-    color: #141414;
 }
 body {
-    background-color: #FFC857;
+    background: var(--color-background);
 }
 #fileinput {
     margin: 3px;
@@ -66,17 +85,24 @@ body {
     max-height: fit-content;
 }
 input#UploadFile {
-    background: #E45E3D;
+    background: var(--color-primary-variant);
     margin: 3px;
     margin-right: 0;
     padding: 3px;
     border-radius: 3px;
-    box-shadow: #141414 2px 2px;
+    box-shadow: var(--on-surface) 2px 2px;
 }
-
-
-#githubLink {
+div.spacer {
     flex-grow: 1;
+}
+#themeRadio {
+    width:auto !important;
+    margin-right: 20px;
+    align-content: center;
+    align-self: center;
+}
+#githubLink {
+    color: var(--on-primary) !important;
     align-content: center;
     text-align: right;
     margin: 3px;
@@ -84,15 +110,10 @@ input#UploadFile {
     margin-right: 1em;
     font-weight: bold;
 }
-
-#legendLine {
-    display: flex;
-    flex-wrap: wrap;
-    border: #323031 thick double;
-    justify-content: center;
-    height: 1em;
-    border-top: none;
+#githubLink > a {
+    color: var(--on-primary) !important;
 }
+
 
 .toggleButtonRow {
     display: flex;
@@ -108,59 +129,58 @@ input#UploadFile {
 }
 
 button.seriesToggle {
-    background-color: #E45E3D;
-    border: #E45E3D outset;
-    color: #141414;
+    background: var(--color-secondary-variant);
+    border: var(--color-secondary-variant) outset;
+    color: var(--on-secondary);
     font-weight: bold;
     width: 100%;
     padding: 4px;
     transition: all 0.1s ease-in-out;
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+
 }
 
 button.seriesSettings {
-    background-color: #323031;
-    border: #323031 outset;
-    color: #D6D6D6;
-    font-weight: bolder;
+    border:  var(--color-secondary) outset;
+    background: var(--color-secondary);
+    color: var(--on-secondary);
+    font-weight: 900;
     width: 100%;
-    padding: 4px;
+    padding: 3px;
     transition: all 0.3s ease-in-out;
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--on-surface) 2px 2px 3px 3px;
 }
-  
-button.seriesToggle:hover {
-    background-color: #f0f0f0;
+button.seriesSettings:hover, button.seriesToggle:hover {
+    border-style: inset;
 }
-  
+
 button.seriesToggle.pressed {
-    border: #323031 inset !important;
-    background-color: #323031 !important;
-    color: #D6D6D6;
-    box-shadow: 2px 2px 10px rgba(255, 0, 0, 0.5);
+    border: var(--on-secondary) inset !important;
+    background: var(--on-secondary) !important;
+    color: var(--color-secondary);
 }
+
 #toggleTable, #pbSeriesTable {
     width: 100%;
     border-spacing: 0px;
-    background: #D6D6D6;
+    background: var(--color-surface);
     margin: 0px;
     padding: 0px;
 }
 
 #toggleTableBody > tr:nth-child(even), #pbSeriesTableBody > tr:nth-child(even) {
-    background-color: #CCCCCC;
+    background-color: var(--color-surface-odd);
 }
 
 
 #graphdiv, #histogramDiv {
-    background: #D6D6D6;
+    background: var(--color-surface);
     display: grid;
     width: 80% !important;
     height: auto !important;
     justify-self: center;
     justify-content: center;
     align-items: start;
-    border: 3px solid #323031;
+    border: 3px solid var(--on-background);
 
 }
 
@@ -175,17 +195,17 @@ button.seriesToggle.pressed {
 }
 
 select#title-dropdown {
-    background: #084C61;
+    background: var(--color-primary-variant);
     padding: 3px;
-    color: #D6D6D6;
-    border: #323031 medium double;
-    box-shadow: #141414 2px 2px;
+    color: var(--on-primary);
+    border: var(--on-background) medium double;
+    box-shadow: var(--on-surface) 2px 2px;
     font-weight: 900;
     margin: 3px;
     margin-left: 1em;
 }
 select#title-dropdown:hover {
-    background: #177E89;
+    box-shadow: var(--on-surface) 3px 3px;
 }
 
 
@@ -199,37 +219,36 @@ select#title-dropdown:hover {
     overflow: hidden;
     width:100%;
     text-align: center;
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
-
 }
 .radio > input[type="radio"] {
     display: none;
 }
 .radio > label {
     padding: 4px;
-    background: #323031;
-    border: #323031  inset;
-    color: #D6D6D6;
+    background: var(--on-secondary);
+    border: var(--on-secondary)  inset;
+    color: var(--color-secondary-variant);
     font-weight: bold;
     width: 50%;
 }
-
 .radio > input[type="radio"]:checked + label {
-    color: #141414;
-    background:#E45E3D;
-    border: #E45E3D outset;
+    color: var(--on-secondary);
+    background: var(--color-secondary-variant);
+    border: var(--color-secondary-variant) outset;
 }
+
 .buttonsTitle {
     font-weight: bold;
     font-size: large;
     width: 100%;
-    background-color: #DB3A34;
+    background-color: var(--color-secondary);
     box-sizing: border-box;
-    border: double thick #323031;
+    border: double thick var(--on-background);
     text-align: center;
 }
 .buttonsTitle > p {
     padding-left: 4px;
+    color: var(--on-secondary)
 }
 
 .dygraph-label {
@@ -249,53 +268,64 @@ select#title-dropdown:hover {
     align-items: center;
     z-index: 1000;
 }
-  
 .hintContent {
     position: relative;
     max-width: 90vw;
     max-height: 90vh;
+    background: var(--color-surface);
 }
-  
 .hintContent img {
     width: 100%;
     height: auto;
-    border: 4px solid #D6D6D6;
+    border: 4px solid var(--color-surface);
     border-radius: 8px;
 }
-  
 .closeHint {
     position: absolute;
     top: 10px; right: 10px;
-    background: #DB3A34;
+    background: var(--color-error);
     border: none;
-    color: #D6D6D6;
+    color: var(--on-error);
     font-size: 20px;
     padding: 5px 10px;
     cursor: pointer;
     border-radius: 5px;
+}
+div.hintContent > table, div.hintContent > tr, div.hintContent > td {
+    border: 3px solid var(--on-surface);
+}
+div.hintContent > table > tbody > tr > th, div.hintContent > table > tbody > tr > td {
+    border: 1px solid var(--on-surface);
+}
+div.hintContent > table {
+    background: var(--color-surface);
+    color: var(--on-surface);
+}
+div.hintContent .hintWarning {
+    text-align: center;
+    background: var(--color-error);
+    color: var(--on-error)
 }
 
 .settings-box {
     position: absolute;
     top: 30px;
     left: 0;
-    background: #CCCCCC;
-    border: 5px outset #CCCCCC;
+    background: var(--color-surface);
+    border: 5px outset var(--color-surface);
     padding: 8px;
     display: none;
     z-index: 10;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.75);
+    box-shadow: var(--on-surface) 2px 2px;
 }
-
 .settings-box label {
     display: block;
     margin: 5px 0;
     font-size: 12px;
 }
-
 .close-settings {
-    background: #e74c3c;
-    color: #D6D6D6;
+    background: var(--color-error);
+    color: var(--on-error);
     border: none;
     padding: 3px 6px;
     font-size: 12px;
@@ -304,88 +334,87 @@ select#title-dropdown:hover {
     cursor: pointer;
 }
 
+
 .formTable {
     width: 100%;
     border-spacing: 0px;
-    border: solid thin #323031;
-    background-color: #CCCCCC;
+    border: solid thin var(--on-background);
+    background-color: var(--color-surface);
 }
-
 .formTable tr:nth-child(even) {
-    background-color: #D6D6D6;
+    background-color: var(--color-surface-odd);
 }
-
 table.formTable button.helpButton {
     margin-left: 5px;
     align-self: flex-end;
     width:  2em;
 }
-
 table.formTable > tbody > tr > td {
     text-align: right;
 }
-
 table.formTable > tbody > tr > th {
-    font-weight: bolder;
-    border: double thick #323031;
-    background-color: #DB3A34;
+    font-weight: bold;
+    font-size: large;
+    border: double thick var(--on-background);
+    background: var(--color-secondary);
+    color: var(--on-secondary)
 }
-
 .formTable input, .formTable button {
     width: -webkit-fill-available;
 }
 
+
 #pbStats {
     border-spacing: 0px;
-    border: solid thin #323031;
-    background-color: #CCCCCC;
+    border: solid thin var(--on-background);
+    background-color: var(--color-surface);
 }
 #pbStatsHead {
     height: 40px;
 }
-
 #pbStatsHeader {
     font-weight: bolder;
-    background-color: #DB3A34;
+    background-color: var(--color-secondary);
 }
 #pbStatsHeader > th {
-    border: solid thin #323031;
-    border-top: double thick #323031;
-    border-bottom: double thick #323031;
+    border: solid thin var(--on-background);
+    border-top: double thick var(--on-background);
+    border-bottom: double thick var(--on-background);
+    color: var(--on-secondary)
 }
-#pbStatsBody > tr:nth-child(odd) {
-    background-color: #D6D6D6;
+#pbStatsBody > tr:nth-child(even) {
+    background: var(--color-surface-odd);
 }
 #pbStatsBody > tr > td {
-    border-left: solid thin #323031;
-    border-right: solid thin #323031;
+    border-left: solid thin var(--on-background);
+    border-right: solid thin var(--on-background);
     text-align: center;
 }
 
+
 .helpButton {
-    background: #323031;
-    color: #D6D6D6;
+    background: var(--on-surface);
+    color: var(--color-surface);
     font-weight: bolder;
     align-self: center;
     padding: 3px;
     border-radius: 3px;
-    box-shadow: #141414 2px 2px;
+    border-color: var(--color-secondary-variant);
+    box-shadow: var(--on-background) 2px 2px;
+}
+.helpButton:hover {
+    border-style: inset;
 }
 
-div.hintContent > table, div.hintContent > tr, div.hintContent > td {
-    border: 3px solid #323031;
-}
-div.hintContent > table > tbody > tr > th, div.hintContent > table > tbody > tr > td {
-    border: 1px solid #323031;
-}
+
 
 .animationProgressBar {
     height: 4px;
-    background-color: #D6D6D6;
+    background-color: var(--color-surface);
     width: 100%;
 }
 .animationProgressBar div {
-    background-color: #DB3A34;
+    background-color: var(--color-error);
     width: 0%;
     height: 100%;
 }
