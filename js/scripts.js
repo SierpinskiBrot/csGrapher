@@ -1,4 +1,4 @@
-import "./lib/dygraph.js";
+import "../lib/dygraph.js";
 
 //              x,     y
 var logScale = [false, false]
@@ -82,6 +82,83 @@ function binarySearchInsertIdx(arr, val) {
     }
     return low;
 }
+
+//gamma function
+function gamma(z) {
+    const g = 7;
+    const p = [
+        0.99999999999980993,
+        676.5203681218851,
+        -1259.1392167224028,
+        771.32342877765313,
+        -176.61502916214059,
+        12.507343278686905,
+        -0.13857109526572012,
+        9.9843695780195716e-6,
+        1.5056327351493116e-7
+    ];
+
+    if (z < 0.5) {
+        // Reflection formula
+        return Math.PI / (Math.sin(Math.PI * z) * gamma(1 - z));
+    } else {
+        z -= 1;
+        let x = p[0];
+        for (let i = 1; i < p.length; i++) {
+        x += p[i] / (z + i);
+        }
+        const t = z + g + 0.5;
+        return Math.sqrt(2 * Math.PI) * Math.pow(t, z + 0.5) * Math.exp(-t) * x;
+    }
+}
+
+//error function
+function erf(x) {
+    // Save the sign of x
+    const sign = (x >= 0) ? 1 : -1;
+    x = Math.abs(x);
+
+    // Constants for approximation
+    const a1 =  0.254829592;
+    const a2 = -0.284496736;
+    const a3 =  1.421413741;
+    const a4 = -1.453152027;
+    const a5 =  1.061405429;
+    const p  =  0.3275911;
+
+    // Abramowitz & Stegun formula
+    const t = 1 / (1 + p * x);
+    const y = 1 - (((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t) * Math.exp(-x * x);
+
+    return sign * y;
+}
+
+//normal probability density function
+function normalPDF(x, mu, sigma) {
+    return (1 / (sigma * Math.sqrt(2 * Math.PI))) * 
+        Math.exp(-0.5 * ((x - mu) / sigma) ** 2);
+}
+//normal cumulative density function
+function standardNormalCDF(x) {
+    return 0.5 * (1 + erf(x / Math.sqrt(2)));
+}
+//skew normal probability density function
+function skewNormalPDF(x, xi, omega, alpha) {
+    const norm = (x - xi) / omega;
+    //return (2 / omega) * 
+    return (2 / 1) * 
+        normalPDF(x, xi, omega) * 
+        standardNormalCDF(alpha * norm);
+}
+
+function betaPDF(x, alpha, beta) {
+    const coeff = gamma(alpha+beta)/(gamma(alpha)*gamma(beta))
+    //return (2 / omega) * 
+    return coeff *
+        (x ** (alpha - 1)) *
+        ((1-x) ** (beta - 1));
+}
+
 
 function round(num, decimalPlaces = 0) {
     num = Math.round(num + "e" + decimalPlaces);
@@ -323,12 +400,72 @@ window.updateGraph = function() {
 };
 
 //Update the histogram
+/*
 window.updateHist = function() {
     window.selectedSess = document.getElementById("title-dropdown").value;
     window.h.updateOptions({
         file: window.userData.hist[window.selectedSess]
     });
 };  
+*/
+// Update the histogram (with optional overlays)
+window.updateHist = function () {
+    window.selectedSess = document.getElementById("title-dropdown").value;
+
+    const hist = window.userData.hist[window.selectedSess];
+    const norm = window.userData.histNormData;
+    const skew = window.userData.histSkewData;
+    const beta = window.userData.histBetaData;
+
+    const numSolves = window.userData.solves[window.selectedSess].length;
+    const bucketWidth = hist[1][0] - hist[0][0];
+    const scale = numSolves*bucketWidth;
+
+    // Start building combined data
+    const combined = hist.map(([x, y], i) => {
+        const row = [x, y/scale];
+        if (window.userData.showNorm) {
+            row.push(norm?.[i]?.[1] ?? null);
+        }
+        if (window.userData.showSkew) {
+            row.push(skew?.[i]?.[1] ?? null);
+        }
+        if (window.userData.showBeta) {
+            row.push(beta?.[i]?.[1] ?? null);
+        }
+        return row;
+    });
+
+    //window.g.updateOptions({series : { [label_] : {strokePattern: Dygraph.DASHED_LINE}}})
+
+    // Build labels array
+    const labels = ["Time(s)", "Frequency"];
+    if (window.userData.showNorm) labels.push("Normal Fit");
+    if (window.userData.showSkew) labels.push("Skew Fit");
+    if (window.userData.showBeta) labels.push("Beta Fit");
+
+    // Update Dygraph
+    window.h.updateOptions({
+        file: combined,
+        labels: labels,
+    });
+};
+
+document.getElementById("showHistNorm").addEventListener("click", function() {
+    window.userData.createNormData();
+    window.userData.showNorm = !window.userData.showNorm;
+    updateHist();
+})
+document.getElementById("showHistSkew").addEventListener("click", function() {
+    window.userData.createSkewData();
+    window.userData.showSkew = !window.userData.showSkew;
+    updateHist();
+})
+document.getElementById("showHistBeta").addEventListener("click", function() {
+    window.userData.createBetaData();
+    window.userData.showBeta = !window.userData.showBeta;
+    updateHist();
+})
 
 
 //clicking outside the image closes it too
@@ -608,6 +745,9 @@ jsonDataFile.addEventListener("change", function() {
                 }
             );
         });
+        window.h.updateOptions({series : { "Normal Fit" : {fillGraph: false, stepPlot: false, color: "#00FF00", axis: "y1"}}})
+        window.h.updateOptions({series : { "Skew Fit" : {fillGraph: false, stepPlot: false, color: "#0000FF", axis: "y1"}}})
+        window.h.updateOptions({series : { "Beta Fit" : {fillGraph: false, stepPlot: false, color: "#FF0000", axis: "y1"}}})
         
         //Line styling for each line
         for(let i = 1; i < window.userData.labels.length; i++) {
@@ -735,6 +875,15 @@ class UserData {
         //this.hist is what is displayed, this.buckets is the data of each solve in its bucket for when we want to subdivide
         //  hist[session] [0]: bucket name(0,1,...), [1]: # of solves
         this.hist = makeArrayOfArrays(this.numSessions);
+        this.histStats = [];  // [ [mean, std, numsolves], [mean, std, numsolves], ... ]
+        this.histNormData = [];
+        this.histSkewData = [];
+        this.histBetaData = [];
+        this.showNorm = false;
+        this.showSkew = false;
+        this.showBeta = false;
+        this.maxDelta = 0.98;
+
 
         //pb data for stats panel
         //  pbData[session][series] [0]: title, [1]: time(s), [2]: solves since last, [3]: days since last, [4]: date 
@@ -827,11 +976,25 @@ class UserData {
         //this.buckets = makeArrayOfArrays(this.numSessions);
         for(let j = 0; j < this.numSessions; j++) {
             let max = 0;
-            //find the max time
+            const times = [];
+
+
+            //extract solves and find the max time
             for(let i = 0; i < this.solves[j].length; i++) {
-                const time = this.solves[j][i][1]
+                const time = this.solves[j][i][1];
+                times.push(time);
                 if(time > max) max = time;
             }
+
+            // 2. Compute mean
+            const mean = times.reduce((a, b) => a + b, 0) / times.length;
+
+            // 3. Compute std deviation
+            const std = Math.sqrt(times.reduce((sum, t) => sum + (t - mean) ** 2, 0) / times.length);
+            const variance = times.reduce((sum, t) => sum + (t/max - mean/max) ** 2, 0) / times.length;
+            console.log("variance",j,":",variance)
+            this.histStats[j] = [mean, std, times.length, max]
+
             //create the buckets
             for(let b = 0; b <= max+1; b+= bucketSize_) {
                 this.hist[j].push([b,0]);
@@ -845,6 +1008,94 @@ class UserData {
                 //this.buckets[j][bucket].push(time);
             }
         }
+    }
+
+    createNormData() {
+        const binData = this.hist[window.selectedSess];
+        const stats = this.histStats[window.selectedSess]
+        const bucketWidth = binData[1][0] - binData[0][0]; // Assuming uniform bins
+        const scale = this.solves[window.selectedSess].length * bucketWidth;
+        let sum = 0
+        const normData = binData.map(([x]) => {
+            //const y = scale * normalPDF(x, stats[0], stats[1])
+            const y = normalPDF(x, stats[0], stats[1])
+            sum += y;
+            return [x, y];
+        });
+        console.log("norm sum:", sum)
+
+        this.histNormData = normData;
+    }
+
+    createSkewData() {
+        const binData = this.hist[window.selectedSess];
+        const stats = this.histStats[window.selectedSess]; // [mean, std]
+        const bucketWidth = binData[1][0] - binData[0][0];
+        const solveTimes = this.solves[window.selectedSess].map(s => s[1]);
+        const n = this.solves[window.selectedSess].length;
+
+        // Estimate sample skewness γ1 = (1/n) ∑ ((x - μ)/σ)^3
+        const mean = stats[0], std = stats[1];
+        let skewness = solveTimes.reduce((sum, t) => sum + ((t - mean) / std) ** 3, 0) / n;
+        console.log("real skewness:",skewness)
+        //Max allowable is 1 or it explodes
+        if(skewness > 0.99) skewness = 0.99;
+        if(skewness < -0.99) skewness = -0.99;
+
+        // Approximate shape parameter α from skewness (Pearson's method)
+        //const alpha = Math.sign(skewness) * Math.sqrt(Math.PI / 2 * (Math.abs(skewness) ** (2/3)));
+        const a = Math.abs(skewness) ** (2/3)
+        const b = ((4-Math.PI)/2) ** (2/3);
+        //const delta = Math.sign(skewness) * Math.sqrt(Math.PI / 2 * (a/(a+b)));
+        const delta = Math.sign(skewness) * Math.min(Math.sqrt(Math.PI / 2 * (a/(a+b))),this.maxDelta);
+        //const delta = Math.sign(skewness) * Math.sqrt(Math.PI / 2 * a);
+        console.log("delta:",delta)
+        const alpha = delta / Math.sqrt(1 - delta * delta)
+        const omega = std / Math.sqrt(1 - 2 * delta * delta / Math.PI);
+        const xi = mean - omega * delta * Math.sqrt(2 / Math.PI);
+        const scale = n * bucketWidth;
+        let sum = 0;
+        const skewData = binData.map(([x]) => {
+            //const y = scale * skewNormalPDF(x, mean, std, alpha);
+            //const y = scale * skewNormalPDF(x, 12.84467, 10.9106, 7.0179);
+            //const y = scale * skewNormalPDF(x, xi, omega, alpha);
+            const y = skewNormalPDF(x, xi, omega, alpha);
+            sum += y;
+            return [x, y];
+        });
+        console.log("Skew sum:", sum);
+
+        this.histSkewData = skewData;
+        console.log("n: ", n, "bucketWidth:", bucketWidth)
+        console.log("Skewness:", skewness, "Alpha:", alpha, "Omega:", omega, "xi:", xi);
+    }
+
+    createBetaData() {
+        const binData = this.hist[window.selectedSess];
+        const stats = this.histStats[window.selectedSess]
+        const bucketWidth = binData[1][0] - binData[0][0]; // Assuming uniform bins
+        const scale = this.solves[window.selectedSess].length * bucketWidth;
+
+
+        const mean = stats[0], std = stats[1], max = stats[3]
+        const m = mean/stats[3]
+        const v = (std ** 2) / (max ** 2);
+
+        const alpha = m * (m * (1-m) / v - 1);
+        const beta = (1-m) * (m * (1-m) / v - 1)
+
+    
+
+        let sum = 0
+        const betaData = binData.map(([x]) => {
+            //const y = scale * normalPDF(x, stats[0], stats[1])
+            const y = betaPDF(x/max, alpha, beta) / max;
+            sum += y;
+            return [x, y];
+        });
+        console.log("beta sum:", sum)
+
+        this.histBetaData = betaData;
     }
 
     createHistRange(bucketSize, range,offset) {

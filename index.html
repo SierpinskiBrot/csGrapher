@@ -6,6 +6,7 @@
     <link rel="stylesheet" type="text/css" href="style.css">
     <script type="text/javascript" src="lib/dygraph.js"></script>
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <script type="module" src="js/scripts.js"></script>
     
     
 </head>
@@ -228,7 +229,11 @@
         <div id="histogramDiv">
             <h1 style="align-self: center;">Waiting for file upload...</h1>
         </div>
-        <div id="histRightButtons"></div>
+        <div id="histRightButtons">
+            <button id="showHistNorm">Norm</button>
+            <button id="showHistSkew">Skew</button>
+            <button id="showHistBeta">Beta</button>
+        </div>
     </div>
     <div id="statsContainer" style="display:none; flex-wrap:nowrap">
         <div id="statsLeftButtons">
@@ -269,7 +274,7 @@
         </table>
         <div id="statsRightButtons"></div>
     </div>
-    <script type="module" src="scripts.js"></script>
+    
     <script type="text/javascript">
         /*
         Dygraph.onDOMready(function onDOMready() {
