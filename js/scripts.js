@@ -1,280 +1,14 @@
 import "../lib/dygraph.js";
 
-import {binarySearchInsertIdx, round, dhm, sleep, createButton} from "./utils.js"
+import {makeArrayOfArrays, binarySearchInsertIdx, round, dhm, sleep, createButton, parseTime} from "./utils.js"
 import {themes} from "./themes.js"
 import {gamma, erf, normalPDF, standardNormalCDF, skewNormalPDF, betaPDF} from "./probabilities.js"
+import { graphTabStartup } from "./graphTab.js";
+import { histogramTabStartup } from "./histogramTab.js";
 
-//              x,     y
-var logScale = [false, false]
 
 window.selectedSess = 0; //selected session from the cstimer
 
-
-function doSeriesLineStyling(i) {
-    const label_ = window.userData.labels[i]
-    const color_ = window.userData.colors[i - 1]
-    const width_ = window.userData.widths[i - 1]
-    //Default setup
-    window.g.updateOptions({series : { 
-        [label_] : {
-            color : color_,
-            strokeWidth : width_
-        }
-    }})
-    //Dashed line for pb
-    if(label_[0] == 'P') {
-        window.g.updateOptions({series : { [label_] : {strokePattern: Dygraph.DASHED_LINE}}})
-    }
-    //Points for time
-    if(label_ == 'Time') {
-        window.g.updateOptions({series : { [label_] : {
-            strokeWidth: 0,
-            drawPoints: true,
-            pointSize: width_}}})
-    }
-}
-
-function createAllSeriesRows() {
-    const toggleTableBody = document.getElementById("toggleTableBody")
-    toggleTableBody.replaceChildren();
-    const pbSeriesTableBody = document.getElementById("pbSeriesTableBody")
-    pbSeriesTableBody.replaceChildren();
-    for (let i = 1; i < window.userData.labels.length; i+=2) {
-        const newRow = createSeriesRow(i);
-        toggleTableBody.appendChild(newRow[0])
-        pbSeriesTableBody.appendChild(newRow[1])
-    }
-
-}
-
-function createSeriesRow(i) {
-    //create 1st toggle button
-    const newButton1 = createButton(window.userData.labels[i], (e) => {
-        const currentVisibility = window.userData.visibilities[i - 1];
-        window.userData.visibilities[i - 1] = !currentVisibility;
-        window.g.setVisibility(window.userData.visibilities, true);
-        const tgt = e.target.closest('button');
-        tgt.classList.toggle('pressed');
-    }, "seriesToggle")
-    //set the color
-    const color1 = window.userData.colors[i - 1];
-    //newButton1.style = "background:" + color1 + "; border-color: " + color1
-    newButton1.style = "box-shadow: 2px 2px 3px 3px" + color1
-    //redundant as visibility is reset when a file is uploaded
-    if (!window.userData.visibilities[i - 1]) newButton1.classList.toggle('pressed')
-
-    //create 2nd toggle button
-    const newButton2 = createButton("PB", (e) => {
-        const currentVisibility = window.userData.visibilities[i];
-        window.userData.visibilities[i] = !currentVisibility;
-        window.g.setVisibility(window.userData.visibilities, true);
-        const tgt = e.target.closest('button');
-        tgt.classList.toggle('pressed');
-    }, "seriesToggle")
-    //set the color
-    const color2 = window.userData.colors[i];
-    //newButton2.style = "background:" + color2 + "; border-color: " + color2
-    newButton2.style = "box-shadow: 2px 2px 3px 3px" + color2
-    //redundant as visibility is reset when a file is uploaded
-    if (!window.userData.visibilities[i]) newButton2.classList.toggle('pressed')
-
-
-    //create the settings button
-    const seriesSettings = createButton(">", (e) => {
-        const settings = document.getElementById("seriesSettingsBox")
-        //make the settings box visible and move it to the cursor
-        settings.style.display = settings.style.display === 'block' ? 'none' : 'block';
-        settings.style.top = e.pageY + "px"
-        settings.style.left = e.pageX + 10 + "px"
-        settings.name = i+1 //use the name attribute to know which series is being edited
-
-        //set the value of the color selector to the color of the buttons
-        const colorSelector = document.getElementById("seriesColorSelector");
-        colorSelector.value = window.userData.colors[i - 1];
-
-        //set the value of the width selector the the width of the series
-        const widthSelector = document.getElementById("seriesWidthSelector")
-        widthSelector.value = window.userData.widths[i - 1];
-    }, "seriesSettings")
-    //seriesSettings.style = "box-shadow: 2px 2px 3px 3px" + color2
-
-    const pbSeriesButton = createButton(window.userData.labels[i+1], (e) => {
-        //make all the other buttons untoggled
-        const allButtons = document.getElementsByClassName('pbSeriesSelectButton pressed');
-        for(let btn of allButtons) { btn.classList.toggle('pressed'); }
-        const sess = document.getElementById("title-dropdown").value;
-        window.userData.updatePBTable(sess,(i-1)/2);
-        const tgt = e.target.closest('button');
-        tgt.classList.toggle('pressed');
-        window.userData.currentPbSeries = window.userData.labels[i+1]
-    }, "seriesToggle pbSeriesSelectButton")
-    if(window.userData.currentPbSeries == window.userData.labels[i+1]) {pbSeriesButton.classList.toggle('pressed')}
-    //newButton2.style = "background:" + color2 + "; border-color: " + color2
-
-    const cell1 = document.createElement("td")
-    cell1.appendChild(newButton1)
-    const cell2 = document.createElement("td")
-    cell2.appendChild(newButton2)
-    const cell3 = document.createElement("td")
-    cell3.appendChild(seriesSettings)
-    const newRow = document.createElement("tr")
-    newRow.appendChild(cell1)
-    newRow.appendChild(cell2)
-    newRow.appendChild(cell3)
-    return [newRow, pbSeriesButton]
-}
-
-document.getElementById("addSeriesBtn").addEventListener("click", () => {
-    const type = document.getElementById("newAvgType").value; // 'ao' or 'mo'
-    const size = parseInt(document.getElementById("newAvgSize").value);
-    const width = parseInt(document.getElementById('newAvgWidth').value)
-    if (isNaN(size) || size < 1) return alert("Please enter a valid number.");
-    if (size == 1 || (type == "ao" && size == 2)) return alert("Bro")
-  
-    const label1 = `${type}${size}`;
-    const label2 = "PB "+label1
-    const color = document.getElementById("newAvgColor").value
-  
-    // Avoid duplicates
-    if (window.userData.labels.includes(label1)) {
-      alert("This series already exists.");
-      return;
-    }
-
-    //Find where to insert the new series, they should be in order
-    let index = window.userData.labels.length;
-    for(let i = 3; i < window.userData.labels.length; i++) {
-        const x = parseInt(window.userData.labels[i].substring(2))
-        //console.log(`looking at label ${i}, it is a ${x}`)
-        if(x > size) {
-            //console.log("i should go here")
-            index = i;
-            break;
-        }
-        //mean should go behind average
-        if(x == size) {
-            if(type == "ao") {index = i+2;}
-            else {index = i;}
-            break;
-        }
-        i++
-    }
-
-    //splice it in in the right location
-    window.userData.labels.splice(index,0,label1);window.userData.labels.splice(index+1,0,label2)
-    window.userData.colors.splice(index-1,0,color);window.userData.colors.splice(index-1,0,color);
-    window.userData.widths.splice(index-1,0,width);window.userData.widths.splice(index-1,0,width);
-    window.userData.visibilities.splice(index-1,0,true);window.userData.visibilities.splice(index-1,0,true);
-    
-    //calc the average/mean column
-    if (type === "ao") window.userData.pushAvg(size, index);
-    else window.userData.pushMean(size, index);
-    //calc the pb column
-    window.userData.pbsOfLastCol(size, index)
-
-    
-    window.userData.createSolves2();
-  
-    //Do the line styling for ao/mo and pb
-    doSeriesLineStyling(index)
-    doSeriesLineStyling(index+1)
-
-    //just remake the whole table cuz its quick and im lazy
-    createAllSeriesRows();
-    
-    updateGraph();
-    window.g.setVisibility(window.userData.visibilities, true);
-  });
-
-// Utility to make N arrays
-const makeArrayOfArrays = (n) => Array(n).fill().map(() => []);
-
-//Update the graph
-window.updateGraph = function() {
-    window.selectedSess = document.getElementById("title-dropdown").value;
-    if(window.userData.xTitle == "Date") {
-        window.g.updateOptions({
-        file: window.userData.solves[window.selectedSess], 
-        xlabel: (logScale[0] ? "Log(": "") + window.userData.xTitle + (logScale[0] ? ")": ""),
-        ylabel: (logScale[1] ? "Log(": "") + "Time(s)" + (logScale[1] ? ")": "")
-    });
-    } else if (window.userData.xTitle == "Solve #") {
-        window.g.updateOptions({
-        file: window.userData.solves2[window.selectedSess], 
-        xlabel: (logScale[0] ? "Log(": "") + window.userData.xTitle + (logScale[0] ? ")": ""),
-        ylabel: (logScale[1] ? "Log(": "") + "Time(s)" + (logScale[1] ? ")": "")
-    });
-    }
-    
-};
-
-//Update the histogram
-/*
-window.updateHist = function() {
-    window.selectedSess = document.getElementById("title-dropdown").value;
-    window.h.updateOptions({
-        file: window.userData.hist[window.selectedSess]
-    });
-};  
-*/
-// Update the histogram (with optional overlays)
-window.updateHist = function () {
-    window.selectedSess = document.getElementById("title-dropdown").value;
-
-    const hist = window.userData.hist[window.selectedSess];
-    const norm = window.userData.histNormData;
-    const skew = window.userData.histSkewData;
-    const beta = window.userData.histBetaData;
-
-    const numSolves = window.userData.solves[window.selectedSess].length;
-    const bucketWidth = hist[1][0] - hist[0][0];
-    const scale = numSolves*bucketWidth;
-
-    // Start building combined data
-    const combined = hist.map(([x, y], i) => {
-        const row = [x, y/scale];
-        if (window.userData.showNorm) {
-            row.push(norm?.[i]?.[1] ?? null);
-        }
-        if (window.userData.showSkew) {
-            row.push(skew?.[i]?.[1] ?? null);
-        }
-        if (window.userData.showBeta) {
-            row.push(beta?.[i]?.[1] ?? null);
-        }
-        return row;
-    });
-
-    //window.g.updateOptions({series : { [label_] : {strokePattern: Dygraph.DASHED_LINE}}})
-
-    // Build labels array
-    const labels = ["Time(s)", "Frequency"];
-    if (window.userData.showNorm) labels.push("Normal Fit");
-    if (window.userData.showSkew) labels.push("Skew Fit");
-    if (window.userData.showBeta) labels.push("Beta Fit");
-
-    // Update Dygraph
-    window.h.updateOptions({
-        file: combined,
-        labels: labels,
-    });
-};
-
-document.getElementById("showHistNorm").addEventListener("click", function() {
-    window.userData.createNormData();
-    window.userData.showNorm = !window.userData.showNorm;
-    updateHist();
-})
-document.getElementById("showHistSkew").addEventListener("click", function() {
-    window.userData.createSkewData();
-    window.userData.showSkew = !window.userData.showSkew;
-    updateHist();
-})
-document.getElementById("showHistBeta").addEventListener("click", function() {
-    window.userData.createBetaData();
-    window.userData.showBeta = !window.userData.showBeta;
-    updateHist();
-})
 
 
 //clicking outside the image closes it too
@@ -308,8 +42,6 @@ const statsButton = document.getElementById("statsButton");
 const graphContainer = document.getElementById("graphContainer");
 const histogramContainer = document.getElementById("histogramContainer");
 const statsContainer = document.getElementById("statsContainer");
-//const graphLegend = document.getElementById("graphLegend")
-//const histLegend = document.getElementById("histLegend")
 const pageBody = document.getElementById("body")
 function resetContainers() {
     histogramContainer.style.display = "none";
@@ -318,8 +50,6 @@ function resetContainers() {
     statsButton.classList.remove("pressed");
     graphContainer.style.display = "none";
     graphButton.classList.remove("pressed");
-    //graphLegend.style.display = "none"
-    //histLegend.style.display = "none"
     pageBody.style.overflow = "hidden"
 }
 graphButton.addEventListener("click", function() {
@@ -329,7 +59,6 @@ graphButton.addEventListener("click", function() {
     graphButton.classList.add("pressed");
     window.g.resize();
     window.updateGraph(); window.g.resetZoom()
-    //graphLegend.style.display = "block"
 })
 histogramButton.addEventListener("click", function() {
     window.currentTab = "hist";
@@ -342,7 +71,6 @@ histogramButton.addEventListener("click", function() {
         window.userData.genSlidingWindowDefaults()
         window.userData.genCreationDefaults();
     }
-    //histLegend.style.display = "block"
 })
 statsButton.addEventListener("click", function() {
     window.currentTab = "stats";
@@ -361,103 +89,41 @@ statsButton.addEventListener("click", function() {
     if(!clickOccured) {
         window.userData.updatePBTable(window.dropdown.value,0) 
     }
-    //window.userData.updatePBTable(window.selectedSess,0)
 })
 //#endregion
 
 
 
-//#region Handle the buttons on the right of the graph screen
-//Handle swapping between Date and Solve# on the x-axis
-const xSelectDate = document.getElementById("xSelectDate");
-const xSelectSolve = document.getElementById("xSelectSolve");
-xSelectDate.addEventListener("click", function() { 
-    if(window.userData.xTitle == "Solve #")  {
-        window.userData.xTitle = "Date"
-        window.updateGraph();
-        window.g.resetZoom();
+function dropdownOnChange() {
+    //Only update what is on screen
+    if(window.currentTab == "graph") { 
+        window.updateGraph(); window.g.resetZoom() 
     }
-});
-xSelectSolve.addEventListener("click", function() { 
-    if(window.userData.xTitle == "Date") {
-        window.userData.xTitle = "Solve #"
-        window.updateGraph();
-        window.g.resetZoom();
-    }
-});
 
-//Handle swapping between Linear and Log on the x-axis
-const xSelectLinear = document.getElementById("xSelectLinear");
-const xSelectLog = document.getElementById("xSelectLog");
-function xSwapScale() {
-    if(window.userData != undefined && window.g != undefined) {
-        logScale[0] = !logScale[0];
-        window.g.updateOptions({ axes : { x : {  logscale : logScale[0] } } })
-        window.g.updateOptions({ xlabel: (logScale[0] ? "Log(": "") + window.userData.xTitle + (logScale[0] ? ")": "")})
-        window.dropdown = window.document.getElementById("title-dropdown");
-        window.dropdown.value = window.selectedSess;
+    else if (window.currentTab == "hist") {
+        window.selectedSess = document.getElementById("title-dropdown").value;
+        window.userData.createHist(1) 
+        window.updateHist(); window.h.resetZoom(); 
+        window.userData.genSlidingWindowDefaults(); window.userData.genCreationDefaults(); 
     }
-};
-xSelectLinear.addEventListener("click", function() { if(logScale[0] == true) xSwapScale(); });
-xSelectLog.addEventListener("click", function() { if(logScale[0] == false) xSwapScale(); });
 
-//Handle swapping between Linear and Log on the y-axis
-const ySelectLinear = document.getElementById("ySelectLinear");
-const ySelectLog = document.getElementById("ySelectLog");
-function ySwapScale() {
-    if(window.userData != undefined && window.g != undefined) {
-        logScale[1] = !logScale[1];
-        window.g.updateOptions({  logscale : logScale[1] })
-        window.g.updateOptions({ ylabel: (logScale[1] ? "Log(": "") + "Time(s)" + (logScale[1] ? ")": "")})
-        window.dropdown = window.document.getElementById("title-dropdown");
-        window.dropdown.value = window.selectedSess;
+    else if (window.currentTab == "stats") {
+        //automatically click the button of the selected pb series
+        let clickOccured = false;
+        const buttons = document.getElementsByClassName('pbSeriesSelectButton pressed')
+        for(let btn of buttons) {
+            if(btn.innerText == window.userData.currentPbSeries) {
+                btn.click()
+                clickOccured = true
+            }
+        }
+        if(!clickOccured) {
+            window.userData.updatePBTable(window.dropdown.value,0) 
+        }
+        
     }
-};
-ySelectLinear.addEventListener("click", function() { if(logScale[1] == true) ySwapScale(); });
-ySelectLog.addEventListener("click", function() { if(logScale[1] == false) ySwapScale(); });
-//#endregion
+}
 
-//#region handle series settings box
-//the color selector
-const colorSelector = document.getElementById("seriesColorSelector")
-colorSelector.addEventListener("change", function () {
-    const seriesNumber = parseInt(document.getElementById("seriesSettingsBox").name)
-    const label1 = window.userData.labels[seriesNumber]
-    const label2 = window.userData.labels[seriesNumber - 1]
-    window.userData.colors[seriesNumber - 1] = this.value;
-    window.userData.colors[seriesNumber - 2] = this.value;
-    //update color on the graph
-    window.g.updateOptions({
-        series: {
-            [label1]: { color: window.userData.colors[seriesNumber - 1] },
-            [label2]: { color: window.userData.colors[seriesNumber - 2] }
-        }
-    })
-    //update the color of the series toggle buttons
-    const toggleButtons = document.getElementsByClassName("seriesToggle")
-    for (let i = 1; i <= 2; i++) {
-        toggleButtons[seriesNumber - i].style = "box-shadow: 2px 2px 3px 3px " + window.userData.colors[seriesNumber - i]
-        toggleButtons[seriesNumber - i].style = "box-shadow: 2px 2px 3px 3px " + window.userData.colors[seriesNumber - i]
-    }
-})
-//the width selector
-const widthSelector = document.getElementById("seriesWidthSelector")
-widthSelector.addEventListener("change", function () {
-    const seriesNumber = parseInt(document.getElementById("seriesSettingsBox").name)
-    for (let i = 0; i <= 1; i++) {
-        const label_ = window.userData.labels[seriesNumber - i]
-        const width_ = this.value
-        window.userData.widths[seriesNumber - (i+1)] = width_;
-        //update width on the graph
-        if (label_ == 'Time') {
-            window.g.updateOptions({series: {[label_]: {pointSize: width_}}})
-        }
-        else {
-            window.g.updateOptions({series: {[label_]: { strokeWidth: width_ }}})
-        }
-    } 
-})
-//#endregion
 
 //This code is run after the user uploads a file
 const jsonDataFile = document.getElementById("UploadFile");
@@ -468,7 +134,7 @@ jsonDataFile.addEventListener("change", function() {
         const result = GetFile.result;
         var jsonData = JSON.parse(result);
         
-        //create our userData
+        //create the userData
         window.userData = new UserData(jsonData)
         
         //Create the dropdown for the title of the graph and set its functionality
@@ -484,137 +150,13 @@ jsonDataFile.addEventListener("change", function() {
             }
         }
         window.dropdown.setAttribute("value", window.selectedSess);
-        window.dropdown.addEventListener("change", function() {
-            //Only update what is on screen
-            if(window.currentTab == "graph") { window.updateGraph(); window.g.resetZoom() }
-            else if (window.currentTab == "hist") { 
-                window.updateHist(); window.h.resetZoom(); 
-                window.userData.genSlidingWindowDefaults(); window.userData.genCreationDefaults(); }
-            else if (window.currentTab == "stats") { 
-                let clickOccured = false;
-                const buttons = document.getElementsByClassName('pbSeriesSelectButton pressed')
-                for(let btn of buttons) {
-                    if(btn.innerText == window.userData.currentPbSeries) {
-                        btn.click()
-                        clickOccured = true
-                    }
-                }
-                if(!clickOccured) {
-                    window.userData.updatePBTable(window.dropdown.value,0) 
-                }
-                
-            }
-        })
+        window.dropdown.addEventListener("change", dropdownOnChange)
         document.getElementById("hintButton").after(window.dropdown)
 
-        //Reset the buttons on the right
-        xSelectDate.checked = true;
-        xSelectLinear.checked = true;
-        ySelectLinear.checked = true;
-
-        //Make sure these are empty
-        document.getElementById("graphdiv").replaceChildren();
-        document.getElementById("histogramDiv").replaceChildren();
-
-       //create dygraphs
-        Dygraph.onDOMready(function onDOMready() {
-            //Create the main graph
-            window.g = new Dygraph(
-                document.getElementById("graphdiv"), // containing div
-                window.userData.solves[window.selectedSess], //Data
-                //Options
-                {
-                    labels: window.userData.labels,
-                    xlabel: window.userData.xTitle,
-                    ylabel: "Time(s)",
-                    //legend: "always",
-                    legend: "follow",
-                    color: "#084C61",
-                    //color: themes[window.currentTheme]['--color-primary']
-                    //labelsDiv: document.getElementById("graphLegend"),
-                    //labelsSeparateLines: false,
-                }
-            );
-            //Create the histogram
-            window.h = new Dygraph(
-                document.getElementById("histogramDiv"), //containing div
-                window.userData.hist[window.selectedSess], //Data
-                //Options
-                {
-                    xlabel: "Time(s)",
-                    ylabel: "Frequency",
-                    stepPlot: true,
-                    fillGraph: true,
-                    //color: "#128629",
-                    color: themes[window.currentTheme]['--color-primary'],
-                    legend: "follow",
-                    fillAlpha: 0.5,
-                    //labelsDiv: document.getElementById("histLegend"),
-                    //labelsSeparateLines: false,
-                }
-            );
-        });
-        window.h.updateOptions({series : { "Normal Fit" : {fillGraph: false, stepPlot: false, color: "#00FF00", axis: "y1"}}})
-        window.h.updateOptions({series : { "Skew Fit" : {fillGraph: false, stepPlot: false, color: "#0000FF", axis: "y1"}}})
-        window.h.updateOptions({series : { "Beta Fit" : {fillGraph: false, stepPlot: false, color: "#FF0000", axis: "y1"}}})
         
-        //Line styling for each line
-        for(let i = 1; i < window.userData.labels.length; i++) {
-            doSeriesLineStyling(i)
-        }
+        graphTabStartup();
+        histogramTabStartup();
         
-        //-----create the series toggle buttons-----
-        createAllSeriesRows();
-        
-
-        //create the histogram buttons
-        //col width input
-        document.getElementById("histBucketInput").addEventListener("change", function() {
-            window.userData.createHist(histBucketInput.value)
-            updateHist();
-        })
-        //reset
-        document.getElementById("histBucketReset").addEventListener("click", function() {
-            histBucketInput.value = 1
-            window.userData.createHist(histBucketInput.value)
-            updateHist();
-        })
-        //sliding window reset
-        document.getElementById("sldWinReset").addEventListener("click", function() {
-            histBucketInput.value = 1
-            window.userData.createHist(histBucketInput.value)
-            updateHist();
-        })
-        //sliding window defaults
-        document.getElementById("sldWinDefaults").addEventListener("click", function() {window.userData.genSlidingWindowDefaults();})
-        //sliding window play
-        document.getElementById("sldWinPlay").addEventListener("click", function() {
-            if(window.userData.sldWinPlaying) {
-                window.userData.sldWinPlaying = false;
-            } else {
-                window.userData.creationPlaying = false
-                window.userData.animateHistRange();
-            }
-        })
-        //creation reset
-        document.getElementById("creationReset").addEventListener("click", function() {
-            histBucketInput.value = 1
-            window.userData.createHist(histBucketInput.value)
-            updateHist();
-        })
-        //creation defaults
-        document.getElementById("creationDefaults").addEventListener("click", function() {window.userData.genCreationDefaults();})
-        //creation play
-        document.getElementById("creationPlay").addEventListener("click", function() {
-            if(window.userData.creationPlaying) {
-                window.userData.creationPlaying = false
-            } else {
-                window.userData.sldWinPlaying = false;
-                window.userData.animateHistCreate();
-            }
-            
-        })
-
     }
 
     GetFile.readAsText(this.files[0]);
@@ -685,13 +227,10 @@ class UserData {
         //  hist[session] [0]: bucket name(0,1,...), [1]: # of solves
         this.hist = makeArrayOfArrays(this.numSessions);
         this.histStats = [];  // [ [mean, std, numsolves], [mean, std, numsolves], ... ]
-        this.histNormData = [];
-        this.histSkewData = [];
-        this.histBetaData = [];
-        this.showNorm = false;
-        this.showSkew = false;
-        this.showBeta = false;
         this.maxDelta = 0.98;
+        this.distribLabels =       ["Normal Fit", "Skew Fit", "Beta Fit"];
+        this.distribVisibilities = [false,         false,      false];
+        this.distribData =          [[],            [],         []];
 
 
         //pb data for stats panel
@@ -706,7 +245,7 @@ class UserData {
             if (data[sessionKey] !== undefined) {
                 for (let i = 0; i < data[sessionKey].length; i++) {
                     this.solves[s - 1].push([new Date(1000 * data[sessionKey][i][3])]);         //solve date
-                    this.solves[s - 1][i].push(0.001*this.parseTime(data[sessionKey][i][0]))    //solve time
+                    this.solves[s - 1][i].push(0.001*parseTime(data[sessionKey][i][0]))    //solve time
                 }
             }
         }
@@ -751,14 +290,14 @@ class UserData {
         
 
         //add the data for histogram
-        const chstartTime = performance.now() 
+        
         this.createHist(1)
         this.genSlidingWindowDefaults()
         this.genCreationDefaults()
-        const chendTime = performance.now()
-        console.log(`create histogram: ${round(chendTime - chstartTime)} milliseconds`)
-        this.sldWinPlaying = false;
-        this.creationPlaying = false;
+        
+        
+        //this.sldWinPlaying = false;
+        //this.creationPlaying = false;
         
 
         //create the pb table
@@ -780,43 +319,48 @@ class UserData {
     }
 
     createHist(bucketSize) {
+        const chstartTime = performance.now() 
+
+        const j = window.selectedSess
         const bucketSize_ = parseFloat(bucketSize)
-        this.hist = makeArrayOfArrays(this.numSessions);
-        //this.buckets = makeArrayOfArrays(this.numSessions);
-        for(let j = 0; j < this.numSessions; j++) {
-            let max = 0;
-            const times = [];
+        this.hist[j] = [];
+
+        let max = 0;
+        const times = [];
 
 
-            //extract solves and find the max time
-            for(let i = 0; i < this.solves[j].length; i++) {
-                const time = this.solves[j][i][1];
-                times.push(time);
-                if(time > max) max = time;
-            }
-
-            // 2. Compute mean
-            const mean = times.reduce((a, b) => a + b, 0) / times.length;
-
-            // 3. Compute std deviation
-            const std = Math.sqrt(times.reduce((sum, t) => sum + (t - mean) ** 2, 0) / times.length);
-            const variance = times.reduce((sum, t) => sum + (t/max - mean/max) ** 2, 0) / times.length;
-            console.log("variance",j,":",variance)
-            this.histStats[j] = [mean, std, times.length, max]
-
-            //create the buckets
-            for(let b = 0; b <= max+1; b+= bucketSize_) {
-                this.hist[j].push([b,0]);
-                //this.buckets[j].push([b]);
-            }
-            //add the solves to buckets
-            for(let i = 0; i < this.solves[j].length; i++) {
-                const time = this.solves[j][i][1];
-                const bucket = Math.floor(time/bucketSize_);
-                this.hist[j][bucket][1] += 1;
-                //this.buckets[j][bucket].push(time);
-            }
+        //extract solves and find the max time
+        for(let i = 0; i < this.solves[j].length; i++) {
+            const time = this.solves[j][i][1];
+            times.push(time);
+            if(time > max) max = time;
         }
+
+        // 2. Compute mean
+        const mean = times.reduce((a, b) => a + b, 0) / times.length;
+
+        // 3. Compute std deviation
+        const std = Math.sqrt(times.reduce((sum, t) => sum + (t - mean) ** 2, 0) / times.length);
+        const variance = times.reduce((sum, t) => sum + (t/max - mean/max) ** 2, 0) / times.length;
+        console.log("variance",j,":",variance)
+        this.histStats[j] = [mean, std, times.length, max]
+
+        //create the buckets
+        for(let b = 0; b <= max+1; b+= bucketSize_) {
+            this.hist[j].push([b,0]);
+            //this.buckets[j].push([b]);
+        }
+        //add the solves to buckets
+        for(let i = 0; i < this.solves[j].length; i++) {
+            const time = this.solves[j][i][1];
+            const bucket = Math.floor(time/bucketSize_);
+            this.hist[j][bucket][1] += 1;
+            //this.buckets[j][bucket].push(time);
+        }
+        
+
+        const chendTime = performance.now()
+        console.log(`create histogram: ${round(chendTime - chstartTime)} milliseconds`)
     }
 
     createNormData() {
@@ -833,7 +377,7 @@ class UserData {
         });
         console.log("norm sum:", sum)
 
-        this.histNormData = normData;
+        this.distribData[0] = normData;
     }
 
     createSkewData() {
@@ -865,19 +409,17 @@ class UserData {
         const scale = n * bucketWidth;
         let sum = 0;
         const skewData = binData.map(([x]) => {
-            //const y = scale * skewNormalPDF(x, mean, std, alpha);
-            //const y = scale * skewNormalPDF(x, 12.84467, 10.9106, 7.0179);
-            //const y = scale * skewNormalPDF(x, xi, omega, alpha);
             const y = skewNormalPDF(x, xi, omega, alpha);
             sum += y;
             return [x, y];
         });
         console.log("Skew sum:", sum);
 
-        this.histSkewData = skewData;
+        this.distribData[1] = skewData;
         console.log("n: ", n, "bucketWidth:", bucketWidth)
         console.log("Skewness:", skewness, "Alpha:", alpha, "Omega:", omega, "xi:", xi);
     }
+
 
     createBetaData() {
         const binData = this.hist[window.selectedSess];
@@ -893,8 +435,6 @@ class UserData {
         const alpha = m * (m * (1-m) / v - 1);
         const beta = (1-m) * (m * (1-m) / v - 1)
 
-    
-
         let sum = 0
         const betaData = binData.map(([x]) => {
             //const y = scale * normalPDF(x, stats[0], stats[1])
@@ -904,127 +444,9 @@ class UserData {
         });
         console.log("beta sum:", sum)
 
-        this.histBetaData = betaData;
+        this.distribData[2] = betaData;
     }
 
-    createHistRange(bucketSize, range,offset) {
-        const bucketSize_ = parseFloat(bucketSize)
-        this.hist[window.selectedSess] = [];
-        let j = window.selectedSess
-        const numSolves = this.solves[j].length
-        let max = 0;
-        //find the max time
-        for(let i = numSolves-range-offset; i < numSolves-offset; i++) {
-            const time = this.solves[j][i][1]
-            if(time > max) max = time;
-        }
-        //create the buckets
-        for(let b = 0; b <= max+1; b+= bucketSize_) {
-            this.hist[j].push([b,0]);
-        }
-        //add the solves to buckets
-        for(let i = numSolves-range-offset; i < numSolves-offset; i++) {
-            const time = this.solves[j][i][1];
-            const bucket = Math.floor(time/bucketSize_);
-            this.hist[j][bucket][1] += 1;
-        }
-    }
-
-    async animateHistRange() {
-        const playBtn = document.getElementById("sldWinPlay")
-        const progressBar = document.querySelector("#sldWinProgressBar div")
-        //Flip button state and reset progress
-        this.sldWinPlaying = true;
-        playBtn.textContent = "Stop"
-        progressBar.style.width = "0%"
-
-        const bucketSize = document.getElementById("sldWinWidth").value
-        const range = document.getElementById("sldWinWindow").value
-        const step = document.getElementById("sldWinStep").value 
-        const xmax = document.getElementById("sldWinXmax").value 
-        const frameTime = document.getElementById("sldWinTime").value
-
-        const totalFrames = Math.floor((this.solves[window.selectedSess].length - range) / step)
-        let frame = 0;
-
-        for(let i = this.solves[window.selectedSess].length-range; i > 0; i-=step) {
-            if(!this.sldWinPlaying) break;
-
-            this.createHistRange(bucketSize,range,i)
-            window.h.updateOptions({
-                file: this.hist[window.selectedSess],
-                dateWindow: [0,xmax],
-            });
-
-            //update progress bar
-            frame++
-            progressBar.style.width = `${(frame/totalFrames)*100}%`
-
-            await sleep(frameTime)
-        }
-
-        //reset button
-        playBtn.textContent = "Play";
-        this.sldWinPlaying = false;
-        progressBar.style.width = "0%"
-    }
-
-
-    async animateHistCreate() {
-        const playBtn = document.getElementById("creationPlay")
-        const progressBar = document.querySelector("#creationProgressBar div")
-        //Flip button state and reset progress
-        this.creationPlaying = true;
-        playBtn.textContent = "Stop"
-        progressBar.style.width = "0%"
-
-        const step = parseFloat(document.getElementById("creationStep").value)
-        const Xmax = parseFloat(document.getElementById("creationXmax").value)
-        const bucketSize = parseFloat(document.getElementById("creationWidth").value)
-
-        const totalFrames = Math.floor(this.solves[window.selectedSess].length/step)
-        let frame = 0;
-
-        this.hist[window.selectedSess] = [];
-        let j = window.selectedSess
-        const numSolves = this.solves[j].length
-        let max = 0;
-        //find the max time
-        for(let i = 0; i < numSolves; i++) {
-            const time = this.solves[j][i][1]
-            if(time > max) max = time;
-        }
-        //create the buckets
-        for(let b = 0; b <= max+1; b+= bucketSize) {
-            this.hist[j].push([b,0]);
-        }
-        //add the solves to buckets
-        for(let i = 0; i < numSolves; i++) {
-            if(!this.creationPlaying) break;
-
-            const time = this.solves[j][i][1];
-            const bucket = Math.floor(time/bucketSize);
-            this.hist[j][bucket][1] += 1;
-
-            if(i % step == 0) {
-                window.h.updateOptions({
-                    file: window.userData.hist[window.selectedSess],
-                    dateWindow: [0,Xmax],
-                });
-
-                //update progress bar
-                frame++
-                progressBar.style.width = `${(frame/totalFrames)*100}%`
-
-                await sleep(1)
-            } 
-        }
-
-        //reset button
-        playBtn.textContent = "Play";
-        this.creationPlaying = false;
-        progressBar.style.width = "0%"
-    }
 
     genSlidingWindowDefaults() {
         let numSolves = this.solves[window.selectedSess].length
@@ -1207,24 +629,6 @@ class UserData {
         console.log(`   push mo${x}: ${round(pmendTime - pmstartTime)} milliseconds`)
     }
 
-    /*
-    the times are stored in array [t1,t2]
-        t2: solve time in milliseconds
-        t1: 
-             0: normal solve
-          2000: +2 (add 2000 milliseconds)
-            -1: dnf - delete that shit
-    */
-    parseTime(t) {
-        if(t[0] == 0) {return t[1];}               //normal solve
-        else if(t[0] == 2000) {return t[1] + 2000} //+2
-        else if(t[0] == -1) {return 0}             //dnf
-        //erroneous time
-        else {
-            console.log("error parsing time:")
-            console.log("t1 of " + t[0] + "does not correlate with a +2 or a dnf")
-        }
-    }
 
     //Append a col for the pb of the previous col
     //lowkey you can provide an index of the col to calc pbs for but thats beside the point

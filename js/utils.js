@@ -1,4 +1,8 @@
-export {binarySearchInsertIdx, round, dhm, sleep, createButton};
+export {makeArrayOfArrays, binarySearchInsertIdx, round, dhm, sleep, createButton, parseTime};
+
+
+// Utility to make N arrays
+const makeArrayOfArrays = (n) => Array(n).fill().map(() => []);
 
 //quickly find index to insert in sorted array
 function binarySearchInsertIdx(arr, val) {
@@ -56,4 +60,25 @@ function createButton(labelText, onClick, className = "") {
     if (className) btn.className = className;
     btn.addEventListener("click", onClick);
     return btn;
+}
+
+
+/*
+Parsing a solve time from cstimer
+    the times are stored in array [t1,t2]
+        t2: solve time in milliseconds
+        t1: 
+             0: normal solve
+          2000: +2 (add 2000 milliseconds)
+            -1: dnf - delete that for now
+*/
+function parseTime(t) {
+    if(t[0] == 0) {return t[1];}               //normal solve
+    else if(t[0] == 2000) {return t[1] + 2000} //+2
+    else if(t[0] == -1) {return 0}             //dnf
+    //erroneous time
+    else {
+        console.log("error parsing time:")
+        console.log("t1 of " + t[0] + "does not correlate with a +2 or a dnf")
+    }
 }

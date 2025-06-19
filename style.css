@@ -47,7 +47,6 @@ div.toolbar {
 }
 
 div.toolbar > button {
-    transition: flex-grow 0.25s;
     font-weight: bold;
     padding: 0.5em;
     font-size: large;
@@ -59,15 +58,34 @@ div.toolbar > button {
     border: var(--color-primary-variant) inset thick;
 }
 
-div.toolbar > button:hover {
+div.toolbar > button:hover, .secondaryToolbar button:hover {
+    border: var(--color-primary) inset thick;
+}
+
+div.toolbar > button.pressed, .secondaryToolbar button.pressed {
+    background-color: var(--color-primary);
     border: var(--color-primary) outset thick;
 }
 
-div.toolbar > button.pressed {
-    background-color: var(--color-primary);
-    border: var(--color-primary) outset thick;
-    flex-grow: 3;
+.secondaryToolbar {
+    background: var(--color-primary-variant);
 }
+.secondaryToolbar > td {
+    display: flex;
+}
+.secondaryToolbar button {
+    display: inline-flex;
+    flex-grow: 1;
+    height: 40px;
+    font-weight: bold;
+    padding: 0.25em;
+    font-size: medium;
+    justify-content: center;
+    background: var(--color-primary-variant);
+    color: var(--on-primary);
+    border: var(--color-primary-variant) inset thick;
+}
+
 
 h1, p, a {
     margin: 0px;
@@ -171,8 +189,15 @@ button.seriesToggle.pressed {
     background-color: var(--color-surface-odd);
 }
 
+#histDivTable {
+    width: 80% !important;
+    justify-self: center;
+    border-spacing: 0;
+    border: 3px solid var(--on-background);
+    border-top: none;
+}
 
-#graphdiv, #histogramDiv {
+#graphdiv {
     background: var(--color-surface);
     display: grid;
     width: 80% !important;
@@ -181,7 +206,11 @@ button.seriesToggle.pressed {
     justify-content: center;
     align-items: start;
     border: 3px solid var(--on-background);
+}
 
+#histogramDiv {
+    background: var(--color-surface);
+    padding: 0;
 }
 
 #graphLeftButtons, #statsLeftButtons, #histLeftButtons {

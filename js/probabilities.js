@@ -81,3 +81,4 @@ function betaPDF(x, alpha, beta) {
         (x ** (alpha - 1)) *
         ((1-x) ** (beta - 1));
 }
+

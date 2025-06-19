@@ -8,6 +8,7 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <script type="module" src="js/scripts.js"></script>
     <script type="module" src="js/themes.js"></script>
+    <script type="module" src="js/histogramTab.js"></script>
     
     
 </head>
@@ -227,13 +228,52 @@
                 </tbody>
             </table>
         </div>
-        <div id="histogramDiv">
-            <h1 style="align-self: center;">Waiting for file upload...</h1>
-        </div>
+        <table id="histDivTable">
+            <tr height="40px;" class="secondaryToolbar">
+                <td>
+                    <button type="button" id="clickProbDistrib" class="pressed">
+                        <p>Probability Distribution</p>
+                    </button>
+                    <button type="button" id="clickCumDistrib">
+                        <p>Cumulative Distribution</p>
+                    </button>
+                </td>
+            </tr>
+            <tr>
+                <td id="histogramDiv">
+                    <h1 style="align-self: center; text-align: center;">Waiting for file upload...</h1>
+                </td>
+            </tr>
+            
+        </table>
+        
         <div id="histRightButtons">
-            <button id="showHistNorm">Norm</button>
-            <button id="showHistSkew">Skew</button>
-            <button id="showHistBeta">Beta</button>
+            <table class="formTable">
+                <tbody><tr><th colspan="2">
+                    <div style="display: flex;">
+                        <p style="flex-grow: 1;">Overlay</p>
+                        <button id="creationHelpButton" class="helpButton" onclick="document.getElementById('creationHintOverlay').style.display = 'flex';">?</button>
+                    </div>
+                </th></tr></tbody>
+                <tbody>
+                    <tr>
+                        <td><p style="text-align: center;">Distribution</p></td>
+                        <td><p style="text-align: center;">Err</p></td>
+                    </tr>
+                    <tr>
+                        <td><button id="showHistNorm">Normal</button></td>
+                        <td><p id="normError">0.0</p></td>
+                    </tr>
+                    <tr>
+                        <td><button id="showHistSkew">Skew Norm</button></td>
+                        <td><p id="skewError">0.0</p></td>
+                    </tr>
+                    <tr>
+                        <td><button id="showHistBeta">Beta</button></td>
+                        <td><p id="betaError">0.0</p></td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
     <div id="statsContainer" style="display:none; flex-wrap:nowrap">
@@ -275,7 +315,7 @@
         </table>
         <div id="statsRightButtons"></div>
     </div>
-    
+
     <div id="fileHintOverlay" class="hintOverlay">
         <div id="fileHintContent" class="hintContent">
             <img src="resources/cstimer-export-help.jpg" alt="Export instructions for csTimer">
