@@ -4,7 +4,7 @@ import {makeArrayOfArrays, binarySearchInsertIdx, round, dhm, sleep, createButto
 import {themes} from "./themes.js"
 import {gamma, erf, normalPDF, standardNormalCDF, skewNormalPDF, betaPDF} from "./probabilities.js"
 import { graphTabStartup } from "./graphTab.js";
-import { histogramTabStartup } from "./histogramTab.js";
+import { histogramTabStartup} from "./histogramTab.js";
 
 
 window.selectedSess = 0; //selected session from the cstimer
@@ -103,7 +103,9 @@ function dropdownOnChange() {
     else if (window.currentTab == "hist") {
         window.selectedSess = document.getElementById("title-dropdown").value;
         window.userData.createHist(1) 
-        window.updateHist(); window.h.resetZoom(); 
+        window.userData.cdfData = window.createCDF();
+        window.updateHist();
+        if(window.userData.distribMode == "pdf") window.h.resetZoom(); 
         window.userData.genSlidingWindowDefaults(); window.userData.genCreationDefaults(); 
     }
 

@@ -5,6 +5,7 @@ import {themes} from "./themes.js"
 
 window.sldWinPlaying = false;
 window.creationPlaying = false;
+window.distribMode = "pdf"
 
 //sliding window play
 document.getElementById("sldWinPlay").addEventListener("click", function() {
@@ -58,12 +59,15 @@ const cumDistribButton = document.getElementById("clickCumDistrib")
 probDistribButton.addEventListener("click", function() {
     cumDistribButton.classList.remove("pressed");
     probDistribButton.classList.add("pressed");
-    alert("Havent added this yet")
+    window.distribMode = "pdf"
+    updateHist();
 })
 cumDistribButton.addEventListener("click", function() {
     probDistribButton.classList.remove("pressed");
     cumDistribButton.classList.add("pressed");
-    alert("Havent added this yet")
+    window.userData.cdfData = createCDF();
+    window.distribMode = "cdf"
+    updateHist();
 })
 
 
@@ -81,45 +85,64 @@ document.getElementById("histBucketReset").addEventListener("click", function() 
 
 // Update the histogram (with optional overlays)
 window.updateHist = function () {
-    window.selectedSess = document.getElementById("title-dropdown").value;
 
-    const hist = window.userData.hist[window.selectedSess];
-    const distrib = window.userData.distribData;
-    const dLabels = window.userData.distribLabels;
-    const numDistribs = distrib.length;
+    if(window.distribMode == "pdf") {
+        window.selectedSess = document.getElementById("title-dropdown").value;
+        //update these in case bucketsize was changed
+        window.userData.createNormData()
+        window.userData.createBetaData()
+        window.userData.createSkewData()
 
-    const numSolves = window.userData.solves[window.selectedSess].length;
-    const bucketWidth = hist[1][0] - hist[0][0];
-    const scale = numSolves*bucketWidth;
+        const hist = window.userData.hist[window.selectedSess];
+        const distrib = window.userData.distribData;
+        const dLabels = window.userData.distribLabels;
+        const numDistribs = distrib.length;
 
-    
-    // Start building combined data
-    const combined = hist.map(([x, y], i) => {
-        const row = [x, y/scale];
+        const numSolves = window.userData.solves[window.selectedSess].length;
+        const bucketWidth = hist[1][0] - hist[0][0];
+        const scale = numSolves*bucketWidth;
 
+        
+        // Start building combined data
+        const combined = hist.map(([x, y], i) => {
+            const row = [x, y/scale];
+
+            for(let d = 0; d < numDistribs; d++) {
+                if(window.userData.distribVisibilities[d]) {
+                    row.push(distrib?.[d]?.[i]?.[1] ?? null);
+                }
+            }
+
+            return row;
+        });
+
+        // Build labels array
+        const labels = ["Time(s)", "Probability"];
         for(let d = 0; d < numDistribs; d++) {
             if(window.userData.distribVisibilities[d]) {
-                row.push(distrib?.[d]?.[i]?.[1] ?? null);
+                labels.push(dLabels[d])
             }
         }
 
-        return row;
-    });
-
-    // Build labels array
-    const labels = ["Time(s)", "Frequency"];
-    for(let d = 0; d < numDistribs; d++) {
-        if(window.userData.distribVisibilities[d]) {
-            labels.push(dLabels[d])
-        }
+        // Update Dygraph
+        window.h.updateOptions({
+            file: combined,
+            labels: labels,
+        });
     }
-
-    // Update Dygraph
-    window.h.updateOptions({
-        file: combined,
-        labels: labels,
-    });
+    else if(window.distribMode == "cdf") {
+        window.h.updateOptions({
+            file: window.userData.cdfData,
+            labels: ["Time(s)","Probability"],
+            xlabel: "Time(s)",
+            ylabel: 'Probability',
+            dateWindow: window.userData.cdfRange
+        })
+    }
+    
 };
+
+
 
 function createHistRange(bucketSize, range,offset) {
     const bucketSize_ = parseFloat(bucketSize)
@@ -144,6 +167,32 @@ function createHistRange(bucketSize, range,offset) {
         hist[bucket][1] += 1;
     }
     return hist;
+}
+
+window.createCDF = function() {
+    const solves = window.userData.solves[window.selectedSess];
+    const times = solves.map(s => s[1]);
+
+    // Sort ascending
+    const sorted = [...times].sort((a, b) => a - b);
+    const n = sorted.length;
+    const max = sorted[n-1]
+    const min = sorted[0]
+
+    const cdf = new Map(); // to deduplicate by keeping latest index
+
+    for (let i = 0; i < n; i++) {
+        const x = sorted[i];
+        const y = (i + 1) / n;
+        cdf.set(x, y); // later index overwrites earlier => keeps highest y
+    }
+
+    // Convert map to array of [time, cdf] points
+    
+    window.userData.cdfRange = [0,max];
+    return Array.from(cdf.entries());
+
+
 }
 
 
