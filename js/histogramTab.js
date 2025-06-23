@@ -1,5 +1,6 @@
 import {binarySearchInsertIdx, round, dhm, sleep, createButton, parseTime} from "./utils.js"
 export {histogramTabStartup}
+import {gamma, erf, normalPDF, standardNormalCDF, skewNormalPDF, betaPDF, generalNormalCDF, betaCDF} from "./probabilities.js"
 import {themes} from "./themes.js"
 
 
@@ -10,48 +11,38 @@ window.distribMode = "pdf"
 //sliding window play
 document.getElementById("sldWinPlay").addEventListener("click", function() {
     if(window.sldWinPlaying) {window.sldWinPlaying = false;} 
-    else {window.creationPlaying = false; animateHistRange();}
-})
+    else {window.creationPlaying = false; animateHistRange();} })
 //sliding window reset
 document.getElementById("sldWinReset").addEventListener("click", function() {
     histBucketInput.value = 1
     window.userData.createHist(histBucketInput.value)
-    updateHist();
-})
+    updateHist(); })
 //sliding window defaults
 document.getElementById("sldWinDefaults").addEventListener("click", function() {window.userData.genSlidingWindowDefaults();})
 
 //creation play
 document.getElementById("creationPlay").addEventListener("click", function() {
     if(window.creationPlaying) {window.creationPlaying = false} 
-    else {window.sldWinPlaying = false;animateHistCreate();}
-})
+    else {window.sldWinPlaying = false;animateHistCreate();} })
 //creation reset
 document.getElementById("creationReset").addEventListener("click", function() {
     histBucketInput.value = 1
     window.userData.createHist(histBucketInput.value)
-    updateHist();
-})
+    updateHist(); })
 //creation defaults
 document.getElementById("creationDefaults").addEventListener("click", function() {window.userData.genCreationDefaults();})
 
 
 //distribution buttons
 document.getElementById("showHistNorm").addEventListener("click", function() {
-    window.userData.createNormData();
     window.userData.distribVisibilities[0] = !window.userData.distribVisibilities[0];
-    updateHist();
-})
+    updateHist(); })
 document.getElementById("showHistSkew").addEventListener("click", function() {
-    window.userData.createSkewData();
     window.userData.distribVisibilities[1] = !window.userData.distribVisibilities[1];
-    updateHist();
-})
+    updateHist(); })
 document.getElementById("showHistBeta").addEventListener("click", function() {
-    window.userData.createBetaData();
     window.userData.distribVisibilities[2] = !window.userData.distribVisibilities[2];
-    updateHist();
-})
+    updateHist(); })
 
 
 const probDistribButton = document.getElementById("clickProbDistrib")
@@ -65,7 +56,7 @@ probDistribButton.addEventListener("click", function() {
 cumDistribButton.addEventListener("click", function() {
     probDistribButton.classList.remove("pressed");
     cumDistribButton.classList.add("pressed");
-    window.userData.cdfData = createCDF();
+    window.userData.cdf = createCDF();
     window.distribMode = "cdf"
     updateHist();
 })
@@ -74,25 +65,34 @@ cumDistribButton.addEventListener("click", function() {
 //col width input
 document.getElementById("histBucketInput").addEventListener("change", function() {
     window.userData.createHist(histBucketInput.value)
-    updateHist();
-})
+    createNormData(); createBetaData(); createSkewData()
+    updateHist(); })
 //reset
 document.getElementById("histBucketReset").addEventListener("click", function() {
     histBucketInput.value = 1
     window.userData.createHist(histBucketInput.value)
-    updateHist();
-})
+    updateHist(); })
+
+window.genSessionDistribData = function() {
+    createNormData()
+    createBetaData()
+    createSkewData()
+
+
+    createCDF()
+    createNormCDF()
+    createSkewCDF()
+    createBetaCDF()
+}
 
 // Update the histogram (with optional overlays)
 window.updateHist = function () {
+    console.log("updateHist called")
 
     if(window.distribMode == "pdf") {
         window.selectedSess = document.getElementById("title-dropdown").value;
-        //update these in case bucketsize was changed
-        window.userData.createNormData()
-        window.userData.createBetaData()
-        window.userData.createSkewData()
-
+        
+    
         const hist = window.userData.hist[window.selectedSess];
         const distrib = window.userData.distribData;
         const dLabels = window.userData.distribLabels;
@@ -101,15 +101,16 @@ window.updateHist = function () {
         const numSolves = window.userData.solves[window.selectedSess].length;
         const bucketWidth = hist[1][0] - hist[0][0];
         const scale = numSolves*bucketWidth;
+        //console.log("scale:",scale,"numsolves",numSolves,"bucketwidth",bucketWidth)
 
         
         // Start building combined data
         const combined = hist.map(([x, y], i) => {
-            const row = [x, y/scale];
+            const row = [x, y/numSolves];
 
             for(let d = 0; d < numDistribs; d++) {
                 if(window.userData.distribVisibilities[d]) {
-                    row.push(distrib?.[d]?.[i]?.[1] ?? null);
+                    row.push(distrib?.[d]?.[i]?.[1] * bucketWidth?? null);
                 }
             }
 
@@ -130,10 +131,41 @@ window.updateHist = function () {
             labels: labels,
         });
     }
+
     else if(window.distribMode == "cdf") {
+        
+
+        const cdf = window.userData.cdf
+
+        const distribCdf = window.userData.distribCdfData
+        const dLabels = window.userData.distribLabels;
+        const numDistribs = distribCdf.length
+
+
+        // Start building combined data
+        const combined = cdf.map(([x, y], i) => {
+            const row = [x, y];
+
+            for(let d = 0; d < numDistribs; d++) {
+                if(window.userData.distribVisibilities[d]) {
+                    row.push(distribCdf?.[d]?.[i]?.[1] ?? null);
+                }
+            }
+
+            return row;
+        });
+
+        // Build labels array
+        const labels = ["Time(s)", "Probability"];
+        for(let d = 0; d < numDistribs; d++) {
+            if(window.userData.distribVisibilities[d]) {
+                labels.push(dLabels[d])
+            }
+        }
+
         window.h.updateOptions({
-            file: window.userData.cdfData,
-            labels: ["Time(s)","Probability"],
+            file: combined,
+            labels: labels,
             xlabel: "Time(s)",
             ylabel: 'Probability',
             dateWindow: window.userData.cdfRange
@@ -170,6 +202,8 @@ function createHistRange(bucketSize, range,offset) {
 }
 
 window.createCDF = function() {
+    console.log("createCDF called")
+
     const solves = window.userData.solves[window.selectedSess];
     const times = solves.map(s => s[1]);
 
@@ -190,10 +224,12 @@ window.createCDF = function() {
     // Convert map to array of [time, cdf] points
     
     window.userData.cdfRange = [0,max];
+    window.userData.cdf = Array.from(cdf.entries());
     return Array.from(cdf.entries());
 
-
 }
+
+
 
 
 async function animateHistRange() {
@@ -323,9 +359,237 @@ function histogramTabStartup() {
         );
     });
 
+    window.genSessionDistribData();
+
     //styling for the distributions
     window.h.updateOptions({series : { "Normal Fit" : {fillGraph: false, stepPlot: false, color: "#00FF00", axis: "y1"}}})
     window.h.updateOptions({series : { "Skew Fit" : {fillGraph: false, stepPlot: false, color: "#0000FF", axis: "y1"}}})
     window.h.updateOptions({series : { "Beta Fit" : {fillGraph: false, stepPlot: false, color: "#FF0000", axis: "y1"}}})
     
 }
+
+
+function createNormData() {
+    console.log("createNormData called")
+
+    const binData = window.userData.hist[window.selectedSess];
+    const stats = window.userData.histStats[window.selectedSess]
+    const bucketWidth = binData[1][0] - binData[0][0]; // Assuming uniform bins
+    const scale = window.userData.solves[window.selectedSess].length * bucketWidth;
+    let sum = 0
+    const normData = binData.map(([x]) => {
+        //const y = scale * normalPDF(x, stats[0], stats[1])
+        const y = normalPDF(x, stats[0], stats[1])
+        sum += y;
+        return [x, y];
+    });
+    console.log("norm sum:", sum)
+
+    //store the norm pdf
+    window.userData.distribData[0] = normData;
+    //store the calculated coefficients
+    window.userData.normCoeffs = {mu: stats[0], sigma: stats[1]}
+}
+
+function createSkewData() {
+    console.log("createSkewData called")
+    const binData = window.userData.hist[window.selectedSess];
+    const stats = window.userData.histStats[window.selectedSess]; // [mean, std]
+    const bucketWidth = binData[1][0] - binData[0][0];
+    const solveTimes = window.userData.solves[window.selectedSess].map(s => s[1]);
+    const n =  window.userData.solves[window.selectedSess].length;
+
+    // Estimate sample skewness γ1 = (1/n) ∑ ((x - μ)/σ)^3
+    const mean = stats[0], std = stats[1];
+    let skewness = solveTimes.reduce((sum, t) => sum + ((t - mean) / std) ** 3, 0) / n;
+    console.log("real skewness:",skewness)
+    //Max allowable is 1 or it explodes
+    if(skewness > 0.99) skewness = 0.99;
+    if(skewness < -0.99) skewness = -0.99;
+
+    // Approximate shape parameter α from skewness (Pearson's method)
+    //const alpha = Math.sign(skewness) * Math.sqrt(Math.PI / 2 * (Math.abs(skewness) ** (2/3)));
+    const a = Math.abs(skewness) ** (2/3)
+    const b = ((4-Math.PI)/2) ** (2/3);
+    //const delta = Math.sign(skewness) * Math.sqrt(Math.PI / 2 * (a/(a+b)));
+    const delta = Math.sign(skewness) * Math.min(Math.sqrt(Math.PI / 2 * (a/(a+b))),window.userData.maxDelta);
+    //const delta = Math.sign(skewness) * Math.sqrt(Math.PI / 2 * a);
+    //console.log("delta:",delta)
+    const alpha = delta / Math.sqrt(1 - delta * delta)
+    const omega = std / Math.sqrt(1 - 2 * delta * delta / Math.PI);
+    const xi = mean - omega * delta * Math.sqrt(2 / Math.PI);
+    const scale = n * bucketWidth;
+    let sum = 0;
+    const skewData = binData.map(([x]) => {
+        const y = skewNormalPDF(x, xi, omega, alpha);
+        sum += y;
+        return [x, y];
+    });
+    console.log("Skew sum:", sum);
+
+
+    //store the skew pdf
+    window.userData.distribData[1] = skewData;
+
+    window.userData.skewCoeffs = {xi: xi, omega: omega, alpha: alpha}
+    //console.log("n: ", n, "bucketWidth:", bucketWidth)
+    //console.log("Skewness:", skewness, "Alpha:", alpha, "Omega:", omega, "xi:", xi);
+}
+
+
+function createBetaData() {
+    console.log("createBetaData called")
+
+    const binData = window.userData.hist[window.selectedSess];
+    const stats = window.userData.histStats[window.selectedSess]
+    const bucketWidth = binData[1][0] - binData[0][0]; // Assuming uniform bins
+    const scale = window.userData.solves[window.selectedSess].length * bucketWidth;
+
+
+    const mean = stats[0], std = stats[1], max = stats[3]
+    const m = mean/stats[3]
+    const v = (std ** 2) / (max ** 2);
+
+    const alpha = m * (m * (1-m) / v - 1);
+    const beta = (1-m) * (m * (1-m) / v - 1)
+
+    let sum = 0
+    const betaData = binData.map(([x]) => {
+        //const y = scale * normalPDF(x, stats[0], stats[1])
+        const y = betaPDF(x/max, alpha, beta) / max;
+        sum += y;
+        return [x, y];
+    });
+    console.log("beta sum:", sum)
+
+    //store beta pdf
+    window.userData.distribData[2] = betaData;
+    //store coeffs
+    window.userData.betaCoeffs = {alpha: alpha, beta: beta, max: max}
+}
+
+function createNormCDF() {
+    console.log("createNormCDF called")
+
+    //debugger;
+    const cdf = window.userData.cdf;
+    const normCDF = []
+    const mu = window.userData.normCoeffs.mu
+    const sigma = window.userData.normCoeffs.sigma
+
+    let error = 0;
+
+    for(let i = 0; i < cdf.length; i++) {
+        const x = cdf[i][0]
+        const distribY = generalNormalCDF(x, mu, sigma)
+        normCDF.push([x,distribY])
+
+        const y = cdf[i][1];
+        error += Math.abs(y-distribY)
+    }
+    console.log("norm error:",error*100/cdf.length)
+
+    const minVal = cdf[0][0];
+    const maxVal = cdf[cdf.length-1][0]
+    const density = cdf.length/(maxVal-minVal);
+    //console.log("density",density,"minVal",minVal)
+    for(let i = 0; i < density*minVal; i++) {
+        error += generalNormalCDF(i/density, mu, sigma)
+    }
+    console.log("new norm error:",error*100/(cdf.length+density*minVal))
+
+    document.getElementById("normError").innerText = round(error*100/(cdf.length+density*minVal),2)
+
+    window.userData.distribCdfData[0] = normCDF;
+}
+
+function createBetaCDF() {
+    console.log("createBetaCDF called")
+    //debugger;
+    const cdf = window.userData.cdf;
+    const betaCdf = []
+    const alpha = window.userData.betaCoeffs.alpha  
+    const beta = window.userData.betaCoeffs.beta
+    const max = window.userData.betaCoeffs.max
+    
+    let error = 0
+
+    for(let i = 0; i < cdf.length; i++) {
+        const x = cdf[i][0]
+        const distribY = betaCDF(x/max, alpha, beta)
+        betaCdf.push([x, distribY])
+
+        const y = cdf[i][1];
+        error += Math.abs(y-distribY)
+    }
+    console.log("beta error:",error*100/cdf.length)
+
+    const minVal = cdf[0][0];
+    const maxVal = cdf[cdf.length-1][0]
+    const density = cdf.length/(maxVal-minVal);
+    //console.log("density",density,"minVal",minVal)
+    for(let i = 0; i < density*minVal; i++) {
+        error += betaCDF((i/density)/max, alpha, beta)
+    }
+    console.log("new beta error:",error*100/(cdf.length+density*minVal))
+
+    document.getElementById("betaError").innerText = round(error*100/(cdf.length+density*minVal),2)
+
+    window.userData.distribCdfData[2] = betaCdf;
+}
+
+function createSkewCDF() {
+    console.log("createSkewCDF called")
+    //debugger;
+    const cdf = window.userData.cdf;
+    const skewCdf = []
+    const xi = window.userData.skewCoeffs.xi
+    const omega = window.userData.skewCoeffs.omega
+    const alpha = window.userData.skewCoeffs.alpha
+    
+    const minVal = cdf[0][0];
+
+    const stepSize = 0.001
+    let error = 0
+    let currentX = 0;
+    let distribY = 0
+
+    for(let i = 0; i < cdf.length; i++) {
+        const x = cdf[i][0]
+
+        while(currentX < x) {
+            distribY += skewNormalPDF(currentX, xi, omega, alpha)*stepSize
+            currentX += stepSize;
+        }
+
+        skewCdf.push([x, distribY])
+
+        const y = cdf[i][1];
+        error += Math.abs(y-distribY)
+    }
+    console.log("skew error:",error*100/cdf.length)
+
+
+    const maxVal = cdf[cdf.length-1][0]
+    const density = cdf.length/(maxVal-minVal);
+    //console.log("density",density,"minVal",minVal)
+
+    currentX = 0;
+    distribY = 0
+    for(let i = 0; i < density*minVal; i++) {
+        console.log("i:",i,"density:",density,"minVal",minVal)
+        while(currentX < i/density) {
+            distribY += skewNormalPDF(currentX, xi, omega, alpha)*stepSize
+            currentX += stepSize;
+        }
+        error += distribY
+        
+    }
+    console.log("new skew error:",error*100/(cdf.length+density*minVal))
+
+    document.getElementById("skewError").innerText = round(error*100/(cdf.length+density*minVal),2)
+    
+
+    window.userData.distribCdfData[1] = skewCdf;
+}
+

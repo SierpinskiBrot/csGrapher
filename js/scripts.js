@@ -2,7 +2,6 @@ import "../lib/dygraph.js";
 
 import {makeArrayOfArrays, binarySearchInsertIdx, round, dhm, sleep, createButton, parseTime} from "./utils.js"
 import {themes} from "./themes.js"
-import {gamma, erf, normalPDF, standardNormalCDF, skewNormalPDF, betaPDF} from "./probabilities.js"
 import { graphTabStartup } from "./graphTab.js";
 import { histogramTabStartup} from "./histogramTab.js";
 
@@ -66,11 +65,13 @@ histogramButton.addEventListener("click", function() {
     histogramContainer.style.display = "flex";
     histogramButton.classList.add("pressed");
     window.h.resize();
-    window.updateHist(); window.h.resetZoom()
-    if(window.userData) {
-        window.userData.genSlidingWindowDefaults()
-        window.userData.genCreationDefaults();
-    }
+
+    window.userData.createHist(1) 
+    window.createCDF();
+    window.genSessionDistribData();
+    window.updateHist();
+    if(window.distribMode == "pdf") window.h.resetZoom(); 
+    window.userData.genSlidingWindowDefaults(); window.userData.genCreationDefaults(); 
 })
 statsButton.addEventListener("click", function() {
     window.currentTab = "stats";
@@ -103,9 +104,10 @@ function dropdownOnChange() {
     else if (window.currentTab == "hist") {
         window.selectedSess = document.getElementById("title-dropdown").value;
         window.userData.createHist(1) 
-        window.userData.cdfData = window.createCDF();
+        window.createCDF();
+        window.genSessionDistribData();
         window.updateHist();
-        if(window.userData.distribMode == "pdf") window.h.resetZoom(); 
+        if(window.distribMode == "pdf") window.h.resetZoom(); 
         window.userData.genSlidingWindowDefaults(); window.userData.genCreationDefaults(); 
     }
 
@@ -196,12 +198,15 @@ class UserData {
         this.xTitle = "Date";
         this.xTitle2 = "Solve #";
 
+        this.dataFormat = ""
+
         this.numSessions = 0;
         //names of sessions
         this.sessions = [];
         //Get the session names
         const sessNamesStartTime = performance.now() 
-        if(data.properties.sessionData != undefined){
+        if(data?.properties?.sessionData != undefined){
+            this.dataFormat = "csTimer"
             const sessionData = JSON.parse(data.properties.sessionData)
             for(let i = 0; i < 100; i++) {
                 if(sessionData[i] != undefined){
@@ -209,6 +214,11 @@ class UserData {
                     this.numSessions += 1
                 }
             }
+        } else {
+            console.log("this is acubemy data")
+            this.dataFormat = "acubemy"
+            this.sessions.push("3x3")
+            this.numSessions = 1
         }
         const sessNamesEndTime = performance.now()
         console.log(`get session names: ${round(sessNamesEndTime - sessNamesStartTime)} milliseconds`)
@@ -233,6 +243,7 @@ class UserData {
         this.distribLabels =       ["Normal Fit", "Skew Fit", "Beta Fit"];
         this.distribVisibilities = [false,         false,      false];
         this.distribData =          [[],            [],         []];
+        this.distribCdfData =       [[],            [],         []];
 
 
         //pb data for stats panel
@@ -241,18 +252,27 @@ class UserData {
         this.currentPbSeries = "PB Single"
 
         //Add the first two columns: solve date, solve time
-        const fcstartTime = performance.now() 
-        for (let s = 1; s <= this.numSessions; s++) {
-            const sessionKey = `session${s}`;
-            if (data[sessionKey] !== undefined) {
-                for (let i = 0; i < data[sessionKey].length; i++) {
-                    this.solves[s - 1].push([new Date(1000 * data[sessionKey][i][3])]);         //solve date
-                    this.solves[s - 1][i].push(0.001*parseTime(data[sessionKey][i][0]))    //solve time
+        if(this.dataFormat == "csTimer") {
+            const fcstartTime = performance.now() 
+            for (let s = 1; s <= this.numSessions; s++) {
+                const sessionKey = `session${s}`;
+                if (data[sessionKey] !== undefined) {
+                    for (let i = 0; i < data[sessionKey].length; i++) {
+                        this.solves[s - 1].push([new Date(1000 * data[sessionKey][i][3])]);         //solve date
+                        this.solves[s - 1][i].push(0.001*parseTime(data[sessionKey][i][0]))    //solve time
+                    }
                 }
             }
+            const fcendTime = performance.now()
+            console.log(`first 2 cols: ${round(fcendTime - fcstartTime)} milliseconds`)
+        } else if(this.dataFormat == "acubemy") {
+            debugger;
+            for(let i = data.length - 1 ; i > 1 ; i--) {
+                this.solves[0].push([new Date(data[i].date)])
+                this.solves[0][data.length-i-1].push(0.001*data[i].total_time)
+            }
         }
-        const fcendTime = performance.now()
-        console.log(`first 2 cols: ${round(fcendTime - fcstartTime)} milliseconds`)
+        
         
 
         //Delete DNFs
@@ -365,89 +385,7 @@ class UserData {
         console.log(`create histogram: ${round(chendTime - chstartTime)} milliseconds`)
     }
 
-    createNormData() {
-        const binData = this.hist[window.selectedSess];
-        const stats = this.histStats[window.selectedSess]
-        const bucketWidth = binData[1][0] - binData[0][0]; // Assuming uniform bins
-        const scale = this.solves[window.selectedSess].length * bucketWidth;
-        let sum = 0
-        const normData = binData.map(([x]) => {
-            //const y = scale * normalPDF(x, stats[0], stats[1])
-            const y = normalPDF(x, stats[0], stats[1])
-            sum += y;
-            return [x, y];
-        });
-        console.log("norm sum:", sum)
-
-        this.distribData[0] = normData;
-    }
-
-    createSkewData() {
-        const binData = this.hist[window.selectedSess];
-        const stats = this.histStats[window.selectedSess]; // [mean, std]
-        const bucketWidth = binData[1][0] - binData[0][0];
-        const solveTimes = this.solves[window.selectedSess].map(s => s[1]);
-        const n = this.solves[window.selectedSess].length;
-
-        // Estimate sample skewness γ1 = (1/n) ∑ ((x - μ)/σ)^3
-        const mean = stats[0], std = stats[1];
-        let skewness = solveTimes.reduce((sum, t) => sum + ((t - mean) / std) ** 3, 0) / n;
-        console.log("real skewness:",skewness)
-        //Max allowable is 1 or it explodes
-        if(skewness > 0.99) skewness = 0.99;
-        if(skewness < -0.99) skewness = -0.99;
-
-        // Approximate shape parameter α from skewness (Pearson's method)
-        //const alpha = Math.sign(skewness) * Math.sqrt(Math.PI / 2 * (Math.abs(skewness) ** (2/3)));
-        const a = Math.abs(skewness) ** (2/3)
-        const b = ((4-Math.PI)/2) ** (2/3);
-        //const delta = Math.sign(skewness) * Math.sqrt(Math.PI / 2 * (a/(a+b)));
-        const delta = Math.sign(skewness) * Math.min(Math.sqrt(Math.PI / 2 * (a/(a+b))),this.maxDelta);
-        //const delta = Math.sign(skewness) * Math.sqrt(Math.PI / 2 * a);
-        console.log("delta:",delta)
-        const alpha = delta / Math.sqrt(1 - delta * delta)
-        const omega = std / Math.sqrt(1 - 2 * delta * delta / Math.PI);
-        const xi = mean - omega * delta * Math.sqrt(2 / Math.PI);
-        const scale = n * bucketWidth;
-        let sum = 0;
-        const skewData = binData.map(([x]) => {
-            const y = skewNormalPDF(x, xi, omega, alpha);
-            sum += y;
-            return [x, y];
-        });
-        console.log("Skew sum:", sum);
-
-        this.distribData[1] = skewData;
-        console.log("n: ", n, "bucketWidth:", bucketWidth)
-        console.log("Skewness:", skewness, "Alpha:", alpha, "Omega:", omega, "xi:", xi);
-    }
-
-
-    createBetaData() {
-        const binData = this.hist[window.selectedSess];
-        const stats = this.histStats[window.selectedSess]
-        const bucketWidth = binData[1][0] - binData[0][0]; // Assuming uniform bins
-        const scale = this.solves[window.selectedSess].length * bucketWidth;
-
-
-        const mean = stats[0], std = stats[1], max = stats[3]
-        const m = mean/stats[3]
-        const v = (std ** 2) / (max ** 2);
-
-        const alpha = m * (m * (1-m) / v - 1);
-        const beta = (1-m) * (m * (1-m) / v - 1)
-
-        let sum = 0
-        const betaData = binData.map(([x]) => {
-            //const y = scale * normalPDF(x, stats[0], stats[1])
-            const y = betaPDF(x/max, alpha, beta) / max;
-            sum += y;
-            return [x, y];
-        });
-        console.log("beta sum:", sum)
-
-        this.distribData[2] = betaData;
-    }
+    
 
 
     genSlidingWindowDefaults() {
