@@ -252,12 +252,13 @@
                 <tbody><tr><th colspan="2">
                     <div style="display: flex;">
                         <p style="flex-grow: 1;">Overlay</p>
+                        <button id="distributionHelpButton" class="helpButton" onclick="document.getElementById('distributionHintOverlay').style.display = 'flex';">?</button>
                     </div>
                 </th></tr></tbody>
                 <tbody>
                     <tr>
                         <td><p style="text-align: center;">Distribution</p></td>
-                        <td><p style="text-align: center;">Err</p></td>
+                        <td><p style="text-align: center;">Error</p></td>
                     </tr>
                     <tr>
                         <td><button id="showHistNorm">Normal</button></td>
@@ -270,6 +271,10 @@
                     <tr>
                         <td><button id="showHistBeta">Beta</button></td>
                         <td><p id="betaError">0.0</p></td>
+                    </tr>
+                    <tr>
+                        <td><button id="showHistGamma">Gamma</button></td>
+                        <td><p id="gammaError">0.0</p></td>
                     </tr>
                 </tbody>
             </table>
@@ -333,6 +338,23 @@
                 <tr><td>moX</td><td>mean of X</td><td>Computes the mean of the last X solves, with every solve considered.</td></tr>
             </table>
             <button id="createCloseHint" class="closeHint" onclick="document.getElementById('createHintOverlay').style.display = 'none';">X</button>
+        </div>
+    </div>
+    <div id="distributionHintOverlay" class="hintOverlay">
+        <div id="distributionHintContent" class="hintContent">
+            <table>
+                <th colspan="3" style="height: 40px;">
+                    <p>Overlay distribution</p>
+                </th>
+                <tr>
+                    <td>Button Name</td><td>Distribution Name</td><td>Parameter Estimation</td>
+                </tr>
+                <tr><td>Normal</td><td><a href="https://en.wikipedia.org/wiki/Normal_distribution">Normal / Gaussian distribution</a></td><td>Numeric</td></tr>
+                <tr><td>Skew Norm</td><td><a href="https://en.wikipedia.org/wiki/Skew_normal_distribution">Skew normal distribution</a></td><td>Method of Moments</td></tr>
+                <tr><td>Beta</td><td><a href="https://en.wikipedia.org/wiki/Beta_distribution">Beta distribution</a></td><td>Method of Moments</td></tr>
+                <tr><td>Gamma</td><td><a href="https://en.wikipedia.org/wiki/Gamma_distribution">Gamma distribution</a></td><td>Maximum Likelihood</td></tr>
+            </table>
+            <button id="distributionCloseHint" class="closeHint" onclick="document.getElementById('distributionHintOverlay').style.display = 'none';">X</button>
         </div>
     </div>
     <div id="slidingWindowHintOverlay" class="hintOverlay">

@@ -31,6 +31,11 @@ document.getElementById('createHintOverlay').onclick = (e) => {
         document.getElementById('createHintOverlay').style.display = 'none';
     }
 };
+document.getElementById('distributionHintOverlay').onclick = (e) => {
+    if (e.target.id === 'distributionHintOverlay') {
+        document.getElementById('distributionHintOverlay').style.display = 'none';
+    }
+};
 
 
 //#region handle the toolbar buttons on the top
@@ -227,7 +232,7 @@ class UserData {
         this.labels = [ "Date", "Time","PB Single", "ao5", "PB ao5", "ao12", "PB ao12", "ao100","PB ao100", "ao1000","PB ao1000" ];
         this.colors = ["#084C61", "#084C61", "#177E89", "#177E89", "#86A06A", "#86A06A", "#F2934A", "#F2934A", "#E45E3D", "#E45E3D"];
         this.widths = [2,2,2,2,2,2,2,2,2,2]
-        this.visibilities = [true,true,true,true,true,true,true,true,true,true];
+        this.visibilities = [true,true,true,false,true,false,true,false,true,false];
         
         //   date, time, pb s, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000
         this.solves = makeArrayOfArrays(this.numSessions);
@@ -239,11 +244,11 @@ class UserData {
         //  hist[session] [0]: bucket name(0,1,...), [1]: # of solves
         this.hist = makeArrayOfArrays(this.numSessions);
         this.histStats = [];  // [ [mean, std, numsolves], [mean, std, numsolves], ... ]
-        this.maxDelta = 0.98;
-        this.distribLabels =       ["Normal Fit", "Skew Fit", "Beta Fit"];
-        this.distribVisibilities = [false,         false,      false];
-        this.distribData =          [[],            [],         []];
-        this.distribCdfData =       [[],            [],         []];
+        this.maxDelta = 0.985;
+        this.distribLabels =       ["Normal Fit", "Skew Fit", "Beta Fit", "Gamma Fit"];
+        this.distribVisibilities = [false,         false,      false,      false];
+        this.distribData =          [[],            [],         [],         []];
+        this.distribCdfData =       [[],            [],         [],         []];
 
 
         //pb data for stats panel

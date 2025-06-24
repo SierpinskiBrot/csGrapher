@@ -1,4 +1,4 @@
-export {gamma, erf, normalPDF, standardNormalCDF, skewNormalPDF, betaPDF, generalNormalCDF, betaCDF};
+export {gamma, erf, normalPDF, standardNormalCDF, skewNormalPDF, gammaPDF, betaPDF, generalNormalCDF, betaCDF};
 
 //gamma function
 function gamma(z) {
@@ -50,6 +50,13 @@ function erf(x) {
     const y = 1 - (((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t) * Math.exp(-x * x);
 
     return sign * y;
+}
+
+//gamma probability density function
+function gammaPDF(x, alpha, theta) {
+    return (1 / (gamma(alpha)*(theta ** alpha))) *
+        (x ** (alpha - 1)) *
+        Math.exp(-x / theta)
 }
 
 
@@ -167,5 +174,3 @@ function betaCDF(x, alpha, beta) {
     // Return the Beta CDF at x
     return incBeta(x, alpha, beta);
 }
-
-
