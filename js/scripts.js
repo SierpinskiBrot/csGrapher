@@ -1,7 +1,6 @@
 import "../lib/dygraph.js";
 
-import {makeArrayOfArrays, binarySearchInsertIdx, round, dhm, sleep, createButton, parseTime} from "./utils.js"
-import {themes} from "./themes.js"
+import {makeArrayOfArrays, binarySearchInsertIdx, round, dhm, parseTime} from "./utils.js"
 import { graphTabStartup } from "./graphTab.js";
 import { histogramTabStartup} from "./histogramTab.js";
 
@@ -9,33 +8,27 @@ import { histogramTabStartup} from "./histogramTab.js";
 window.selectedSess = 0; //selected session from the cstimer
 
 
+//clicking of the overlays closes them too
+const overlayIds = [
+    'fileHintOverlay',
+    'slidingWindowHintOverlay',
+    'creationHintOverlay',
+    'createHintOverlay',
+    'distributionHintOverlay'
+];
 
-//clicking outside the image closes it too
-document.getElementById('fileHintOverlay').onclick = (e) => {
-    if (e.target.id === 'fileHintOverlay') {
-        document.getElementById('fileHintOverlay').style.display = 'none';
+function setupOverlayDismiss(id) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.onclick = (e) => {
+            if (e.target.id === id) {
+                el.style.display = 'none';
+            }
+        };
     }
-};
-document.getElementById('slidingWindowHintOverlay').onclick = (e) => {
-    if (e.target.id === 'slidingWindowHintOverlay') {
-        document.getElementById('slidingWindowHintOverlay').style.display = 'none';
-    }
-};
-document.getElementById('creationHintOverlay').onclick = (e) => {
-    if (e.target.id === 'creationHintOverlay') {
-        document.getElementById('creationHintOverlay').style.display = 'none';
-    }
-};
-document.getElementById('createHintOverlay').onclick = (e) => {
-    if (e.target.id === 'createHintOverlay') {
-        document.getElementById('createHintOverlay').style.display = 'none';
-    }
-};
-document.getElementById('distributionHintOverlay').onclick = (e) => {
-    if (e.target.id === 'distributionHintOverlay') {
-        document.getElementById('distributionHintOverlay').style.display = 'none';
-    }
-};
+}
+
+overlayIds.forEach(setupOverlayDismiss);
 
 
 //#region handle the toolbar buttons on the top
@@ -129,8 +122,8 @@ function dropdownOnChange() {
         if(!clickOccured) {
             window.userData.updatePBTable(window.dropdown.value,0) 
         }
-        
     }
+
 }
 
 
@@ -203,11 +196,10 @@ class UserData {
         this.xTitle = "Date";
         this.xTitle2 = "Solve #";
 
-        this.dataFormat = ""
+        this.dataFormat = "" //either csTimer or acubemy
 
         this.numSessions = 0;
-        //names of sessions
-        this.sessions = [];
+        this.sessions = []; //names of sessions
         //Get the session names
         const sessNamesStartTime = performance.now() 
         if(data?.properties?.sessionData != undefined){
@@ -229,10 +221,10 @@ class UserData {
         console.log(`get session names: ${round(sessNamesEndTime - sessNamesStartTime)} milliseconds`)
         
 
-        this.labels = [ "Date", "Time","PB Single", "ao5", "PB ao5", "ao12", "PB ao12", "ao100","PB ao100", "ao1000","PB ao1000" ];
-        this.colors = ["#084C61", "#084C61", "#177E89", "#177E89", "#86A06A", "#86A06A", "#F2934A", "#F2934A", "#E45E3D", "#E45E3D"];
-        this.widths = [2,2,2,2,2,2,2,2,2,2]
-        this.visibilities = [true,true,true,false,true,false,true,false,true,false];
+        this.labels = [ "Date",    "Time",    "PB Single", "ao5",     "PB ao5",  "ao12",    "PB ao12", "ao100",   "PB ao100", "ao1000",  "PB ao1000" ];
+        this.colors = [            "#084C61", "#084C61",   "#177E89", "#177E89", "#86A06A", "#86A06A", "#F2934A", "#F2934A",  "#E45E3D", "#E45E3D"];
+        this.widths = [            2,         2,           2,         2,         2,         2,          2,        2,          2,          2]
+        this.visibilities = [      true,      true,        true,      false,     true,      false,      true,     false,      true,      false];
         
         //   date, time, pb s, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000
         this.solves = makeArrayOfArrays(this.numSessions);
@@ -240,7 +232,6 @@ class UserData {
         this.solves2 = makeArrayOfArrays(this.numSessions);
 
         //histogram
-        //this.hist is what is displayed, this.buckets is the data of each solve in its bucket for when we want to subdivide
         //  hist[session] [0]: bucket name(0,1,...), [1]: # of solves
         this.hist = makeArrayOfArrays(this.numSessions);
         this.histStats = [];  // [ [mean, std, numsolves], [mean, std, numsolves], ... ]
@@ -249,7 +240,6 @@ class UserData {
         this.distribVisibilities = [false,         false,      false,      false];
         this.distribData =          [[],            [],         [],         []];
         this.distribCdfData =       [[],            [],         [],         []];
-
 
         //pb data for stats panel
         //  pbData[session][series] [0]: title, [1]: time(s), [2]: solves since last, [3]: days since last, [4]: date 
@@ -264,22 +254,19 @@ class UserData {
                 if (data[sessionKey] !== undefined) {
                     for (let i = 0; i < data[sessionKey].length; i++) {
                         this.solves[s - 1].push([new Date(1000 * data[sessionKey][i][3])]);         //solve date
-                        this.solves[s - 1][i].push(0.001*parseTime(data[sessionKey][i][0]))    //solve time
+                        this.solves[s - 1][i].push(0.001*parseTime(data[sessionKey][i][0]))         //solve time
                     }
                 }
             }
             const fcendTime = performance.now()
             console.log(`first 2 cols: ${round(fcendTime - fcstartTime)} milliseconds`)
         } else if(this.dataFormat == "acubemy") {
-            debugger;
             for(let i = data.length - 1 ; i > 1 ; i--) {
-                this.solves[0].push([new Date(data[i].date)])
-                this.solves[0][data.length-i-1].push(0.001*data[i].total_time)
+                this.solves[0].push([new Date(data[i].date)])                   //solve date
+                this.solves[0][data.length-i-1].push(0.001*data[i].total_time)  //solve time
             }
         }
         
-        
-
         //Delete DNFs
         const ddstartTime = performance.now() 
         for(let j = 0; j < this.numSessions; j++) {
@@ -292,7 +279,6 @@ class UserData {
         }
         const ddendTime = performance.now()
         console.log(`delete dnfs: ${round(ddendTime - ddstartTime)} milliseconds`)
-        
 
         //create the default data series
         const ddsstartTime = performance.now() 
@@ -308,7 +294,6 @@ class UserData {
         const ddsendTime = performance.now()
         console.log(`default series: ${round(ddsendTime - ddsstartTime)} milliseconds`)
         
-
         //This creates solves2, which is solves but x-axis is solve#
         const s2startTime = performance.now() 
         this.createSolves2();
@@ -317,16 +302,10 @@ class UserData {
         
 
         //add the data for histogram
-        
         this.createHist(1)
         this.genSlidingWindowDefaults()
         this.genCreationDefaults()
         
-        
-        //this.sldWinPlaying = false;
-        //this.creationPlaying = false;
-        
-
         //create the pb table
         const pbstartTime = performance.now() 
         this.updatePBTable(0,0);
@@ -388,11 +367,10 @@ class UserData {
 
         const chendTime = performance.now()
         console.log(`create histogram: ${round(chendTime - chstartTime)} milliseconds`)
+
     }
 
-    
-
-
+    //generate the default parameters for the sliding window animation
     genSlidingWindowDefaults() {
         let numSolves = this.solves[window.selectedSess].length
         let mean = 0;
@@ -439,6 +417,7 @@ class UserData {
         document.getElementById("sldWinTime").value = sldWinTime
     }
 
+    //generate the default parameters for the creation animation
     genCreationDefaults() {
         let numSolves = this.solves[window.selectedSess].length
         let mean = 0;
@@ -473,7 +452,6 @@ class UserData {
         document.getElementById("creationStep").value = creationStep
         document.getElementById("creationXmax").value = creationXmax
     }
-
 
 
     //append a column for the average of the x last solves
@@ -528,7 +506,7 @@ class UserData {
         console.log(`   push ao${x}: ${round(paendTime - pastartTime)} milliseconds`)
     }
 
-    //append a column for the average of the x last solves
+    //append a column for the mean of the x last solves
     pushMean(x, index = undefined) {
         const pmstartTime = performance.now() 
         
@@ -547,25 +525,19 @@ class UserData {
                     }
                     windo.push(newVal)
                 } else {
-                    // Remove oldest solve from window
-                    windo.splice(0,1)
-                    
-                    // Insert new solve time in window
-                    windo.push(newVal)
+                    windo.splice(0,1)  // Remove oldest solve from window
+                    windo.push(newVal) // Insert new solve time in window
             
                     //mean of window
                     sum = 0;
                     for(let k = 0; k < x; k++) {sum+=windo[k]}
                     mean = sum/x
 
-                    //solves[i].push(mean);
-
                     if (index === undefined) {
                         solves[i].push(mean);
                     } else {
                         solves[i].splice(index, 0, mean);
                     }
-
                 }
             }
         }
@@ -703,8 +675,4 @@ class UserData {
         }
     }
 }
-
-
-
-
 

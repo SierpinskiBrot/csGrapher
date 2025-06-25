@@ -1,7 +1,8 @@
-import {binarySearchInsertIdx, round, dhm, sleep, createButton, parseTime} from "./utils.js"
-export {histogramTabStartup}
-import {gamma, erf, normalPDF, standardNormalCDF, skewNormalPDF, betaPDF, gammaPDF, generalNormalCDF, betaCDF} from "./probabilities.js"
+import {round, sleep} from "./utils.js"
+import {normalPDF, skewNormalPDF, betaPDF, gammaPDF, generalNormalCDF, betaCDF} from "./probabilities.js"
 import {themes} from "./themes.js"
+
+export {histogramTabStartup}
 
 
 window.sldWinPlaying = false;
@@ -68,26 +69,21 @@ cumDistribButton.addEventListener("click", function() {
 //col width input
 document.getElementById("histBucketInput").addEventListener("change", function() {
     window.userData.createHist(histBucketInput.value)
-    createNormData(); createBetaData(); createSkewData(); createGammaData();
+    createDistributionPDFs();
     updateHist(); })
 //reset
 document.getElementById("histBucketReset").addEventListener("click", function() {
     histBucketInput.value = 1
     window.userData.createHist(histBucketInput.value)
+    createDistributionPDFs();
     updateHist(); })
 
 window.genSessionDistribData = function() {
-    createNormData()
-    createBetaData()
-    createSkewData()
-    createGammaData()
-
+    calculateDistributionCoeffs();
+    createDistributionPDFs();
 
     createCDF()
-    createNormCDF()
-    createSkewCDF()
-    createBetaCDF()
-    createGammaCDF()
+    createDistributionCDFs();
 }
 
 // Update the histogram (with optional overlays)
@@ -97,7 +93,6 @@ window.updateHist = function () {
     if(window.distribMode == "pdf") {
         window.selectedSess = document.getElementById("title-dropdown").value;
         
-    
         const hist = window.userData.hist[window.selectedSess];
         const distrib = window.userData.distribData;
         const dLabels = window.userData.distribLabels;
@@ -105,9 +100,6 @@ window.updateHist = function () {
 
         const numSolves = window.userData.solves[window.selectedSess].length;
         const bucketWidth = hist[1][0] - hist[0][0];
-        const scale = numSolves*bucketWidth;
-        //console.log("scale:",scale,"numsolves",numSolves,"bucketwidth",bucketWidth)
-
         
         // Start building combined data
         const combined = hist.map(([x, y], i) => {
@@ -206,6 +198,7 @@ function createHistRange(bucketSize, range,offset) {
     return hist;
 }
 
+
 window.createCDF = function() {
     console.log("createCDF called")
 
@@ -235,8 +228,7 @@ window.createCDF = function() {
 }
 
 
-
-
+//sliding window animation
 async function animateHistRange() {
     const playBtn = document.getElementById("sldWinPlay")
     const progressBar = document.querySelector("#sldWinProgressBar div")
@@ -280,6 +272,8 @@ async function animateHistRange() {
     progressBar.style.width = "0%"
 }
 
+
+//creation animation
 async function animateHistCreate() {
     const playBtn = document.getElementById("creationPlay")
     const progressBar = document.querySelector("#creationProgressBar div")
@@ -337,6 +331,7 @@ async function animateHistCreate() {
     playBtn.textContent = "Play";
     window.creationPlaying = false;
     progressBar.style.width = "0%"
+
 }
 
 
@@ -371,219 +366,195 @@ function histogramTabStartup() {
     window.h.updateOptions({series : { "Skew Fit" : {fillGraph: false, stepPlot: false, color: "#0000FF", axis: "y1"}}})
     window.h.updateOptions({series : { "Beta Fit" : {fillGraph: false, stepPlot: false, color: "#FF0000", axis: "y1"}}})
     window.h.updateOptions({series : { "Gamma Fit" : {fillGraph: false, stepPlot: false, color: "#FF00FF", axis: "y1"}}})
+
 }
 
 
-function createNormData() {
-    console.log("createNormData called")
-
-    const binData = window.userData.hist[window.selectedSess];
+//calculate the coefficients (parameters) for each of the types of distribution
+function calculateDistributionCoeffs() {
+    console.log("calculateDistributionCoeffs called")
     const stats = window.userData.histStats[window.selectedSess]
-
-    let sum = 0
-    const normData = binData.map(([x]) => {
-        const y = normalPDF(x, stats[0], stats[1])
-        sum += y;
-        return [x, y];
-    });
-    console.log("norm sum:", sum)
-
-    window.userData.distribData[0] = normData; //store the norm pdf
-    window.userData.normCoeffs = {mu: stats[0], sigma: stats[1]} //store the calculated coefficients
-}
-
-function createSkewData() {
-    console.log("createSkewData called")
-
-    const binData = window.userData.hist[window.selectedSess];
-    const stats = window.userData.histStats[window.selectedSess]; // [mean, std]
     const solveTimes = window.userData.solves[window.selectedSess].map(s => s[1]);
     const n =  window.userData.solves[window.selectedSess].length;
+    const mean = stats[0], std = stats[1], max = stats[3]
+
+    //--------------------NORMAL DISTRIBUTION--------------------
+    console.log("   calculating normal coeffs")
+    
+    window.userData.normCoeffs = {mu: mean, sigma: std} //store the calculated coefficients
+
+
+    //--------------------SKEW DISTRIBUTION--------------------
+    console.log("   calculating skew coeffs")
 
     // Estimate sample skewness γ1 = (1/n) ∑ ((x - μ)/σ)^3
-    const mean = stats[0], std = stats[1];
     let skewness = solveTimes.reduce((sum, t) => sum + ((t - mean) / std) ** 3, 0) / n;
-    console.log("real skewness:",skewness)
+    //console.log("   real skewness:",skewness)
     //Max allowable is 1 or it explodes
-    if(skewness > 0.99) skewness = 0.99;
-    if(skewness < -0.99) skewness = -0.99;
+    if(skewness > 0.99) skewness = 0.99; if(skewness < -0.99) skewness = -0.99;
 
     // Approximate shape parameter α from skewness (Pearson's method)
     const a = Math.abs(skewness) ** (2/3)
     const b = ((4-Math.PI)/2) ** (2/3);
     const delta = Math.sign(skewness) * Math.min(Math.sqrt(Math.PI / 2 * (a/(a+b))),window.userData.maxDelta);
-    const alpha = delta / Math.sqrt(1 - delta * delta)
-    const omega = std / Math.sqrt(1 - 2 * delta * delta / Math.PI);
-    const xi = mean - omega * delta * Math.sqrt(2 / Math.PI);
+    const alpha_skew = delta / Math.sqrt(1 - delta * delta)
+    const omega_skew = std / Math.sqrt(1 - 2 * delta * delta / Math.PI);
+    const xi_skew = mean - omega_skew * delta * Math.sqrt(2 / Math.PI);
 
-    let sum = 0;
-    const skewData = binData.map(([x]) => {
-        const y = skewNormalPDF(x, xi, omega, alpha);
-        sum += y;
-        return [x, y];
-    });
-    console.log("Skew sum:", sum);
-
-    window.userData.distribData[1] = skewData; //store the skew pdf
-    window.userData.skewCoeffs = {xi: xi, omega: omega, alpha: alpha} //store the coefficients
-}
+    window.userData.skewCoeffs = {xi: xi_skew, omega: omega_skew, alpha: alpha_skew} //store the coefficients
 
 
-function createBetaData() {
-    console.log("createBetaData called")
+    //--------------------BETA DISTRIBUTION--------------------
+    console.log("   calculating beta coeffs")
 
-    const binData = window.userData.hist[window.selectedSess];
-    const stats = window.userData.histStats[window.selectedSess]
-    const mean = stats[0], std = stats[1], max = stats[3]
-
-    const m = mean/stats[3]
+    const m = mean/max
     const v = (std ** 2) / (max ** 2);
-    const alpha = m * (m * (1-m) / v - 1);
-    const beta = (1-m) * (m * (1-m) / v - 1)
+    const alpha_beta = m * (m * (1-m) / v - 1);
+    const beta_beta = (1-m) * (m * (1-m) / v - 1)
 
-    let sum = 0
-    const betaData = binData.map(([x]) => {
-        const y = betaPDF(x/max, alpha, beta) / max;
-        sum += y;
-        return [x, y];
-    });
-    console.log("beta sum:", sum)
+    window.userData.betaCoeffs = {alpha: alpha_beta, beta: beta_beta, max: max} //store coeffs
 
-    
-    window.userData.distribData[2] = betaData; //store beta pdf
-    window.userData.betaCoeffs = {alpha: alpha, beta: beta, max: max} //store coeffs
-}
 
-function createGammaData() {
-    console.log("createGammaData called")
+    //--------------------GAMMA DISTRIBUTION--------------------
+    console.log("   calculating gamma coeffs")
 
-    const binData = window.userData.hist[window.selectedSess];
-    const stats = window.userData.histStats[window.selectedSess]
-    const solveTimes = window.userData.solves[window.selectedSess].map(s => s[1]);
-    const n =  window.userData.solves[window.selectedSess].length;
-    
-    
-    const meanX = stats[0], std = stats[1], max = stats[3]
     let meanLnX = solveTimes.reduce((sum, t) => sum + (Math.log(t)), 0) / n;
     let meanXLnX = solveTimes.reduce((sum, t) => sum + (t*Math.log(t)), 0) / n;
 
     //initial closed-form estimate
-    let theta = meanXLnX - meanX * meanLnX
-    let alpha = meanX / theta
-    console.log("original alpha, theta",alpha,theta)
+    let theta_gamma = meanXLnX - mean * meanLnX
+    let alpha_gamma = mean / theta_gamma
+    //console.log("   original alpha, theta",alpha_gamma,theta_gamma)
 
     //bias correction
-    theta *= n / (n-1)
-    alpha = alpha - (1/n) * (3*alpha - (2/3)*(alpha/(1+alpha)) - (4/5)*(alpha/((1+alpha)**2)))
-    console.log("new alpha, theta",alpha,theta)
+    theta_gamma *= n / (n-1)
+    alpha_gamma = alpha_gamma - (1/n) * 
+        (3*alpha_gamma 
+        - (2/3)*(alpha_gamma/(1+alpha_gamma)) 
+        - (4/5)*(alpha_gamma/((1+alpha_gamma)**2)))
+    //console.log("   new alpha, theta",alpha_gamma,theta_gamma)
 
+    window.userData.gammaCoeffs = {alpha: alpha_gamma, theta: theta_gamma} //store coeffs
+
+}
+
+
+//create the probability distribution functions for all the different distributions
+function createDistributionPDFs() {
+    console.log("createDistributionPDFS called")
+    const binData = window.userData.hist[window.selectedSess];
+    const normCoeffs = window.userData.normCoeffs
+    const skewCoeffs = window.userData.skewCoeffs
+    const betaCoeffs = window.userData.betaCoeffs
+    const gammaCoeffs = window.userData.gammaCoeffs
+
+    //--------------------NORMAL DISTRIBUTION--------------------
     let sum = 0
-    const gammaData = binData.map(([x]) => {
-        //const y = scale * normalPDF(x, stats[0], stats[1])
-        const y = gammaPDF(x, alpha, theta);
+    const normData = binData.map(([x]) => {
+        const y = normalPDF(x, normCoeffs.mu, normCoeffs.sigma)
         sum += y;
         return [x, y];
     });
-    console.log("gamma sum:", sum)
+    console.log("   norm sum:", sum)
 
+    window.userData.distribData[0] = normData; //store the norm pdf
+
+
+    //--------------------SKEW DISTRIBUTION--------------------
+    sum = 0;
+    const skewData = binData.map(([x]) => {
+        const y = skewNormalPDF(x, skewCoeffs.xi, skewCoeffs.omega, skewCoeffs.alpha);
+        sum += y;
+        return [x, y];
+    });
+    console.log("   skew sum:", sum);
+
+    window.userData.distribData[1] = skewData; //store the skew pdf
+
+
+    //--------------------BETA DISTRIBUTION--------------------
+    sum = 0
+    const betaData = binData.map(([x]) => {
+        const y = betaPDF(x/betaCoeffs.max, betaCoeffs.alpha, betaCoeffs.beta) / betaCoeffs.max;
+        sum += y;
+        return [x, y];
+    });
+    console.log("   beta sum:", sum)
+
+    window.userData.distribData[2] = betaData; //store beta pdf
+
+
+    //--------------------GAMMA DISTRIBUTION--------------------
+    sum = 0
+    const gammaData = binData.map(([x]) => {
+        //const y = scale * normalPDF(x, stats[0], stats[1])
+        const y = gammaPDF(x, gammaCoeffs.alpha, gammaCoeffs.theta);
+        sum += y;
+        return [x, y];
+    });
+    console.log("   gamma sum:", sum)
     
     window.userData.distribData[3] = gammaData; //store gamma pdf
-    window.userData.gammaCoeffs = {alpha: alpha, theta: theta} //store coeffs
+
 }
 
-function createNormCDF() {
-    console.log("createNormCDF called")
 
-    //debugger;
+//create the cumulative distribution functions for all the different distributions
+function createDistributionCDFs() {
+    console.log("createDistributionCDFS called")
     const cdf = window.userData.cdf;
+    const minVal = cdf[0][0];
+    const maxVal = cdf[cdf.length-1][0]
+    const density = cdf.length/(maxVal-minVal);
+
+    const normCoeffs = window.userData.normCoeffs
+    const skewCoeffs = window.userData.skewCoeffs
+    const betaCoeffs = window.userData.betaCoeffs
+    const gammaCoeffs = window.userData.gammaCoeffs
+
+    //this will be calculated on a per-distribution basis
+    let error = 0
+
+    //for some distributions, coding the CDF function is hard so I will just add up columns of the pdf
+    const stepSize = 0.001
+    let currentX = 0;
+    let distribY = 0
+
+    //--------------------NORMAL DISTRIBUTION--------------------
     const normCDF = []
-    const mu = window.userData.normCoeffs.mu
-    const sigma = window.userData.normCoeffs.sigma
 
-    let error = 0;
-
+    error = 0;
     for(let i = 0; i < cdf.length; i++) {
         const x = cdf[i][0]
-        const distribY = generalNormalCDF(x, mu, sigma)
+        const distribY = generalNormalCDF(x, normCoeffs.mu, normCoeffs.sigma)
         normCDF.push([x,distribY])
 
         const y = cdf[i][1];
         error += Math.abs(y-distribY)
     }
-    console.log("norm error:",error*100/cdf.length)
+    console.log("   norm error:",error*100/cdf.length)
 
-    const minVal = cdf[0][0];
-    const maxVal = cdf[cdf.length-1][0]
-    const density = cdf.length/(maxVal-minVal);
-    //console.log("density",density,"minVal",minVal)
     for(let i = 0; i < density*minVal; i++) {
-        error += generalNormalCDF(i/density, mu, sigma)
+        error += generalNormalCDF(i/density, normCoeffs.mu, normCoeffs.sigma)
     }
-    console.log("new norm error:",error*100/(cdf.length+density*minVal))
+    console.log("   new norm error:",error*100/(cdf.length+density*minVal))
 
     document.getElementById("normError").innerText = round(error*100/(cdf.length+density*minVal),2)
-
     window.userData.distribCdfData[0] = normCDF;
-}
 
-function createBetaCDF() {
-    console.log("createBetaCDF called")
-    //debugger;
-    const cdf = window.userData.cdf;
-    const betaCdf = []
-    const alpha = window.userData.betaCoeffs.alpha  
-    const beta = window.userData.betaCoeffs.beta
-    const max = window.userData.betaCoeffs.max
-    
-    let error = 0
 
-    for(let i = 0; i < cdf.length; i++) {
-        const x = cdf[i][0]
-        const distribY = betaCDF(x/max, alpha, beta)
-        betaCdf.push([x, distribY])
-
-        const y = cdf[i][1];
-        error += Math.abs(y-distribY)
-    }
-    console.log("beta error:",error*100/cdf.length)
-
-    const minVal = cdf[0][0];
-    const maxVal = cdf[cdf.length-1][0]
-    const density = cdf.length/(maxVal-minVal);
-    //console.log("density",density,"minVal",minVal)
-    for(let i = 0; i < density*minVal; i++) {
-        error += betaCDF((i/density)/max, alpha, beta)
-    }
-    console.log("new beta error:",error*100/(cdf.length+density*minVal))
-
-    document.getElementById("betaError").innerText = round(error*100/(cdf.length+density*minVal),2)
-
-    window.userData.distribCdfData[2] = betaCdf;
-}
-
-function createSkewCDF() {
-    //calculating the real cdf for a skew normal distribution seems reall hard
-    //so I will just add up a bunch of columns
-    console.log("createSkewCDF called")
-    //debugger;
-    const cdf = window.userData.cdf;
+    //--------------------SKEW DISTRIBUTION--------------------
+    //using integration by adding up columns
     const skewCdf = []
-    const xi = window.userData.skewCoeffs.xi
-    const omega = window.userData.skewCoeffs.omega
-    const alpha = window.userData.skewCoeffs.alpha
-    
-    const minVal = cdf[0][0];
 
-    const stepSize = 0.001
-    let error = 0
-    let currentX = 0;
-    let distribY = 0
-
+    error = 0
+    currentX = 0;
+    distribY = 0
     for(let i = 0; i < cdf.length; i++) {
         const x = cdf[i][0]
 
         while(currentX < x) {
-            distribY += skewNormalPDF(currentX, xi, omega, alpha)*stepSize
+            distribY += skewNormalPDF(currentX, skewCoeffs.xi, skewCoeffs.omega, skewCoeffs.alpha)*stepSize
             currentX += stepSize;
         }
 
@@ -592,50 +563,58 @@ function createSkewCDF() {
         const y = cdf[i][1];
         error += Math.abs(y-distribY)
     }
-    console.log("skew error:",error*100/cdf.length)
-
-
-    const maxVal = cdf[cdf.length-1][0]
-    const density = cdf.length/(maxVal-minVal);
-    //console.log("density",density,"minVal",minVal)
+    console.log("   skew error:",error*100/cdf.length)
 
     currentX = 0;
     distribY = 0
     for(let i = 0; i < density*minVal; i++) {
-        //console.log("i:",i,"density:",density,"minVal",minVal)
         while(currentX < i/density) {
-            distribY += skewNormalPDF(currentX, xi, omega, alpha)*stepSize
+            distribY += skewNormalPDF(currentX, skewCoeffs.xi, skewCoeffs.omega, skewCoeffs.alpha)*stepSize
             currentX += stepSize;
         }
         error += distribY
-        
     }
-    console.log("new skew error:",error*100/(cdf.length+density*minVal))
+    console.log("   new skew error:",error*100/(cdf.length+density*minVal))
 
     document.getElementById("skewError").innerText = round(error*100/(cdf.length+density*minVal),2)
-    
-
     window.userData.distribCdfData[1] = skewCdf;
-}
 
-function createGammaCDF() {
-    console.log("createGammaCDF called")
 
-    //debugger;
-    const cdf = window.userData.cdf;
+    //--------------------BETA DISTRIBUTION--------------------
+    const betaCdf = []
+
+    error = 0
+    for(let i = 0; i < cdf.length; i++) {
+        const x = cdf[i][0]
+        const distribY = betaCDF(x/betaCoeffs.max, betaCoeffs.alpha, betaCoeffs.beta)
+        betaCdf.push([x, distribY])
+
+        const y = cdf[i][1];
+        error += Math.abs(y-distribY)
+    }
+    console.log("   beta error:",error*100/cdf.length)
+
+
+    for(let i = 0; i < density*minVal; i++) {
+        error += betaCDF((i/density)/betaCoeffs.max, betaCoeffs.alpha, betaCoeffs.beta)
+    }
+    console.log("   new beta error:",error*100/(cdf.length+density*minVal))
+
+    document.getElementById("betaError").innerText = round(error*100/(cdf.length+density*minVal),2)
+    window.userData.distribCdfData[2] = betaCdf;
+
+
+    //--------------------GAMMA DISTRIBUTION--------------------
+    //using integration by adding up columns
     const gammaCDF_ = []
-    const alpha = window.userData.gammaCoeffs.alpha
-    const theta = window.userData.gammaCoeffs.theta
 
-    const stepSize = 0.001
-    let error = 0
-    let currentX = 0;
-    let distribY = 0
-
+    error = 0
+    currentX = 0;
+    distribY = 0
     for(let i = 0; i < cdf.length; i++) {
         const x = cdf[i][0]
         while(currentX < x) {
-            distribY += gammaPDF(currentX, alpha, theta) * stepSize
+            distribY += gammaPDF(currentX, gammaCoeffs.alpha, gammaCoeffs.theta) * stepSize
             currentX += stepSize
         }
         gammaCDF_.push([x,distribY])
@@ -643,25 +622,21 @@ function createGammaCDF() {
         const y = cdf[i][1];
         error += Math.abs(y-distribY)
     }
-    console.log("gamma error:",error*100/cdf.length)
+    console.log("   gamma error:",error*100/cdf.length)
 
-    const minVal = cdf[0][0];
-    const maxVal = cdf[cdf.length-1][0]
-    const density = cdf.length/(maxVal-minVal);
-    //console.log("density",density,"minVal",minVal)
     currentX = 0;
     distribY = 0
     for(let i = 0; i < density*minVal; i++) {
         while(currentX < i/density) {
-            distribY += gammaPDF(currentX, alpha, theta)*stepSize
+            distribY += gammaPDF(currentX, gammaCoeffs.alpha, gammaCoeffs.theta)*stepSize
             currentX += stepSize
         }
         error += distribY
     }
-    console.log("new gamma error:",error*100/(cdf.length+density*minVal))
+    console.log("   new gamma error:",error*100/(cdf.length+density*minVal))
 
     document.getElementById("gammaError").innerText = round(error*100/(cdf.length+density*minVal),2)
-
     window.userData.distribCdfData[3] = gammaCDF_;
+
 }
 

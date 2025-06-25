@@ -59,7 +59,6 @@ function gammaPDF(x, alpha, theta) {
         Math.exp(-x / theta)
 }
 
-
 //normal probability density function
 function normalPDF(x, mu, sigma) {
     return (1 / (sigma * Math.sqrt(2 * Math.PI))) * 
@@ -170,7 +169,6 @@ function betaCDF(x, alpha, beta) {
         }
     }
     
-
     // Return the Beta CDF at x
     return incBeta(x, alpha, beta);
 }
