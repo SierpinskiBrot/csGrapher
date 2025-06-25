@@ -249,32 +249,47 @@
         
         <div id="histRightButtons">
             <table class="formTable">
-                <tbody><tr><th colspan="2">
+                <tbody><tr><th colspan="3">
                     <div style="display: flex;">
-                        <p style="flex-grow: 1;">Overlay</p>
+                        <p style="flex-grow: 1;">Overlay distribution</p>
                         <button id="distributionHelpButton" class="helpButton" onclick="document.getElementById('distributionHintOverlay').style.display = 'flex';">?</button>
                     </div>
                 </th></tr></tbody>
                 <tbody>
                     <tr>
-                        <td><p style="text-align: center;">Distribution</p></td>
-                        <td><p style="text-align: center;">Error</p></td>
+                        <td><p style="text-align: center;">Name</p></td>
+                        <td><p style="text-align: center;">KS</p></td>
+                        <td><p style="text-align: center;">A^2</p></td>
                     </tr>
                     <tr>
                         <td><button id="showHistNorm">Normal</button></td>
-                        <td><p id="normError">0.0</p></td>
+                        <td><p id="normKS">0.0</p></td>
+                        <td><p id="normAD">0.0</p></td>
                     </tr>
                     <tr>
-                        <td><button id="showHistSkew">Skew Norm</button></td>
-                        <td><p id="skewError">0.0</p></td>
+                        <td><button id="showHistSkew">Skew</button></td>
+                        <td><p id="skewKS">0.0</p></td>
+                        <td><p id="skewAD">0.0</p></td>
                     </tr>
                     <tr>
                         <td><button id="showHistBeta">Beta</button></td>
-                        <td><p id="betaError">0.0</p></td>
+                        <td><p id="betaKS">0.0</p></td>
+                        <td><p id="betaAD">0.0</p></td>
                     </tr>
                     <tr>
                         <td><button id="showHistGamma">Gamma</button></td>
-                        <td><p id="gammaError">0.0</p></td>
+                        <td><p id="gammaKS">0.0</p></td>
+                        <td><p id="gammaAD">0.0</p></td>
+                    </tr>
+                    <tr>
+                        <td><button id="showHistLogit">Logit</button></td>
+                        <td><p id="logitKS">0.0</p></td>
+                        <td><p id="logitAD">0.0</p></td>
+                    </tr>
+                    <tr>
+                        <td><button id="showHistLog">Log</button></td>
+                        <td><p id="logKS">0.0</p></td>
+                        <td><p id="logAD">0.0</p></td>
                     </tr>
                 </tbody>
             </table>
@@ -347,12 +362,16 @@
                     <p>Overlay distribution</p>
                 </th>
                 <tr>
-                    <td>Button Name</td><td>Distribution Name</td><td>Parameter Estimation</td>
+                    <td><b>Button Name</b></td><td><b>Distribution Name</b></td><td><b>Parameter Estimation</b></td>
                 </tr>
-                <tr><td>Normal</td><td><a href="https://en.wikipedia.org/wiki/Normal_distribution">Normal / Gaussian distribution</a></td><td>Numeric</td></tr>
-                <tr><td>Skew Norm</td><td><a href="https://en.wikipedia.org/wiki/Skew_normal_distribution">Skew normal distribution</a></td><td>Method of Moments</td></tr>
+                <tr><td>Normal</td><td><a href="https://en.wikipedia.org/wiki/Normal_distribution">Normal / Gaussian distribution</a></td><td>Maximum Likelihood</td></tr>
+                <tr><td>Skew</td><td><a href="https://en.wikipedia.org/wiki/Skew_normal_distribution">Skew normal distribution</a></td><td>Method of Moments</td></tr>
                 <tr><td>Beta</td><td><a href="https://en.wikipedia.org/wiki/Beta_distribution">Beta distribution</a></td><td>Method of Moments</td></tr>
                 <tr><td>Gamma</td><td><a href="https://en.wikipedia.org/wiki/Gamma_distribution">Gamma distribution</a></td><td>Maximum Likelihood</td></tr>
+                <tr><td>Logit</td><td><a href="https://en.wikipedia.org/wiki/Logit-normal_distribution">Logit-normal distribution</a></td><td>Maximum Likelihood</td></tr>
+                <tr><td>Log</td><td><a href="https://en.wikipedia.org/wiki/Log-normal_distribution">Log-normal distribution</a></td><td>Method of Moments</td></tr>
+                <tr><td colspan="3"><b>KS: </b>Kolmogorov-Smirnov test for goodness of fit. </br>A lower number means a better fit</td></tr>
+                <tr><td colspan="3"><b>A^2: </b>Anderson-Darling test for goodness of fit. </br>A lower number means a better fit</td></tr>
             </table>
             <button id="distributionCloseHint" class="closeHint" onclick="document.getElementById('distributionHintOverlay').style.display = 'none';">X</button>
         </div>

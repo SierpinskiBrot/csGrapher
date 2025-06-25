@@ -1,4 +1,4 @@
-export {gamma, erf, normalPDF, standardNormalCDF, skewNormalPDF, gammaPDF, betaPDF, generalNormalCDF, betaCDF};
+export {gamma, erf, normalPDF, logit, logitNormPDF, logPDF, logCDF, logitNormCDF, standardNormalCDF, skewNormalPDF, gammaPDF, betaPDF, generalNormalCDF, betaCDF};
 
 //gamma function
 function gamma(z) {
@@ -30,6 +30,25 @@ function gamma(z) {
     }
 }
 
+function logGamma(z) {
+    const g = 7;
+    const C = [
+        0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+        771.32342877765313, -176.61502916214059,
+        12.507343278686905, -0.13857109526572012,
+        9.9843695780195716e-6, 1.5056327351493116e-7
+    ];
+    if (z < 0.5) {
+        return Math.log(Math.PI) - Math.log(Math.sin(Math.PI * z)) - logGamma(1 - z);
+    } else {
+        z -= 1;
+        let x = C[0];
+        for (let i = 1; i < g + 2; i++) x += C[i] / (z + i);
+        const t = z + g + 0.5;
+        return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+    }
+}
+
 
 //error function
 function erf(x) {
@@ -54,9 +73,18 @@ function erf(x) {
 
 //gamma probability density function
 function gammaPDF(x, alpha, theta) {
-    return (1 / (gamma(alpha)*(theta ** alpha))) *
-        (x ** (alpha - 1)) *
-        Math.exp(-x / theta)
+    //return (1 / (gamma(alpha)*(theta ** alpha))) *
+    //    (x ** (alpha - 1)) *
+    //    Math.exp(-x / theta)
+    if (x < 0) return 0;
+
+    const logPdf =
+        -logGamma(alpha) -
+        alpha * Math.log(theta) +
+        (alpha - 1) * Math.log(x) -
+        x / theta;
+
+    return Math.exp(logPdf);
 }
 
 //normal probability density function
@@ -86,7 +114,11 @@ function skewNormalPDF(x, xi, omega, alpha) {
 
 //beta probability distribution function
 function betaPDF(x, alpha, beta) {
-    const coeff = gamma(alpha+beta)/(gamma(alpha)*gamma(beta))
+    if(x >= 1) return 0
+    //const coeff = gamma(alpha+beta)/(gamma(alpha)*gamma(beta))
+    //do it with log gamma because gamma will overflow sometimes
+    const logCoeff = logGamma(alpha + beta) - logGamma(alpha) - logGamma(beta);
+    const coeff = Math.exp(logCoeff);
     //return (2 / omega) * 
     return coeff *
         (x ** (alpha - 1)) *
@@ -148,27 +180,32 @@ function betaCDF(x, alpha, beta) {
         return 1 - bt * betacf(1 - x, b, a) / b;
         }
     }
-
-    // Add logGamma using Lanczos approximation
-    function logGamma(z) {
-        const g = 7;
-        const C = [
-            0.99999999999980993, 676.5203681218851, -1259.1392167224028,
-            771.32342877765313, -176.61502916214059,
-            12.507343278686905, -0.13857109526572012,
-            9.9843695780195716e-6, 1.5056327351493116e-7
-        ];
-        if (z < 0.5) {
-            return Math.log(Math.PI) - Math.log(Math.sin(Math.PI * z)) - logGamma(1 - z);
-        } else {
-            z -= 1;
-            let x = C[0];
-            for (let i = 1; i < g + 2; i++) x += C[i] / (z + i);
-            const t = z + g + 0.5;
-            return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
-        }
-    }
-    
+        
     // Return the Beta CDF at x
     return incBeta(x, alpha, beta);
+}
+
+function logit(x) {
+    return Math.log(x / (1-x))
+}
+
+function logitNormPDF(x, mu, sigma) {
+    if(x == 0) return 0
+    return (1 / (sigma * Math.sqrt(2 * Math.PI))) *
+        Math.exp(-1 * ((logit(x) - mu) ** 2) / (2 * (sigma ** 2))) *
+        (1 / (x * (1 - x)))
+}
+
+function logitNormCDF(x, mu, sigma) {
+    return 0.5 * (1 + erf((logit(x) - mu) / Math.sqrt(2 * (sigma ** 2))))
+}
+
+function logPDF(x, mu, sigma) {
+    if(x <= 0) return 0
+    return (1 / (x * sigma * Math.sqrt(2 * Math.PI))) *
+        Math.exp(-1 * ((Math.log(x) - mu) ** 2) / (2 * (sigma ** 2)))
+}
+
+function logCDF(x, mu, sigma) {
+    return 0.5 * (1 + erf((Math.log(x) - mu) / (sigma * Math.sqrt(2))))
 }

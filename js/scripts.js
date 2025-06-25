@@ -65,7 +65,6 @@ histogramButton.addEventListener("click", function() {
     window.h.resize();
 
     window.userData.createHist(1) 
-    window.createCDF();
     window.genSessionDistribData();
     window.updateHist();
     if(window.distribMode == "pdf") window.h.resetZoom(); 
@@ -102,7 +101,6 @@ function dropdownOnChange() {
     else if (window.currentTab == "hist") {
         window.selectedSess = document.getElementById("title-dropdown").value;
         window.userData.createHist(1) 
-        window.createCDF();
         window.genSessionDistribData();
         window.updateHist();
         if(window.distribMode == "pdf") window.h.resetZoom(); 
@@ -236,11 +234,12 @@ class UserData {
         this.hist = makeArrayOfArrays(this.numSessions);
         this.histStats = [];  // [ [mean, std, numsolves], [mean, std, numsolves], ... ]
         this.maxDelta = 0.985;
-        this.distribLabels =       ["Normal Fit", "Skew Fit", "Beta Fit", "Gamma Fit"];
-        this.distribVisibilities = [false,         false,      false,      false];
-        this.distribData =          [[],            [],         [],         []];
-        this.distribCdfData =       [[],            [],         [],         []];
-
+        this.distribLabels =       ["Normal Fit", "Skew Fit", "Beta Fit", "Gamma Fit", "Logit Fit", "Log Fit"];
+        this.distribVisibilities = [false,         false,      false,      false,       false, false];
+        this.distribData =          [[],            [],         [],         [],          [], []];
+        this.distribCdfData =       [[],            [],         [],         [],          [], []];
+        this.distribADids = ["normAD", "skewAD", "betaAD", "gammaAD", "logitAD", "logAD"];
+        this.distribKSids = ["normKS", "skewKS", "betaKS", "gammaKS", "logitKS", "logKS"];
         //pb data for stats panel
         //  pbData[session][series] [0]: title, [1]: time(s), [2]: solves since last, [3]: days since last, [4]: date 
         this.pbData = makeArrayOfArrays(this.numSessions);
@@ -347,8 +346,6 @@ class UserData {
 
         // 3. Compute std deviation
         const std = Math.sqrt(times.reduce((sum, t) => sum + (t - mean) ** 2, 0) / times.length);
-        const variance = times.reduce((sum, t) => sum + (t/max - mean/max) ** 2, 0) / times.length;
-        console.log("variance",j,":",variance)
         this.histStats[j] = [mean, std, times.length, max]
 
         //create the buckets
