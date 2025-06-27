@@ -644,6 +644,8 @@ function createDistributionCDFs() {
 function performAndersonDarlingTest() {
     const labels = window.userData.distribLabels
     const ids = window.userData.distribADids
+    const testVals = []
+
     for(let d = 0; d < labels.length; d++) {
         const cdfData = window.userData.distribCdfData[d]
         const n = cdfData.length;
@@ -667,12 +669,22 @@ function performAndersonDarlingTest() {
         //return -n - (sum / n);
         //console.log("a squared for ",labels[d],": ", aSquared)
         document.getElementById(ids[d]).innerText = aSquared.toFixed(2)
+        document.getElementById(ids[d]).style.backgroundColor = ""
+        testVals.push(aSquared)
     }
+
+    let minId = 0
+    for(let d = 0; d < labels.length; d++) {
+        if(testVals[d] < testVals[minId]) minId = d
+    }   
+    document.getElementById(ids[minId]).style.backgroundColor = "#FFFF00"
 }
 
 function performKSTest() {
     const labels = window.userData.distribLabels
     const ids = window.userData.distribKSids
+    const testVals = []
+
     for(let d = 0; d < labels.length; d++) {
         const cdf = window.userData.cdf
         const distribCdf = window.userData.distribCdfData[d]
@@ -687,5 +699,13 @@ function performKSTest() {
         //return -n - (sum / n);
         //console.log("ks for ",labels[d],": ", max)
         document.getElementById(ids[d]).innerText = max.toFixed(3)
+        document.getElementById(ids[d]).style.backgroundColor = ""
+        testVals.push(max)
     }
+
+    let minId = 0
+    for(let d = 0; d < labels.length; d++) {
+        if(testVals[d] < testVals[minId]) minId = d
+    }   
+    document.getElementById(ids[minId]).style.backgroundColor = "#FFFF00"
 }

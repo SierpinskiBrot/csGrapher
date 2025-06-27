@@ -201,16 +201,14 @@ window.updateGraph = function() {
     window.selectedSess = document.getElementById("title-dropdown").value;
     if(window.userData.xTitle == "Date") {
         window.g.updateOptions({
-        file: window.userData.solves[window.selectedSess], 
-        xlabel: (logScale[0] ? "Log(": "") + window.userData.xTitle + (logScale[0] ? ")": ""),
-        ylabel: (logScale[1] ? "Log(": "") + "Time(s)" + (logScale[1] ? ")": "")
-    });
+            file: window.userData.solves[window.selectedSess], 
+            xlabel:  window.userData.xTitle
+        });
     } else if (window.userData.xTitle == "Solve #") {
         window.g.updateOptions({
-        file: window.userData.solves2[window.selectedSess], 
-        xlabel: (logScale[0] ? "Log(": "") + window.userData.xTitle + (logScale[0] ? ")": ""),
-        ylabel: (logScale[1] ? "Log(": "") + "Time(s)" + (logScale[1] ? ")": "")
-    });
+            file: window.userData.solves2[window.selectedSess], 
+            xlabel: window.userData.xTitle
+        });
     }
     
 };
@@ -241,9 +239,6 @@ function xSwapScale() {
     if(window.userData != undefined && window.g != undefined) {
         logScale[0] = !logScale[0];
         window.g.updateOptions({ axes : { x : {  logscale : logScale[0] } } })
-        window.g.updateOptions({ xlabel: (logScale[0] ? "Log(": "") + window.userData.xTitle + (logScale[0] ? ")": "")})
-        window.dropdown = window.document.getElementById("title-dropdown");
-        window.dropdown.value = window.selectedSess;
     }
 };
 xSelectLinear.addEventListener("click", function() { if(logScale[0] == true) xSwapScale(); });
@@ -256,9 +251,6 @@ function ySwapScale() {
     if(window.userData != undefined && window.g != undefined) {
         logScale[1] = !logScale[1];
         window.g.updateOptions({  logscale : logScale[1] })
-        window.g.updateOptions({ ylabel: (logScale[1] ? "Log(": "") + "Time(s)" + (logScale[1] ? ")": "")})
-        window.dropdown = window.document.getElementById("title-dropdown");
-        window.dropdown.value = window.selectedSess;
     }
 };
 ySelectLinear.addEventListener("click", function() { if(logScale[1] == true) ySwapScale(); });
@@ -333,12 +325,8 @@ function graphTabStartup() {
                 labels: window.userData.labels,
                 xlabel: window.userData.xTitle,
                 ylabel: "Time(s)",
-                //legend: "always",
                 legend: "follow",
                 color: "#084C61",
-                //color: themes[window.currentTheme]['--color-primary']
-                //labelsDiv: document.getElementById("graphLegend"),
-                //labelsSeparateLines: false,
             }
         );
     });

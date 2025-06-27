@@ -660,7 +660,7 @@ class UserData {
 
             //Solve time column
             let timeCol = document.createElement("td");
-            timeCol.innerHTML= round(this.pbData[sess][series][1][i],3)
+            timeCol.innerHTML= this.pbData[sess][series][1][i].toFixed(3)
 
             newRow.appendChild(timeCol);
             newRow.appendChild(dateCol);

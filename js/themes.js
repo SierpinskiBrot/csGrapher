@@ -11,7 +11,7 @@ const themes = {
     '--color-secondary': '#84c750',
     '--color-secondary-variant': '#9bd171',
     '--color-background': '#5ac465',
-    '--color-surface:': '#d4ebc2',
+    '--color-surface': '#d4ebc2',
     '--color-surface-odd': '#eef7e6',
     '--color-error': '#128629',
 
