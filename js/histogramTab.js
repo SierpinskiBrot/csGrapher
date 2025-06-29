@@ -81,7 +81,25 @@ document.getElementById("histBucketReset").addEventListener("click", function() 
     histBucketInput.value = 1
     window.userData.createHist(histBucketInput.value)
     createDistributionPDFs();
-    updateHist(); })
+    updateHist();
+})
+const histogramButton = document.getElementById("histogramButton");
+histogramButton.addEventListener("click", function () {
+    window.currentTab = "hist";
+    window.resetContainers();
+    histogramContainer.style.display = "flex";
+    histogramButton.classList.add("pressed");
+    window.h.resize();
+
+    histBucketInput.value = window.userData.histDefaultWidths[window.selectedSess]
+    window.userData.createHist(histBucketInput.value)
+    window.genSessionDistribData();
+    window.updateHist();
+    if (window.distribMode == "pdf") window.h.resetZoom();
+    window.userData.genSlidingWindowDefaults(); window.userData.genCreationDefaults();
+})
+
+
 
 window.genSessionDistribData = function() {
     calculateDistributionCoeffs();
@@ -367,15 +385,45 @@ function histogramTabStartup() {
     });
 
     window.genSessionDistribData();
+    genDefaultColumnWidths();
 
     //styling for the distributions
-    window.h.updateOptions({series : { "Normal Fit" : {fillGraph: false, stepPlot: false, color: "#00FF00", axis: "y1"}}})
-    window.h.updateOptions({series : { "Skew Fit" : {fillGraph: false, stepPlot: false, color: "#0000FF", axis: "y1"}}})
-    window.h.updateOptions({series : { "Beta Fit" : {fillGraph: false, stepPlot: false, color: "#FF0000", axis: "y1"}}})
-    window.h.updateOptions({series : { "Gamma Fit" : {fillGraph: false, stepPlot: false, color: "#FF00FF", axis: "y1"}}})
-    window.h.updateOptions({series : { "Logit Fit" : {fillGraph: false, stepPlot: false, color: "#FFFF00", axis: "y1"}}})
-    window.h.updateOptions({series : { "Log Fit" : {fillGraph: false, stepPlot: false, color: "#00FFFF", axis: "y1"}}})
+    const dNames = window.userData.distribLabels
+    const dColors = window.userData.distribColors
+    for (let i = 0; i < dNames.length; i++) {
+        window.h.updateOptions({ series: { [dNames[i]]: { fillGraph: false, stepPlot: false, color: [dColors[i]], strokeWidth: 2 } } })
+    }
 
+}
+
+function genDefaultColumnWidths() {
+    const solves = window.userData.solves
+    const colWidths = []
+    for (let j = 0; j < window.userData.numSessions; j++) {
+        const times = [];
+
+        //extract solves and find the max time
+        for (let i = 0; i < solves[j].length; i++) {
+            times.push(solves[j][i][1]);
+        }
+
+        // 2. Compute mean
+        const mean = times.reduce((a, b) => a + b, 0) / times.length;
+
+        // 3. Compute std deviation
+        const std = Math.sqrt(times.reduce((sum, t) => sum + (t - mean) ** 2, 0) / times.length);
+
+        // 4. Suggested col width
+        const rawWidth = std / 6;
+        //  Snap to closest power-of-two fraction (0.25, 0.5, 1, 2, 4, ...)
+        const log2 = Math.round(Math.log2(rawWidth));
+        const colWidth = Math.pow(2, log2);
+
+        colWidths.push(colWidth)
+
+    }
+    window.userData.histDefaultWidths = colWidths;
+    
 }
 
 

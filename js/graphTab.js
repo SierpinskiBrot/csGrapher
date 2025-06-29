@@ -1,4 +1,5 @@
 import { createButton } from "./utils.js";
+import {updatePBTable } from "./statisticsTab.js"
 
 export {graphTabStartup};
 
@@ -107,7 +108,7 @@ function createSeriesRow(i) {
 
         //update the pb table
         const sess = document.getElementById("title-dropdown").value;
-        window.userData.updatePBTable(sess,(i-1)/2);
+        updatePBTable(sess,(i-1)/2);
 
         //make button pressed and store the selection
         const tgt = e.target.closest('button');

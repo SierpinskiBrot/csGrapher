@@ -23,7 +23,6 @@ html, body {
     margin: 0;
     row-gap: 0;
     grid-template-rows: min-content min-content auto;
-    overflow: hidden;
 }
 
 body > div {
@@ -35,6 +34,7 @@ div.header {
     background: var(--color-primary);
     color: var(--on-primary);
     align-items: start;
+    height: 40px;
 }
 h1 {
     padding-left: 1em;
@@ -44,6 +44,7 @@ div.toolbar {
     display: flex;
     flex-wrap: wrap;
     background: var(--color-primary-variant);
+    height: 50px;
 }
 
 div.toolbar > button {
@@ -84,6 +85,10 @@ div.toolbar > button.pressed, .secondaryToolbar button.pressed {
     background: var(--color-primary-variant);
     color: var(--on-primary);
     border: var(--color-primary-variant) inset thick;
+}
+
+#graphContainer, #histogramContainer, #statsContainer {
+
 }
 
 
@@ -206,15 +211,18 @@ button.seriesToggle.pressed {
     justify-content: center;
     align-items: start;
     border: 3px solid var(--on-background);
+    overflow: hidden
 }
 
 #histogramDiv {
     background: var(--color-surface);
     padding: 0;
+    overflow:hidden
 }
 
 #graphLeftButtons, #statsLeftButtons, #histLeftButtons {
     width: 20%;
+    overflow-y: auto
 }
 #graphRightButtons, #statsRightButtons, #histRightButtons {
     width: 20%;
@@ -222,6 +230,7 @@ button.seriesToggle.pressed {
 #legendDiv {
     width: 0%;
 }
+
 
 select#title-dropdown {
     background: var(--color-primary-variant);

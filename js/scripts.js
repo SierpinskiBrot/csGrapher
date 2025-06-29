@@ -2,7 +2,8 @@ import "../lib/dygraph.js";
 
 import {makeArrayOfArrays, binarySearchInsertIdx, round, dhm, parseTime} from "./utils.js"
 import { graphTabStartup } from "./graphTab.js";
-import { histogramTabStartup} from "./histogramTab.js";
+import { histogramTabStartup } from "./histogramTab.js";
+import { updatePBTable, statisticsTabStartup } from "./statisticsTab.js"
 
 
 window.selectedSess = 0; //selected session from the cstimer
@@ -40,42 +41,28 @@ const graphContainer = document.getElementById("graphContainer");
 const histogramContainer = document.getElementById("histogramContainer");
 const statsContainer = document.getElementById("statsContainer");
 const pageBody = document.getElementById("body")
-function resetContainers() {
+window.resetContainers = function() {
     histogramContainer.style.display = "none";
     histogramButton.classList.remove("pressed");
     statsContainer.style.display = "none";
     statsButton.classList.remove("pressed");
     graphContainer.style.display = "none";
     graphButton.classList.remove("pressed");
-    pageBody.style.overflow = "hidden"
 }
-graphButton.addEventListener("click", function() {
+graphButton.addEventListener("click", function () {
     window.currentTab = "graph";
-    resetContainers();
+    window.resetContainers();
     graphContainer.style.display = "flex";
     graphButton.classList.add("pressed");
     window.g.resize();
     window.updateGraph(); window.g.resetZoom()
 })
-histogramButton.addEventListener("click", function() {
-    window.currentTab = "hist";
-    resetContainers();
-    histogramContainer.style.display = "flex";
-    histogramButton.classList.add("pressed");
-    window.h.resize();
 
-    window.userData.createHist(1) 
-    window.genSessionDistribData();
-    window.updateHist();
-    if(window.distribMode == "pdf") window.h.resetZoom(); 
-    window.userData.genSlidingWindowDefaults(); window.userData.genCreationDefaults(); 
-})
 statsButton.addEventListener("click", function() {
     window.currentTab = "stats";
-    resetContainers();
+    window.resetContainers();
     statsContainer.style.display = "flex";
     statsButton.classList.add("pressed");
-    pageBody.style.overflow = "auto"
     let clickOccured = false;
     const buttons = document.getElementsByClassName('pbSeriesSelectButton pressed')
     for(let btn of buttons) {
@@ -85,7 +72,7 @@ statsButton.addEventListener("click", function() {
         }
     }
     if(!clickOccured) {
-        window.userData.updatePBTable(window.dropdown.value,0) 
+        updatePBTable(window.dropdown.value,0) 
     }
 })
 //#endregion
@@ -100,7 +87,8 @@ function dropdownOnChange() {
 
     else if (window.currentTab == "hist") {
         window.selectedSess = document.getElementById("title-dropdown").value;
-        window.userData.createHist(1) 
+        histBucketInput.value = window.userData.histDefaultWidths[window.selectedSess]
+        window.userData.createHist(histBucketInput.value)
         window.genSessionDistribData();
         window.updateHist();
         if(window.distribMode == "pdf") window.h.resetZoom(); 
@@ -118,7 +106,7 @@ function dropdownOnChange() {
             }
         }
         if(!clickOccured) {
-            window.userData.updatePBTable(window.dropdown.value,0) 
+            updatePBTable(window.dropdown.value,0) 
         }
     }
 
@@ -156,6 +144,7 @@ jsonDataFile.addEventListener("change", function() {
         
         graphTabStartup();
         histogramTabStartup();
+        statisticsTabStartup();
         
     }
 
@@ -234,17 +223,19 @@ class UserData {
         this.hist = makeArrayOfArrays(this.numSessions);
         this.histStats = [];  // [ [mean, std, numsolves], [mean, std, numsolves], ... ]
         this.maxDelta = 0.985;
-        this.distribLabels =       ["Normal Fit", "Skew Fit", "Beta Fit", "Gamma Fit", "Logit Fit", "Log Fit"];
-        this.distribVisibilities = [false,         false,      false,      false,       false, false];
-        this.distribData =          [[],            [],         [],         [],          [], []];
-        this.distribCdfData =       [[],            [],         [],         [],          [], []];
-        this.distribADids = ["normAD", "skewAD", "betaAD", "gammaAD", "logitAD", "logAD"];
-        this.distribKSids = ["normKS", "skewKS", "betaKS", "gammaKS", "logitKS", "logKS"];
-        //pb data for stats panel
-        //  pbData[session][series] [0]: title, [1]: time(s), [2]: solves since last, [3]: days since last, [4]: date 
-        this.pbData = makeArrayOfArrays(this.numSessions);
-        this.currentPbSeries = "PB Single"
+        this.distribLabels = ["Normal Fit", "Skew Fit", "Beta Fit", "Gamma Fit", "Logit Fit", "Log Fit"];
+        this.distribColors = ["#00FF00",    "#0000FF",  "#FF0000",  "#FF00FF",   "#FFFF00",   "#00FFFF"] //g, b, r, m, y, c
+        this.distribVisibilities = [false,        false,      false,      false,       false,       false];
+        this.distribData =         [[],           [],         [],         [],          [],          []];
+        this.distribCdfData =      [[],           [],         [],         [],          [],          []];
+        this.distribADids = ["normAD", "skewAD", "betaAD", "gammaAD", "logitAD", "logAD"]; //ids for elements showing AD statistic
+        this.distribKSids = ["normKS", "skewKS", "betaKS", "gammaKS", "logitKS", "logKS"]; //ids for elements showing KS statistic
+        
 
+        //pb data for stats panel
+        this.pbInfo = makeArrayOfArrays(this.numSessions);
+        this.currentPbSeries = "PB Single"
+        
         //Add the first two columns: solve date, solve time
         if(this.dataFormat == "csTimer") {
             const fcstartTime = performance.now() 
@@ -304,13 +295,7 @@ class UserData {
         this.createHist(1)
         this.genSlidingWindowDefaults()
         this.genCreationDefaults()
-        
-        //create the pb table
-        const pbstartTime = performance.now() 
-        this.updatePBTable(0,0);
-        const pbendTime = performance.now()
-        console.log(`pb table: ${round(pbendTime - pbstartTime)} milliseconds`)
-        
+                
     }
 
     createSolves2() {
@@ -346,6 +331,7 @@ class UserData {
 
         // 3. Compute std deviation
         const std = Math.sqrt(times.reduce((sum, t) => sum + (t - mean) ** 2, 0) / times.length);
+
         this.histStats[j] = [mean, std, times.length, max]
 
         //create the buckets
@@ -387,7 +373,7 @@ class UserData {
         deviation = deviation ** 0.5
         //console.log("mean: " + mean)
         //console.log("max: " + max)
-        //console.log("stddev: " + deviation)
+        console.log("stddev: " + deviation)
 
         //-----width-----
         const rawWidth = deviation / 6;
@@ -553,8 +539,10 @@ class UserData {
         for(let j = 0; j < this.numSessions; j++){
             if(this.solves[j].length != 0) {
 
-                const pbStats = [[],[],[],[]];
-                pbStats[0] = x;    
+                const seriesStatistics = {};
+                const times = []
+                const dates = []
+                const solveNums = []
                 
                 //index of the last col in session
                 let idx = this.solves[j][this.solves[j].length-1].length - 1;
@@ -587,9 +575,10 @@ class UserData {
                             this.solves[j][i].splice(idx+1,0,this.solves[j][i][idx])
                         }
                         
-                        pbStats[1].push(this.solves[j][i][idx]);
-                        pbStats[2].push(this.solves[j][i][0])
-                        pbStats[3].push(i);
+                        times.push(this.solves[j][i][idx]); //time
+                        dates.push(this.solves[j][i][0]) //date
+                        solveNums.push(i); //solve #
+
                     }
                     //otherwise, keep the current pb
                     else {
@@ -601,11 +590,18 @@ class UserData {
                         
                     }
                 }
-                if(index == undefined) {
-                    this.pbData[j].push(pbStats);
+
+                seriesStatistics.times = times;
+                seriesStatistics.dates = dates;
+                seriesStatistics.solveNums = solveNums;
+
+                //index is undefined for the original series, must be specified for additional series so they are in the right order
+                if (index == undefined) {
+                    this.pbInfo[j].push(seriesStatistics);
                 } else {
-                    this.pbData[j].splice((idx-1)/2,0,pbStats)
+                    this.pbInfo[j].splice((idx - 1) / 2, 0, seriesStatistics)
                 }
+
             }
         }
 
@@ -614,62 +610,5 @@ class UserData {
         
     }
 
-    //create the list for stats tab
-    updatePBTable(sess,series) {
-
-        const pbStatsBody = document.getElementById("pbStatsBody")
-        pbStatsBody.replaceChildren();
-
-        for(let i = this.pbData[sess][series][1].length-1; i >= 0; i--) {
-            let newRow = document.createElement("tr");
-
-            //Date column
-            let dateCol = document.createElement("td");
-            let date = this.pbData[sess][series][2][i];
-            let dateStr = date.getDate() + "/" + (date.getMonth() + 1) + "/" + date.getFullYear(); //month is 0-indexed for some reason
-            dateCol.innerHTML = dateStr;
-
-            //PB For Time column
-            let date2 = new Date();
-            let dateDiff = 0;
-            let pbForTimeCol = document.createElement("td")
-            if(i == this.pbData[sess][series][1].length-1) { //most recent record
-                dateDiff = Math.abs(date2-date);
-                pbForTimeCol.innerHTML = dhm(dateDiff) + " and counting";
-            }
-            else { //everything else
-                date2 = this.pbData[sess][series][2][i+1];
-                dateDiff = Math.abs(date2-date)
-                pbForTimeCol.innerHTML = dhm(dateDiff);
-            }
-            
-            //Solve # column
-            let solveCol = document.createElement("td")
-            solveCol.innerHTML = this.pbData[sess][series][3][i]
-
-            //PB for # solves column
-            let solves = this.pbData[sess][series][3][i]
-            let nextSolves = this.solves[sess].length;
-            if(i < this.pbData[sess][series][1].length-1) {
-                nextSolves = this.pbData[sess][series][3][i+1]
-            }
-            let solvesPassed = nextSolves-solves;
-            if(i == this.pbData[sess][series][1].length-1) solvesPassed += " and counting"
-            let pbForSolvesCol = document.createElement("td");
-            pbForSolvesCol.innerHTML = solvesPassed;
-
-            //Solve time column
-            let timeCol = document.createElement("td");
-            timeCol.innerHTML= this.pbData[sess][series][1][i].toFixed(3)
-
-            newRow.appendChild(timeCol);
-            newRow.appendChild(dateCol);
-            newRow.appendChild(pbForTimeCol);
-            newRow.appendChild(solveCol);
-            newRow.appendChild(pbForSolvesCol);
-
-            pbStatsBody.appendChild(newRow);
-        }
-    }
 }
 
