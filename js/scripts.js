@@ -565,17 +565,20 @@ class UserData {
                 }
                 
                 //creating the actual data
-                for(let i = firstValIdx; i < this.solves[j].length; i++) {
+                let bestSinceLastPB = Infinity;
+                for (let i = firstValIdx; i < this.solves[j].length; i++) {
+                    const solveTime = this.solves[j][i][idx];
+                    const prevPB = this.solves[j][i-1][idx+1]
                     //if the time is less than prev pb, update the rolling pb
-                    if(this.solves[j][i][idx] < this.solves[j][i-1][idx+1]) {
+                    if (solveTime < prevPB) {
                         if(index == undefined) {
-                            this.solves[j][i].push(this.solves[j][i][idx])
+                            this.solves[j][i].push(solveTime)
                         }
                         else {
-                            this.solves[j][i].splice(idx+1,0,this.solves[j][i][idx])
+                            this.solves[j][i].splice(idx + 1, 0, solveTime)
                         }
-                        
-                        times.push(this.solves[j][i][idx]); //time
+                        bestSinceLastPB = Infinity
+                        times.push(solveTime); //time
                         dates.push(this.solves[j][i][0]) //date
                         solveNums.push(i); //solve #
 
@@ -583,10 +586,13 @@ class UserData {
                     //otherwise, keep the current pb
                     else {
                         if(index == undefined) {
-                            this.solves[j][i].push(this.solves[j][i-1][idx+1])
+                            this.solves[j][i].push(prevPB)
                         } else {
-                            this.solves[j][i].splice(idx+1,0,this.solves[j][i-1][idx+1])
+                            this.solves[j][i].splice(idx + 1, 0, prevPB)
                         }
+                        if (solveTime < bestSinceLastPB) bestSinceLastPB = solveTime;
+
+
                         
                     }
                 }
@@ -594,6 +600,7 @@ class UserData {
                 seriesStatistics.times = times;
                 seriesStatistics.dates = dates;
                 seriesStatistics.solveNums = solveNums;
+                seriesStatistics.bestSinceLastPB = bestSinceLastPB;
 
                 //index is undefined for the original series, must be specified for additional series so they are in the right order
                 if (index == undefined) {

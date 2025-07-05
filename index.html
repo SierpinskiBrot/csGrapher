@@ -333,7 +333,39 @@
                 </tr>
             </tbody>
         </table>
-        <div id="statsRightButtons"></div>
+        <div id="statsRightButtons">
+            <table id="pbInfoTable">
+                <tbody><tr><th>Info</th></tr></tbody>
+                <tbody>
+                    <tr>
+                        <td>
+                            <p id="bestSince"></p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <br>
+            <table id="predictionsTable">
+                <tbody><tr><th>Predictions</th></tr></tbody>
+                <tbody>
+                    <tr><td>
+                        <div><p id="solveNumPrediction"></p><canvas width="500px" height="250px" class="statsRegressionCanvas" id="solveNumRegression"></canvas></div>
+                    </td></tr>
+
+                    <tr><td>
+                            <div><p id="solveTimePrediction"></p><canvas width="500px" height="250px" class="statsRegressionCanvas" id="solveTimeRegression"></canvas></div>
+                    </td></tr>
+
+                    <tr><td>
+                            <div><p id="solveDatePrediction"></p><canvas width="500px" height="250px" class="statsRegressionCanvas" id="solveDateRegression"></canvas></div>
+                    </td></tr>
+                </tbody>
+            </table>
+
+            
+            
+            
+        </div>
     </div>
 
     <div id="fileHintOverlay" class="hintOverlay">

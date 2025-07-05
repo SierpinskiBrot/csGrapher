@@ -220,12 +220,19 @@ button.seriesToggle.pressed {
     overflow:hidden
 }
 
-#graphLeftButtons, #statsLeftButtons, #histLeftButtons {
+#graphLeftButtons, #histLeftButtons {
     width: 20%;
     overflow-y: auto
 }
-#graphRightButtons, #statsRightButtons, #histRightButtons {
+#statsLeftButtons {
+    width: 15%;
+    overflow-y: auto
+}
+#graphRightButtons, #histRightButtons {
     width: 20%;
+}
+#statsRightButtons {
+    width: 25%;
 }
 #legendDiv {
     width: 0%;
@@ -255,7 +262,7 @@ select#title-dropdown:hover {
 .radio {
     display: inline-flex;
     overflow: hidden;
-    width:100%;
+    width: 100%;
     text-align: center;
 }
 .radio > input[type="radio"] {
@@ -373,7 +380,7 @@ div.hintContent .hintWarning {
 }
 
 
-.formTable {
+.formTable, #predictionsTable, #pbInfoTable {
     width: 100%;
     border-spacing: 0px;
     border: solid thin var(--on-background);
@@ -390,7 +397,7 @@ table.formTable button.helpButton {
 table.formTable > tbody > tr > td {
     text-align: right;
 }
-table.formTable > tbody > tr > th {
+table.formTable > tbody > tr > th, #predictionsTable > tbody > tr > th, #pbInfoTable > tbody > tr > th {
     font-weight: bold;
     font-size: large;
     border: double thick var(--on-background);
@@ -400,6 +407,13 @@ table.formTable > tbody > tr > th {
 .formTable input, .formTable button {
     width: -webkit-fill-available;
 }
+
+canvas.statsRegressionCanvas {
+    border-bottom: solid thin var(--on-background);
+    width: 100%
+}
+
+
 
 
 #pbStats {
