@@ -88,6 +88,7 @@ function dropdownOnChange() {
     else if (window.currentTab == "hist") {
         window.selectedSess = document.getElementById("title-dropdown").value;
         histBucketInput.value = window.userData.histDefaultWidths[window.selectedSess]
+        window.resetRangeSelector();
         window.userData.createHist(histBucketInput.value)
         window.genSessionDistribData();
         window.updateHist();

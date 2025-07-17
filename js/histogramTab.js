@@ -15,8 +15,9 @@ document.getElementById("sldWinPlay").addEventListener("click", function() {
     else {window.creationPlaying = false; animateHistRange();} })
 //sliding window reset
 document.getElementById("sldWinReset").addEventListener("click", function() {
-    histBucketInput.value = 1
-    window.userData.createHist(histBucketInput.value)
+    //histBucketInput.value = 1
+    //window.userData.createHist(histBucketInput.value)
+    rangeSelectorApply()
     updateHist(); })
 //sliding window defaults
 document.getElementById("sldWinDefaults").addEventListener("click", function() {window.userData.genSlidingWindowDefaults();})
@@ -27,8 +28,9 @@ document.getElementById("creationPlay").addEventListener("click", function() {
     else {window.sldWinPlaying = false;animateHistCreate();} })
 //creation reset
 document.getElementById("creationReset").addEventListener("click", function() {
-    histBucketInput.value = 1
-    window.userData.createHist(histBucketInput.value)
+    //histBucketInput.value = 1
+    //window.userData.createHist(histBucketInput.value)
+    rangeSelectorApply()
     updateHist(); })
 //creation defaults
 document.getElementById("creationDefaults").addEventListener("click", function() {window.userData.genCreationDefaults();})
@@ -73,16 +75,76 @@ cumDistribButton.addEventListener("click", function() {
 
 //col width input
 document.getElementById("histBucketInput").addEventListener("change", function() {
-    window.userData.createHist(histBucketInput.value)
+    //window.userData.createHist(histBucketInput.value)
+    rangeSelectorApply()
     createDistributionPDFs();
     updateHist(); })
 //reset
 document.getElementById("histBucketReset").addEventListener("click", function() {
     histBucketInput.value = 1
-    window.userData.createHist(histBucketInput.value)
+    //window.userData.createHist(histBucketInput.value)
+    rangeSelectorApply()
     createDistributionPDFs();
     updateHist();
 })
+
+
+document.getElementById("rangeSelectAll").addEventListener("click", function() {
+    window.resetRangeSelector()
+    rangeSelectorApply()
+})
+
+document.getElementById("histRangeLow").addEventListener("change", function() {rangeSelectorApply()})
+document.getElementById("histRangeHigh").addEventListener("change", function() {rangeSelectorApply()})
+document.getElementById("rangeSelect24H").addEventListener("click", function() {rangeSelectorCutoff(86400000)})
+document.getElementById("rangeSelectWeek").addEventListener("click", function() {rangeSelectorCutoff(604800000)})
+document.getElementById("rangeSelectMonth").addEventListener("click", function() {rangeSelectorCutoff(2626560000)})
+document.getElementById("rangeSelect6Months").addEventListener("click", function() {rangeSelectorCutoff(15779232000)})
+document.getElementById("rangeSelectYear").addEventListener("click", function() {rangeSelectorCutoff(31557600000)})
+
+
+
+//applies the currently selected range and column input and updates the histogram
+function rangeSelectorApply() {
+    const lower = document.getElementById("histRangeLow").value
+    const upper = document.getElementById("histRangeHigh").value
+
+    const bucketSize = document.getElementById("histBucketInput").value
+    const range = upper - lower + 1
+    const offset = window.userData.solves[window.selectedSess].length - upper
+
+    const hist = createHistRange(bucketSize, range, offset)
+    window.userData.hist[window.selectedSess] = hist
+
+    updateHist()
+}
+
+//resets the range selector to show the max range
+window.resetRangeSelector = function() {
+    document.getElementById("histRangeLow").value = 1
+    document.getElementById("histRangeHigh").value = window.userData.solves[window.selectedSess].length
+    document.getElementById("histRangeHigh").max = window.userData.solves[window.selectedSess].length
+}
+
+//apply the selection to only solves done within the last cutoff milliseconds
+function rangeSelectorCutoff(cutoff) {
+    const solves = window.userData.solves[window.selectedSess]
+    const cutoffDate = new Date(Date.now() - cutoff)
+    let lower = solves.length
+    for(let i = 0; i < solves.length; i++) {
+        const diff = solves[i][0] - cutoffDate
+        if(diff > 0) {
+            lower = i
+            break
+        }
+    }
+    document.getElementById("histRangeLow").value = lower;
+    document.getElementById("histRangeHigh").value = solves.length
+
+    rangeSelectorApply();
+}
+
+
 const histogramButton = document.getElementById("histogramButton");
 histogramButton.addEventListener("click", function () {
     window.currentTab = "hist";
@@ -92,7 +154,9 @@ histogramButton.addEventListener("click", function () {
     window.h.resize();
 
     histBucketInput.value = window.userData.histDefaultWidths[window.selectedSess]
-    window.userData.createHist(histBucketInput.value)
+    window.resetRangeSelector();
+    //window.userData.createHist(histBucketInput.value)
+    rangeSelectorApply()
     window.genSessionDistribData();
     window.updateHist();
     if (window.distribMode == "pdf") window.h.resetZoom();
@@ -151,6 +215,7 @@ window.updateHist = function () {
         window.h.updateOptions({
             file: combined,
             labels: labels,
+            valueRange: null,
         });
     }
 
@@ -198,7 +263,7 @@ window.updateHist = function () {
 
 
 
-function createHistRange(bucketSize, range,offset) {
+function createHistRange(bucketSize, range, offset) {
     const bucketSize_ = parseFloat(bucketSize)
     const hist = []
     let j = window.selectedSess
@@ -253,6 +318,8 @@ window.createCDF = function() {
 }
 
 
+
+
 //sliding window animation
 async function animateHistRange() {
     const playBtn = document.getElementById("sldWinPlay")
@@ -269,6 +336,20 @@ async function animateHistRange() {
     const xmax = document.getElementById("sldWinXmax").value 
     const frameTime = document.getElementById("sldWinTime").value
     const numSolves = window.userData.solves[window.selectedSess].length
+    const yAxisType = document.getElementById("sldWinYaxis").value
+
+    //if the y-axis is to be static, we need to know how high it should go
+    //assuming the user is getting faster with more solves, the most recent solves
+    //should have the lowest relative standard deviation and therefore the highest peak
+    let yMax = 0;
+    if(yAxisType == 'static') {
+        const hist = createHistRange(bucketSize,range,0)
+        for(let i = 0; i < hist.length; i++) {if(hist[i][1] > yMax) yMax = hist[i][1]}
+        yMax *= 1.4 //to be safe
+        window.h.updateOptions({valueRange: [0,yMax]})
+    } else {
+        window.h.updateOptions({valueRange: null})
+    }
 
     //just for the progress bar
     const totalFrames = Math.floor((numSolves - range) / step)
@@ -302,6 +383,7 @@ async function animateHistRange() {
 async function animateHistCreate() {
     const playBtn = document.getElementById("creationPlay")
     const progressBar = document.querySelector("#creationProgressBar div")
+
     //Flip button state and reset progress
     window.creationPlaying = true;
     playBtn.textContent = "Stop"
@@ -311,10 +393,23 @@ async function animateHistCreate() {
     const step = parseFloat(document.getElementById("creationStep").value)
     const Xmax = parseFloat(document.getElementById("creationXmax").value)
     const bucketSize = parseFloat(document.getElementById("creationWidth").value)
+    const yAxisType = document.getElementById("creationYaxis").value
 
+    //get the solves
     let j = window.selectedSess
     const solves = window.userData.solves[j]
     const numSolves = solves.length
+
+    //if the y-axis is to be static, we need to know the height of the final graph
+    let yMax = 0;
+    if(yAxisType == 'static') {
+        window.userData.createHist(bucketSize)
+        const hist = window.userData.hist[j]
+        for(let i = 0; i < hist.length; i++) {if(hist[i][1] > yMax) yMax = hist[i][1]}
+        window.h.updateOptions({valueRange: [0,yMax]})
+    } else {
+        window.h.updateOptions({valueRange: null})
+    }
 
     //for the progress bar
     const totalFrames = Math.floor(numSolves/step)
@@ -328,10 +423,11 @@ async function animateHistCreate() {
     //create the buckets
     for(let b = 0; b <= max+1; b+= bucketSize) {hist.push([b,0]);}
 
-    //add the solves to buckets
+    //animate
     for(let i = 0; i < numSolves; i++) {
         if(!window.creationPlaying) break; //animation can be cancelled with stop button
 
+        //add the solve to the bucket
         const time = solves[i][1];
         const bucket = Math.floor(time/bucketSize);
         hist[bucket][1] += 1;
@@ -343,7 +439,7 @@ async function animateHistCreate() {
                 dateWindow: [0,Xmax],
                 labels: ["Time(s)", "Frequency"],
             });
-
+            
             //update progress bar
             frame++
             progressBar.style.width = `${(frame/totalFrames)*100}%`
@@ -385,6 +481,7 @@ function histogramTabStartup() {
     });
 
     window.genSessionDistribData();
+    window.resetRangeSelector();
     genDefaultColumnWidths();
 
     //styling for the distributions
@@ -520,7 +617,6 @@ function createDistributionPDFs() {
         sum += y;
         return [x, y];
     });
-    //console.log("   norm sum:", sum)
 
     window.userData.distribData[0] = normData; //store the norm pdf
 
@@ -532,7 +628,6 @@ function createDistributionPDFs() {
         sum += y;
         return [x, y];
     });
-    //console.log("   skew sum:", sum);
 
     window.userData.distribData[1] = skewData; //store the skew pdf
 
@@ -544,7 +639,6 @@ function createDistributionPDFs() {
         sum += y;
         return [x, y];
     });
-    //console.log("   beta sum:", sum)
 
     window.userData.distribData[2] = betaData; //store beta pdf
 
@@ -557,33 +651,28 @@ function createDistributionPDFs() {
         sum += y;
         return [x, y];
     });
-    //console.log("   gamma sum:", sum)
     
     window.userData.distribData[3] = gammaData; //store gamma pdf
 
 
     //--------------------LOGIT DISTRIBUTION--------------------
     sum = 0
-    //debugger
     const logitData = binData.map(([x]) => {
         const y = logitNormPDF(x/logitCoeffs.max, logitCoeffs.mu, logitCoeffs.sigma) / logitCoeffs.max
         sum += y
         return [x, y]
     })
-    //console.log("   logit sum:", sum)
 
     window.userData.distribData[4] = logitData
 
 
     //--------------------LOG DISTRIBUTION--------------------
     sum = 0
-    //debugger
     const logData = binData.map(([x]) => {
         const y = logPDF(x, logCoeffs.mu, logCoeffs.sigma)
         sum += y
         return [x, y]
     })
-    //console.log("   log sum:", sum)
 
     window.userData.distribData[5] = logData
 

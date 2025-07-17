@@ -404,7 +404,7 @@ table.formTable > tbody > tr > th, #predictionsTable > tbody > tr > th, #pbInfoT
     background: var(--color-secondary);
     color: var(--on-secondary)
 }
-.formTable input, .formTable button {
+.formTable input, .formTable button, .formTable select {
     width: -webkit-fill-available;
 }
 

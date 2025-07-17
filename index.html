@@ -147,6 +147,28 @@
             <br>
             <br>
             <table class="formTable">
+                <tbody><tr><th colspan="3"><p>Range Selector</p></th></tr></tbody>
+                <tbody>
+                    <tr>
+                        <td><input type="number" min="1" max="999999" placeholder="Lower" step="1" value="1" id="histRangeLow"></td>
+                        <td style="text-align: center;">to</td>
+                        <td><input type="number" min="2" max="999999" placeholder="Upper" step="1" value="2" id="histRangeHigh"></td>
+                    </tr>
+                    <tr>
+                        <td><button id="rangeSelect24H">24H</button></td>
+                        <td><button id="rangeSelectWeek">Week</button></td>
+                        <td><button id="rangeSelectMonth">Month</button></td>
+                    </tr>
+                    <tr>
+                        <td><button id="rangeSelect6Months">6 Months</button></td>
+                        <td><button id="rangeSelectYear">Year</button></td>
+                        <td><button id="rangeSelectAll">All</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <br>
+            <br>
+            <table class="formTable">
                 <tbody>
                     <tr>
                         <th colspan="2">
@@ -177,6 +199,15 @@
                     <tr>
                         <td>Time</td>
                         <td><input type="number" min="1" max="1000000" placeholder="Time" step="1" value="1" id="sldWinTime"></td>
+                    </tr>
+                    <tr>
+                        <td>Y axis</td>
+                        <td>
+                            <select id="sldWinYaxis">
+                                <option value="dynamic">Dynamic</option>
+                                <option value="static">Static</option>
+                            </select>
+                        </td>
                     </tr>
                     <tr>
                         <td><button id="sldWinReset">Reset</button></td>
@@ -215,6 +246,15 @@
                     <tr>
                         <td>X max</td>
                         <td><input type="number" min="0.1" max="1000000" placeholder="X max" step="0.1" value="1" id="creationXmax"></td>
+                    </tr>
+                    <tr>
+                        <td>Y axis</td>
+                        <td>
+                            <select id="creationYaxis">
+                                <option value="dynamic">Dynamic</option>
+                                <option value="static">Static</option>
+                            </select>
+                        </td>
                     </tr>
                     <tr>
                         <td><button id="creationReset">Reset</button></td>

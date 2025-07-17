@@ -331,6 +331,7 @@ function graphTabStartup() {
             }
         );
     });
+    window.g.setVisibility(window.userData.visibilities, true);
 
     //Line styling for each line
     for(let i = 1; i < window.userData.labels.length; i++) {
