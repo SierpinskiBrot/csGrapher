@@ -1,8 +1,8 @@
-import {round, sleep} from "./utils.js"
+import {sleep} from "./utils.js"
 import {normalPDF, skewNormalPDF, betaPDF, logit, logitNormPDF, logPDF, logCDF, logitNormCDF, gammaPDF, generalNormalCDF, betaCDF} from "./probabilities.js"
 import {themes} from "./themes.js"
 
-export {histogramTabStartup}
+export {histogramTabStartup, rangeSelectorApply}
 
 
 window.sldWinPlaying = false;
@@ -16,9 +16,8 @@ document.getElementById("sldWinPlay").addEventListener("click", function() {
 //sliding window reset
 document.getElementById("sldWinReset").addEventListener("click", function() {
     //histBucketInput.value = 1
-    //window.userData.createHist(histBucketInput.value)
     rangeSelectorApply()
-    updateHist(); })
+    window.h.resetZoom();})
 //sliding window defaults
 document.getElementById("sldWinDefaults").addEventListener("click", function() {window.userData.genSlidingWindowDefaults();})
 
@@ -29,9 +28,8 @@ document.getElementById("creationPlay").addEventListener("click", function() {
 //creation reset
 document.getElementById("creationReset").addEventListener("click", function() {
     //histBucketInput.value = 1
-    //window.userData.createHist(histBucketInput.value)
     rangeSelectorApply()
-    updateHist(); })
+    window.h.resetZoom(); })
 //creation defaults
 document.getElementById("creationDefaults").addEventListener("click", function() {window.userData.genCreationDefaults();})
 
@@ -75,14 +73,12 @@ cumDistribButton.addEventListener("click", function() {
 
 //col width input
 document.getElementById("histBucketInput").addEventListener("change", function() {
-    //window.userData.createHist(histBucketInput.value)
     rangeSelectorApply()
     createDistributionPDFs();
     updateHist(); })
 //reset
 document.getElementById("histBucketReset").addEventListener("click", function() {
     histBucketInput.value = 1
-    //window.userData.createHist(histBucketInput.value)
     rangeSelectorApply()
     createDistributionPDFs();
     updateHist();
@@ -155,7 +151,6 @@ histogramButton.addEventListener("click", function () {
 
     histBucketInput.value = window.userData.histDefaultWidths[window.selectedSess]
     window.resetRangeSelector();
-    //window.userData.createHist(histBucketInput.value)
     rangeSelectorApply()
     window.genSessionDistribData();
     window.updateHist();
@@ -527,10 +522,14 @@ function genDefaultColumnWidths() {
 //calculate the coefficients (parameters) for each of the types of distribution
 function calculateDistributionCoeffs() {
     console.log("calculateDistributionCoeffs called")
-    const stats = window.userData.histStats[window.selectedSess]
     const solveTimes = window.userData.solves[window.selectedSess].map(s => s[1]);
     const n =  window.userData.solves[window.selectedSess].length;
-    const mean = stats[0], std = stats[1], max = stats[3]
+    
+    const mean = solveTimes.reduce((a, b) => a + b, 0) / n;
+    const std = Math.sqrt(solveTimes.reduce((sum, t) => sum + (t - mean) ** 2, 0) / n);
+    let max = 0;
+    for(let i = 0; i < n; i++) {if(solveTimes[i] > max) max = solveTimes[i]}
+
 
     //--------------------NORMAL DISTRIBUTION--------------------    
     window.userData.normCoeffs = {mu: mean, sigma: std} //store the calculated coefficients

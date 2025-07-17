@@ -2,7 +2,7 @@ import "../lib/dygraph.js";
 
 import {makeArrayOfArrays, binarySearchInsertIdx, round, dhm, parseTime} from "./utils.js"
 import { graphTabStartup } from "./graphTab.js";
-import { histogramTabStartup } from "./histogramTab.js";
+import { histogramTabStartup, rangeSelectorApply } from "./histogramTab.js";
 import { updatePBTable, statisticsTabStartup } from "./statisticsTab.js"
 
 
@@ -15,7 +15,8 @@ const overlayIds = [
     'slidingWindowHintOverlay',
     'creationHintOverlay',
     'createHintOverlay',
-    'distributionHintOverlay'
+    'distributionHintOverlay',
+    'loglogHintOverlay'
 ];
 
 function setupOverlayDismiss(id) {
@@ -55,7 +56,7 @@ graphButton.addEventListener("click", function () {
     graphContainer.style.display = "flex";
     graphButton.classList.add("pressed");
     window.g.resize();
-    window.updateGraph(); window.g.resetZoom()
+    window.updateGraph();
 })
 
 statsButton.addEventListener("click", function() {
@@ -80,17 +81,18 @@ statsButton.addEventListener("click", function() {
 
 
 function dropdownOnChange() {
+    window.selectedSess = document.getElementById("title-dropdown").value;
     //Only update what is on screen
     if(window.currentTab == "graph") { 
-        window.updateGraph(); window.g.resetZoom() 
+        window.updateGraph();
     }
 
     else if (window.currentTab == "hist") {
-        window.selectedSess = document.getElementById("title-dropdown").value;
         histBucketInput.value = window.userData.histDefaultWidths[window.selectedSess]
         window.resetRangeSelector();
-        window.userData.createHist(histBucketInput.value)
+        rangeSelectorApply()
         window.genSessionDistribData();
+        
         window.updateHist();
         if(window.distribMode == "pdf") window.h.resetZoom(); 
         window.userData.genSlidingWindowDefaults(); window.userData.genCreationDefaults(); 
@@ -296,6 +298,9 @@ class UserData {
         this.createHist(1)
         this.genSlidingWindowDefaults()
         this.genCreationDefaults()
+
+
+        
                 
     }
 
@@ -356,6 +361,7 @@ class UserData {
 
     //generate the default parameters for the sliding window animation
     genSlidingWindowDefaults() {
+        console.log("genSlidingWindowDefaults called")
         let numSolves = this.solves[window.selectedSess].length
         let mean = 0;
         let deviation = 0;
@@ -403,6 +409,7 @@ class UserData {
 
     //generate the default parameters for the creation animation
     genCreationDefaults() {
+        console.log("genCreationDefaults called")
         let numSolves = this.solves[window.selectedSess].length
         let mean = 0;
         let deviation = 0;

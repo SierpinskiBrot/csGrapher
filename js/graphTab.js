@@ -1,4 +1,4 @@
-import { createButton } from "./utils.js";
+import { createButton, nonlinearExponentialFit, exponentialRegression, logLogRegression } from "./utils.js";
 import {updatePBTable } from "./statisticsTab.js"
 
 export {graphTabStartup};
@@ -199,17 +199,82 @@ document.getElementById("addSeriesBtn").addEventListener("click", () => {
 
 //Update the graph
 window.updateGraph = function() {
+    console.log("window.updateGraph called")
     window.selectedSess = document.getElementById("title-dropdown").value;
     if(window.userData.xTitle == "Date") {
         window.g.updateOptions({
             file: window.userData.solves[window.selectedSess], 
+            labels: window.userData.labels,
             xlabel:  window.userData.xTitle
         });
     } else if (window.userData.xTitle == "Solve #") {
         window.g.updateOptions({
             file: window.userData.solves2[window.selectedSess], 
+            labels: window.userData.labels,
             xlabel: window.userData.xTitle
         });
+    }
+    if(loglogAnalysis) {
+        console.log("logloganalysis is true")
+        //debugger;
+        runLogLog();
+        const solves = window.userData.solves2[window.selectedSess];
+        const numSolves = solves.length
+        const offset = parseInt(document.getElementById("loglogOffset").value)
+        const a = loglogAnalysisCoeffs[0]
+        const b = loglogAnalysisCoeffs[1]
+        
+        let max = 0
+        let min = Infinity
+        for(let i = 0; i < numSolves; i++) {
+            const time = solves[i][1]
+            if(time > max) max = time
+            if(time < min) min = time
+        }
+        const lowerBound = Math.max(0.001, min - 0.1*(max-min))
+        const upperBound = max + 0.1*(max-min)
+
+
+        const displayed = []
+        //debugger;
+        for(let i = -offset; i < numSolves*1.5; i++) {
+            const newRow = []
+            newRow.push(i+1+offset)
+            for(let j = 1; j < solves[0].length;j++) {
+                if(i < numSolves && i >= 0) newRow.push(solves[i][j])
+                else newRow.push(NaN)
+            }
+            newRow.push(a * Math.pow(i+1+offset,b))
+            if(i == -offset) console.log("First time: ",a * Math.pow(i+1+offset,b))
+            displayed.push(newRow);
+        }
+        //console.log(displayed)
+
+        const newLabels = []
+        const labels = window.userData.labels
+        for(let i = 0; i < labels.length; i++) {
+            newLabels.push(labels[i])
+        }
+        newLabels.push("Log-Log Fit")
+        if(logScale[1]) { //if the y-axis is log it makes sense to let it be as high as it wants
+            window.g.updateOptions({
+                file: displayed, 
+                labels: newLabels,
+                dateWindow: [1, offset + 1.5*(numSolves)],
+                valueRange: null,
+                xlabel:  window.userData.xTitle
+            });
+        } else {
+            window.g.updateOptions({
+                file: displayed, 
+                labels: newLabels,
+                dateWindow: [1, offset + 1.5*(numSolves)],
+                valueRange: [lowerBound, upperBound],
+                //valueRange: [min, max],
+                xlabel:  "Solve #"
+            });
+        }
+        
     }
     
 };
@@ -240,6 +305,7 @@ function xSwapScale() {
     if(window.userData != undefined && window.g != undefined) {
         logScale[0] = !logScale[0];
         window.g.updateOptions({ axes : { x : {  logscale : logScale[0] } } })
+        if(loglogAnalysis && logScale[0]) window.g.resetZoom();
     }
 };
 xSelectLinear.addEventListener("click", function() { if(logScale[0] == true) xSwapScale(); });
@@ -252,11 +318,81 @@ function ySwapScale() {
     if(window.userData != undefined && window.g != undefined) {
         logScale[1] = !logScale[1];
         window.g.updateOptions({  logscale : logScale[1] })
+        if(loglogAnalysis && logScale[1]) window.g.resetZoom();
     }
 };
 ySelectLinear.addEventListener("click", function() { if(logScale[1] == true) ySwapScale(); });
 ySelectLog.addEventListener("click", function() { if(logScale[1] == false) ySwapScale(); });
 //#endregion
+
+let loglogAnalysis = false;
+const loglogAnalysisCoeffs = [0,0]
+const loglogAnalysisOn = document.getElementById("loglogAnalysisOn")
+loglogAnalysisOn.addEventListener("click", function() {
+    loglogAnalysis = true
+    xSelectDate.disabled = true
+    xSelectSolve.disabled = true
+    window.g.updateOptions({series : { 
+        "Log-Log Fit" : {
+            color : "#000000",
+            strokeWidth : 3
+        }
+    }})
+    window.updateGraph();
+})
+const loglogAnalysisOff = document.getElementById("loglogAnalysisOff")
+loglogAnalysisOff.addEventListener("click", function() {
+    loglogAnalysis = false
+    xSelectDate.disabled = false
+    xSelectSolve.disabled = false
+    window.updateGraph(); window.g.resetZoom();
+})
+
+document.getElementById("loglogOffset").addEventListener("change", function() {
+    if(loglogAnalysis) window.updateGraph();
+})
+
+/*
+function runExponentialAnalysis() {
+    const dataX = []
+    const dataY = []
+    const solves = window.userData.solves[window.selectedSess]
+    for(let i = 0; i < solves.length; i++) {
+        dataX.push(i+1)
+        dataY.push(solves[i][1])
+    }
+    console.log("dataX",dataX)
+    console.log("dataY",dataY)
+    //debugger;
+    const { A, B } = nonlinearExponentialFit(dataX, dataY);
+    console.log(`y = ${A} * e^{${B} x}`);
+    expAnalysisCoeffs[0] = A
+    expAnalysisCoeffs[1] = B
+
+    const { a, b } = exponentialRegression(dataY);
+    console.log(`y = ${a} * e^{${b} x}`);
+    runLogLog()
+}
+*/
+
+function runLogLog() {
+    console.log("loglogtime!")
+    const dataX = []
+    const dataY = []
+    const offset = parseInt(document.getElementById("loglogOffset").value)
+    const solves = window.userData.solves[window.selectedSess]
+    for(let i = 0; i < solves.length; i++) {
+        dataX.push(i+1)
+        dataY.push(solves[i][1])
+    }
+    //console.log("dataX",dataX)
+    //console.log("dataY",dataY)
+    //debugger;
+    const { A, B } = logLogRegression(dataY,offset);
+    console.log(`y = ${A} * x^{${B}}`);
+    loglogAnalysisCoeffs[0] = A
+    loglogAnalysisCoeffs[1] = B
+}
 
 //#region handle series settings box
 //the color selector

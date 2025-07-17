@@ -1,4 +1,4 @@
-export { makeArrayOfArrays, binarySearchInsertIdx, round, dhm, sleep, createButton, parseTime };
+export { makeArrayOfArrays, binarySearchInsertIdx, round, dhm, sleep, createButton, parseTime, nonlinearExponentialFit, exponentialRegression, logLogRegression };
 
 
 // Utility to make N arrays
@@ -123,7 +123,52 @@ function exponentialRegression(data) {
 }
 
 /**
- * Quick log–linear regression to get an initial guess for [A,B].
+ * Performs a logâ€“log regression on an array of positive values.
+ * Treats x = index+1 (so x starts at 1).
+ * Models y â‰ˆ A * x^B.
+ *
+ * @param {number[]} data  Array of y values (must be > 0).
+ * @returns {{ A: number, B: number }}  Regression constants so y â‰ˆ A * x^B
+ */
+function logLogRegression(data, offset = 0) {
+  // Prepare arrays of ln(x) and ln(y), skipping any non-positive y
+  const logX = [];
+  const logY = [];
+  
+  for (let i = 0; i < data.length; i++) {
+    const y = data[i];
+    const x = i + 1 + offset;            // avoid log(0)
+    if (y > 0) {
+      logX.push(Math.log(x));
+      logY.push(Math.log(y));
+    }
+  }
+  
+  const n = logX.length;
+  if (n === 0) {
+    throw new Error("No positive data points to regress.");
+  }
+  
+  // Compute sums needed for the linear regression
+  const sumX  = logX.reduce((a, b) => a + b, 0);
+  const sumY  = logY.reduce((a, b) => a + b, 0);
+  const sumXY = logX.reduce((a, xi, i) => a + xi * logY[i], 0);
+  const sumXX = logX.reduce((a, xi) => a + xi * xi, 0);
+  
+  // slope B = (n*Î£(xy) - Î£x*Î£y) / (n*Î£(x^2) - (Î£x)^2)
+  const B = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+  
+  // intercept C = (Î£y - B*Î£x) / n  where C = ln(A)
+  const C = (sumY - B * sumX) / n;
+  
+  // Convert back: A = e^C
+  const A = Math.exp(C);
+  
+  return { A, B };
+}
+
+/**
+ * Quick logï¿½linear regression to get an initial guess for [A,B].
  * Assumes x[i], y[i]>0.
  */
 function linearInit(x, y) {
@@ -142,7 +187,7 @@ function linearInit(x, y) {
 }
 
 /**
- * Solve 2×2 linear system M·delta = v, where
+ * Solve 2ï¿½2 linear system Mï¿½delta = v, where
  *   M = [[m00,m01],[m10,m11]] and v = [v0, v1].
  */
 function solve2x2(m00, m01, m10, m11, v0, v1) {
@@ -155,22 +200,22 @@ function solve2x2(m00, m01, m10, m11, v0, v1) {
 }
 
 /**
- * Levenberg–Marquardt nonlinear least squares for y = A e^(B x).
+ * Levenbergï¿½Marquardt nonlinear least squares for y = A e^(B x).
  *
- * @param {number[]} x       – array of independent variables
- * @param {number[]} y       – array of dependent variables (y_i > 0)
- * @param {object}   [opts]  – optional settings:
+ * @param {number[]} x       ï¿½ array of independent variables
+ * @param {number[]} y       ï¿½ array of dependent variables (y_i > 0)
+ * @param {object}   [opts]  ï¿½ optional settings:
  *    maxIter (default=100),
  *    tol     (default=1e-8),
  *    lambda0 (default=1e-3)
- * @returns {{A:number,B:number}}  – fitted parameters
+ * @returns {{A:number,B:number}}  ï¿½ fitted parameters
  */
 
 function nonlinearExponentialFit(x, y, opts = {}) {
     const n = x.length;
     let { maxIter = 100, tol = 1e-8, lambda0 = 1e-3 } = opts;
 
-    // initial guess from log–linear fit
+    // initial guess from logï¿½linear fit
     let { A, B } = linearInit(x, y);
 
     let lambda = lambda0;
@@ -208,7 +253,7 @@ function nonlinearExponentialFit(x, y, opts = {}) {
         if (Math.abs(prevSSR - SSR) < tol) break;
         prevSSR = SSR;
 
-        // damped normal equations: (J^T J + lambda·diag(J^T J))·delta = J^T r
+        // damped normal equations: (J^T J + lambdaï¿½diag(J^T J))ï¿½delta = J^T r
         const m00 = JtJ00 * (1 + lambda);
         const m01 = JtJ01;
         const m10 = JtJ01;
