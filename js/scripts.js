@@ -85,6 +85,7 @@ function dropdownOnChange() {
     //Only update what is on screen
     if(window.currentTab == "graph") { 
         window.updateGraph();
+        window.g.resetZoom();
     }
 
     else if (window.currentTab == "hist") {
