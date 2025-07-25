@@ -5,6 +5,7 @@
     <link rel="stylesheet" type="text/css" href="lib/dygraph.css" />
     <link rel="stylesheet" type="text/css" href="style.css">
     <script type="text/javascript" src="lib/dygraph.js"></script>
+    <script type="text/javascript" src="lib/dygraph-extra.js"></script>
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <script type="module" src="js/scripts.js"></script>
     <script type="module" src="js/themes.js"></script>
@@ -151,6 +152,21 @@
                     <tr>
                         <td>Offset:</td>
                         <td><input style="width: -webkit-fill-available" type="number" min="0" value="0" id="loglogOffset"></input></td>
+                    </tr>
+                </tbody>
+            </table>
+            <br>
+            <table class="formTable">
+                <tbody>
+                    <tr>
+                        <th>Download as PNG</th>
+                    </tr>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td>
+                            <button onclick="window.saveGraphTabAsImg()">Open</button>
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -557,6 +573,13 @@
             Width:
             <input id="seriesWidthSelector" type="number" class="width-input" min="0" max="10">
         </label>
+        <div class="radio" id="seriesTimeStyleRadio">
+            <input type="radio" id="seriesTimePoints" name="seriesTimeStyle" checked>
+            <label for="seriesTimePoints">Points</label>
+            <input type="radio" id="seriesTimeLines" name="seriesTimeStyle">
+            <label for="seriesTimeLines">Lines</label>
+        </div>
         <button id="seriesCloseSelector" class="close-settings" onclick="document.getElementById('seriesSettingsBox').style.display = 'none'">X</button>
     </div>
+    <img style="display: none;" id="dygraphImage"/>
 </body>

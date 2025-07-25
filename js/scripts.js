@@ -1,4 +1,5 @@
 import "../lib/dygraph.js";
+import "../lib/dygraph-extra.js"
 
 import {makeArrayOfArrays, binarySearchInsertIdx, round, dhm, parseTime} from "./utils.js"
 import { graphTabStartup } from "./graphTab.js";
@@ -41,7 +42,6 @@ const statsButton = document.getElementById("statsButton");
 const graphContainer = document.getElementById("graphContainer");
 const histogramContainer = document.getElementById("histogramContainer");
 const statsContainer = document.getElementById("statsContainer");
-const pageBody = document.getElementById("body")
 window.resetContainers = function() {
     histogramContainer.style.display = "none";
     histogramButton.classList.remove("pressed");

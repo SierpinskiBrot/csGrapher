@@ -87,10 +87,6 @@ div.toolbar > button.pressed, .secondaryToolbar button.pressed {
     border: var(--color-primary-variant) inset thick;
 }
 
-#graphContainer, #histogramContainer, #statsContainer {
-
-}
-
 
 h1, p, a {
     margin: 0px;

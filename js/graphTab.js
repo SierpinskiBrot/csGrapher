@@ -1,6 +1,6 @@
 import { createButton, nonlinearExponentialFit, exponentialRegression, logLogRegression } from "./utils.js";
 import {updatePBTable } from "./statisticsTab.js"
-
+import {themes} from "./themes.js"
 export {graphTabStartup};
 
 
@@ -94,6 +94,14 @@ function createSeriesRow(i) {
         //set the value of the color selector to the color of the series
         const colorSelector = document.getElementById("seriesColorSelector");
         colorSelector.value = window.userData.colors[i - 1];
+
+        //if dealing with the time series, show the lines/points radio
+        const timeStyleRadio = document.getElementById("seriesTimeStyleRadio")
+        if(i == 1) {
+            timeStyleRadio.style.display = "inline-flex"
+        } else {
+            timeStyleRadio.style.display = "none"
+        }
 
         //set the value of the width selector the the width of the series
         const widthSelector = document.getElementById("seriesWidthSelector")
@@ -433,12 +441,26 @@ widthSelector.addEventListener("change", function () {
         //update width on the graph
         const label_ = window.userData.labels[seriesNumber - i]
         if (label_ == 'Time') {
-            window.g.updateOptions({series: {[label_]: {pointSize: width_}}})
+            if(document.getElementById("seriesTimeLines").checked) {
+                window.g.updateOptions({series: {[label_]: {drawPoints: false, strokeWidth: width_}}})
+            } else {
+                window.g.updateOptions({series: {[label_]: {pointSize: width_, strokeWidth: 0}}})
+            }
+            
         }
         else {
             window.g.updateOptions({series: {[label_]: { strokeWidth: width_ }}})
         }
     } 
+})
+//the points/lines radio
+const timeSelectPoints = document.getElementById("seriesTimePoints") 
+timeSelectPoints.addEventListener("click", function() { 
+    window.g.updateOptions({series: {"Time": {drawPoints: true, pointSize: window.userData.widths[1], strokeWidth: 0}}})
+})
+const timeSelectLines = document.getElementById("seriesTimeLines")
+timeSelectLines.addEventListener("click", function() {
+    window.g.updateOptions({series: {"Time": {drawPoints: false, strokeWidth: window.userData.widths[1]}}})
 })
 //#endregion
 
@@ -476,4 +498,32 @@ function graphTabStartup() {
     
     //-----create the series toggle buttons-----
     createAllSeriesRows();
+}
+
+window.saveGraphTabAsImg = function() {
+    //center this or the ancient library will not  
+    document.querySelectorAll('.dygraph-xlabel').forEach(xlabel => {
+        if (xlabel.parentElement) {
+            xlabel.parentElement.style.textAlign = 'center';
+        }
+    });
+
+    const imagething = document.getElementById("dygraphImage")
+    Dygraph.Export.asPNG(window.g, imagething, {backgroundColor: themes[window.currentTheme]['--color-surface']});
+    
+    // Wait a bit for Dygraph to finish rendering
+    setTimeout(() => {
+        // Convert dataURL to Blob
+        const dataUrl = imagething.src;
+        if (!dataUrl.startsWith("data:image/png")) return;
+
+        fetch(dataUrl)
+            .then(res => res.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank', 'noopener');
+                // Optionally, revoke the object URL after a delay
+                setTimeout(() => URL.revokeObjectURL(url), 5000);
+            });
+    }, 100);
 }
