@@ -87,8 +87,12 @@ function drawPBPredictionGraphs(sess, series) {
     const dateP = drawGraph(timePassed, "solveDateRegression", "Date")
 
     //parse date prediction into a string
-    const predictedDate = new Date(dates[0].getTime() + Math.ceil(dateP * 1000))
-    const dateStr = predictedDate.getDate() + "/" + (predictedDate.getMonth() + 1) + "/" + predictedDate.getFullYear();
+    let predictedDate = null;
+    let dateStr = "N/A";
+    if(dates.length != 0) {
+        predictedDate = new Date(dates[0].getTime() + Math.ceil(dateP * 1000))
+        dateStr = predictedDate.getDate() + "/" + (predictedDate.getMonth() + 1) + "/" + predictedDate.getFullYear();
+    }
 
     //write the predictions
     document.getElementById("solveNumPrediction").innerText = `Next PB will happen around Solve # ${Math.ceil(solveNumP)}`
@@ -166,7 +170,7 @@ function drawGraph(data, graphId, ylabel) {
     ctx.stroke();
 
     const prediction = slope * (n) + c
-    console.log(ylabel, prediction)
+    //console.log(ylabel, prediction)
     return prediction;
 }
 

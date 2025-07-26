@@ -1,7 +1,7 @@
 import "../lib/dygraph.js";
 import "../lib/dygraph-extra.js"
 
-import {makeArrayOfArrays, binarySearchInsertIdx, round, dhm, parseTime} from "./utils.js"
+import { makeArrayOfArrays, binarySearchInsertIdx, round, parseTime} from "./utils.js"
 import { graphTabStartup } from "./graphTab.js";
 import { histogramTabStartup, rangeSelectorApply } from "./histogramTab.js";
 import { updatePBTable, statisticsTabStartup } from "./statisticsTab.js"
@@ -58,7 +58,6 @@ graphButton.addEventListener("click", function () {
     window.g.resize();
     window.updateGraph();
 })
-
 statsButton.addEventListener("click", function() {
     window.currentTab = "stats";
     window.resetContainers();
@@ -79,7 +78,6 @@ statsButton.addEventListener("click", function() {
 //#endregion
 
 
-
 function dropdownOnChange() {
     window.selectedSess = document.getElementById("title-dropdown").value;
     //Only update what is on screen
@@ -93,7 +91,6 @@ function dropdownOnChange() {
         window.resetRangeSelector();
         rangeSelectorApply()
         window.genSessionDistribData();
-        
         window.updateHist();
         if(window.distribMode == "pdf") window.h.resetZoom(); 
         window.userData.genSlidingWindowDefaults(); window.userData.genCreationDefaults(); 
@@ -192,7 +189,6 @@ class UserData {
         this.numSessions = 0;
         this.sessions = []; //names of sessions
         //Get the session names
-        const sessNamesStartTime = performance.now() 
         if(data?.properties?.sessionData != undefined){
             this.dataFormat = "csTimer"
             const sessionData = JSON.parse(data.properties.sessionData)
@@ -208,8 +204,6 @@ class UserData {
             this.sessions.push("3x3")
             this.numSessions = 1
         }
-        const sessNamesEndTime = performance.now()
-        console.log(`get session names: ${round(sessNamesEndTime - sessNamesStartTime)} milliseconds`)
         
 
         this.labels = [ "Date",    "Time",    "PB Single", "ao5",     "PB ao5",  "ao12",    "PB ao12", "ao100",   "PB ao100", "ao1000",  "PB ao1000" ];
@@ -219,13 +213,11 @@ class UserData {
         
         //   date, time, pb s, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000
         this.solves = makeArrayOfArrays(this.numSessions);
-        //solve #, time, pb s, mo3, pb mo3, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000
+        //solve #, time, pb s, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000
         this.solves2 = makeArrayOfArrays(this.numSessions);
 
         //histogram
-        //  hist[session] [0]: bucket name(0,1,...), [1]: # of solves
         this.hist = makeArrayOfArrays(this.numSessions);
-        this.histStats = [];  // [ [mean, std, numsolves], [mean, std, numsolves], ... ]
         this.maxDelta = 0.985;
         this.distribLabels = ["Normal Fit", "Skew Fit", "Beta Fit", "Gamma Fit", "Logit Fit", "Log Fit"];
         this.distribColors = ["#00FF00",    "#0000FF",  "#FF0000",  "#FF00FF",   "#FFFF00",   "#00FFFF"] //g, b, r, m, y, c
@@ -299,10 +291,7 @@ class UserData {
         this.createHist(1)
         this.genSlidingWindowDefaults()
         this.genCreationDefaults()
-
-
-        
-                
+     
     }
 
     createSolves2() {
@@ -316,15 +305,12 @@ class UserData {
     }
 
     createHist(bucketSize) {
-        const chstartTime = performance.now() 
-
         const j = window.selectedSess
         const bucketSize_ = parseFloat(bucketSize)
         this.hist[j] = [];
 
         let max = 0;
         const times = [];
-
 
         //extract solves and find the max time
         for(let i = 0; i < this.solves[j].length; i++) {
@@ -333,30 +319,16 @@ class UserData {
             if(time > max) max = time;
         }
 
-        // 2. Compute mean
-        const mean = times.reduce((a, b) => a + b, 0) / times.length;
-
-        // 3. Compute std deviation
-        const std = Math.sqrt(times.reduce((sum, t) => sum + (t - mean) ** 2, 0) / times.length);
-
-        this.histStats[j] = [mean, std, times.length, max]
-
         //create the buckets
         for(let b = 0; b <= max+1; b+= bucketSize_) {
             this.hist[j].push([b,0]);
-            //this.buckets[j].push([b]);
         }
         //add the solves to buckets
         for(let i = 0; i < this.solves[j].length; i++) {
             const time = this.solves[j][i][1];
             const bucket = Math.floor(time/bucketSize_);
             this.hist[j][bucket][1] += 1;
-            //this.buckets[j][bucket].push(time);
         }
-        
-
-        const chendTime = performance.now()
-        console.log(`create histogram: ${round(chendTime - chstartTime)} milliseconds`)
 
     }
 
@@ -379,9 +351,6 @@ class UserData {
         }
         deviation /= numSolves;
         deviation = deviation ** 0.5
-        //console.log("mean: " + mean)
-        //console.log("max: " + max)
-        console.log("stddev: " + deviation)
 
         //-----width-----
         const rawWidth = deviation / 6;
@@ -460,11 +429,8 @@ class UserData {
             for (let i = 0; i < solves.length; i++) {
                 const newVal = solves[i][1];
                 if (i < x) { //Cant make an average without enough data
-                    if(index == undefined) {
-                        solves[i].push(NaN); 
-                    } else {
-                        solves[i].splice(index,0,NaN); 
-                    }
+                    if(index == undefined) { solves[i].push(NaN); } 
+                    else { solves[i].splice(index,0,NaN); }
                     // Insert new solve time in sorted position
                     const insertIdx = binarySearchInsertIdx(windo, newVal);
                     if (insertIdx === -1) windo.push(newVal);
@@ -485,11 +451,8 @@ class UserData {
                     for(let k = clip; k < x-clip; k++) {sum+=windo[k]}
                     mean = sum/trimmedSize
 
-                    if (index === undefined) {
-                        solves[i].push(mean);
-                    } else {
-                        solves[i].splice(index, 0, mean);
-                    }
+                    if (index === undefined) { solves[i].push(mean); } 
+                    else { solves[i].splice(index, 0, mean); }
                 }
             }
         }
@@ -510,11 +473,8 @@ class UserData {
             for (let i = 0; i < solves.length; i++) {
                 const newVal = solves[i][1];
                 if (i < x) { //Cant make an average without enough data
-                    if(index == undefined) {
-                        solves[i].push(NaN); 
-                    } else {
-                        solves[i].splice(index,0,NaN); 
-                    }
+                    if(index == undefined) { solves[i].push(NaN); } 
+                    else { solves[i].splice(index,0,NaN); }
                     windo.push(newVal)
                 } else {
                     windo.splice(0,1)  // Remove oldest solve from window
@@ -525,11 +485,8 @@ class UserData {
                     for(let k = 0; k < x; k++) {sum+=windo[k]}
                     mean = sum/x
 
-                    if (index === undefined) {
-                        solves[i].push(mean);
-                    } else {
-                        solves[i].splice(index, 0, mean);
-                    }
+                    if (index === undefined) { solves[i].push(mean); } 
+                    else { solves[i].splice(index, 0, mean); }
                 }
             }
         }
@@ -568,9 +525,8 @@ class UserData {
                         this.solves[j][i].splice(idx+1,0,this.solves[j][i][idx])
                     }
                     
-                    if(this.solves[j][i][idx] > 0) {
-                        break;
-                    }
+                    if(this.solves[j][i][idx] > 0) break;
+                    
                 }
                 
                 //creating the actual data
@@ -601,8 +557,6 @@ class UserData {
                         }
                         if (solveTime < bestSinceLastPB) bestSinceLastPB = solveTime;
 
-
-                        
                     }
                 }
 
@@ -611,7 +565,8 @@ class UserData {
                 seriesStatistics.solveNums = solveNums;
                 seriesStatistics.bestSinceLastPB = bestSinceLastPB;
 
-                //index is undefined for the original series, must be specified for additional series so they are in the right order
+                //index is undefined for the original series, 
+                //must be specified for additional series so they are in the right order
                 if (index == undefined) {
                     this.pbInfo[j].push(seriesStatistics);
                 } else {

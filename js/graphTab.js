@@ -1,4 +1,4 @@
-import { createButton, nonlinearExponentialFit, exponentialRegression, logLogRegression } from "./utils.js";
+import { createButton } from "./utils.js";
 import {updatePBTable } from "./statisticsTab.js"
 import {themes} from "./themes.js"
 export {graphTabStartup};
@@ -35,8 +35,8 @@ function doSeriesLineStyling(i) {
 //Create the whole series toggle table, for statistics tab aswell
 function createAllSeriesRows() {
     const toggleTableBody = document.getElementById("toggleTableBody")
-    toggleTableBody.replaceChildren();
     const pbSeriesTableBody = document.getElementById("pbSeriesTableBody")
+    toggleTableBody.replaceChildren();
     pbSeriesTableBody.replaceChildren();
     //increment by 2 because 2 series per row
     for (let i = 1; i < window.userData.labels.length; i+=2) {
@@ -92,20 +92,15 @@ function createSeriesRow(i) {
         settings.name = i+1 
 
         //set the value of the color selector to the color of the series
-        const colorSelector = document.getElementById("seriesColorSelector");
-        colorSelector.value = window.userData.colors[i - 1];
+        document.getElementById("seriesColorSelector").value = window.userData.colors[i - 1];
 
         //if dealing with the time series, show the lines/points radio
         const timeStyleRadio = document.getElementById("seriesTimeStyleRadio")
-        if(i == 1) {
-            timeStyleRadio.style.display = "inline-flex"
-        } else {
-            timeStyleRadio.style.display = "none"
-        }
+        if(i == 1) { timeStyleRadio.style.display = "inline-flex" } 
+        else { timeStyleRadio.style.display = "none" }
 
         //set the value of the width selector the the width of the series
-        const widthSelector = document.getElementById("seriesWidthSelector")
-        widthSelector.value = window.userData.widths[i - 1];
+        document.getElementById("seriesWidthSelector").value = window.userData.widths[i - 1];
     }, "seriesSettings")
 
     //create the button for the statistics tab
@@ -123,6 +118,7 @@ function createSeriesRow(i) {
         tgt.classList.toggle('pressed');
         window.userData.currentPbSeries = window.userData.labels[i+1]
     }, "seriesToggle pbSeriesSelectButton")
+
     if(window.userData.currentPbSeries == window.userData.labels[i+1]) {pbSeriesButton.classList.toggle('pressed')}
 
     const cell1 = document.createElement("td")
@@ -143,6 +139,7 @@ document.getElementById("addSeriesBtn").addEventListener("click", () => {
     const type = document.getElementById("newAvgType").value; // 'ao' or 'mo'
     const size = parseInt(document.getElementById("newAvgSize").value); //X
     const width = parseInt(document.getElementById('newAvgWidth').value)
+
     if (isNaN(size) || size < 1) return alert("Please enter a valid number.");
     if (size == 1 || (type == "ao" && size == 2)) return alert("Bro")
   
@@ -201,7 +198,7 @@ document.getElementById("addSeriesBtn").addEventListener("click", () => {
     
     updateGraph();
     window.g.setVisibility(window.userData.visibilities, true);
-  });
+});
 
 
 
@@ -209,26 +206,11 @@ document.getElementById("addSeriesBtn").addEventListener("click", () => {
 window.updateGraph = function() {
     console.log("window.updateGraph called")
     window.selectedSess = document.getElementById("title-dropdown").value;
-    if(window.userData.xTitle == "Date") {
-        window.g.updateOptions({
-            file: window.userData.solves[window.selectedSess], 
-            labels: window.userData.labels,
-            xlabel:  window.userData.xTitle
-        });
-    } else if (window.userData.xTitle == "Solve #") {
-        window.g.updateOptions({
-            file: window.userData.solves2[window.selectedSess], 
-            labels: window.userData.labels,
-            xlabel: window.userData.xTitle
-        });
-    }
+    
     if(powerLawAnalysis) {
-        console.log("powerLawAnalysis is true")
-        //debugger;
         runPowerLaw();
         const solves = window.userData.solves2[window.selectedSess];
         const numSolves = solves.length
-        //const offset = parseInt(document.getElementById("powerLawOffset").value)
         const offset = 0
         const a = powerLawAnalysisCoeffs[0]
         const b = powerLawAnalysisCoeffs[1]
@@ -249,7 +231,7 @@ window.updateGraph = function() {
 
 
         const displayed = []
-        //debugger;
+
         for(let i = -offset; i < numSolves*1.5; i++) {
             const newRow = []
             newRow.push(i+1+offset)
@@ -261,14 +243,12 @@ window.updateGraph = function() {
             //if(i == -offset) console.log("First time: ",a * Math.pow(i+1+offset,b))
             displayed.push(newRow);
         }
-        //console.log(displayed)
 
         const newLabels = []
         const labels = window.userData.labels
-        for(let i = 0; i < labels.length; i++) {
-            newLabels.push(labels[i])
-        }
-        newLabels.push("Log-Log Fit")
+        for(let i = 0; i < labels.length; i++) { newLabels.push(labels[i]) }
+
+        newLabels.push("Power Law Fit")
         if(logScale[1]) { //if the y-axis is log it makes sense to let it be as high as it wants
             window.g.updateOptions({
                 file: displayed, 
@@ -288,6 +268,18 @@ window.updateGraph = function() {
             });
         }
         
+    } else if(window.userData.xTitle == "Date") {
+        window.g.updateOptions({
+            file: window.userData.solves[window.selectedSess], 
+            labels: window.userData.labels,
+            xlabel:  window.userData.xTitle
+        });
+    } else if (window.userData.xTitle == "Solve #") {
+        window.g.updateOptions({
+            file: window.userData.solves2[window.selectedSess], 
+            labels: window.userData.labels,
+            xlabel: window.userData.xTitle
+        });
     }
     
 };
@@ -339,70 +331,31 @@ ySelectLog.addEventListener("click", function() { if(logScale[1] == false) ySwap
 //#endregion
 
 let powerLawAnalysis = false;
-const powerLawAnalysisCoeffs = [0,0,0,0]
-const powerLawAnalysisOn = document.getElementById("powerLawAnalysisOn")
-powerLawAnalysisOn.addEventListener("click", function() {
+const powerLawAnalysisCoeffs = [0,0,0,0] //a,b,c,r2
+document.getElementById("powerLawAnalysisOn").addEventListener("click", function() {
     powerLawAnalysis = true
     xSelectDate.disabled = true
     xSelectSolve.disabled = true
     window.g.updateOptions({series : { 
-        "Log-Log Fit" : {
+        "Power Law Fit" : {
             color : "#000000",
             strokeWidth : 3
         }
     }})
     window.updateGraph();
 })
-const powerLawAnalysisOff = document.getElementById("powerLawAnalysisOff")
-powerLawAnalysisOff.addEventListener("click", function() {
+document.getElementById("powerLawAnalysisOff").addEventListener("click", function() {
     powerLawAnalysis = false
     xSelectDate.disabled = false
     xSelectSolve.disabled = false
     window.updateGraph(); window.g.resetZoom();
 })
-
 document.getElementById("powerLawIterations").addEventListener("change", function() {
     if(powerLawAnalysis) window.updateGraph();
 })
 
-/*
-function runExponentialAnalysis() {
-    const dataX = []
-    const dataY = []
-    const solves = window.userData.solves[window.selectedSess]
-    for(let i = 0; i < solves.length; i++) {
-        dataX.push(i+1)
-        dataY.push(solves[i][1])
-    }
-    console.log("dataX",dataX)
-    console.log("dataY",dataY)
-    //debugger;
-    const { A, B } = nonlinearExponentialFit(dataX, dataY);
-    console.log(`y = ${A} * e^{${B} x}`);
-    expAnalysisCoeffs[0] = A
-    expAnalysisCoeffs[1] = B
-
-    const { a, b } = exponentialRegression(dataY);
-    console.log(`y = ${a} * e^{${b} x}`);
-    runLogLog()
-}
-*/
 
 function runPowerLaw() {
-    //console.log("powerLawtime!")
-    //const dataX = []
-    //const dataY = []
-    //const offset = parseInt(document.getElementById("powerLawOffset").value)
-    //const solves = window.userData.solves[window.selectedSess]
-    //for(let i = 0; i < solves.length; i++) {
-    //    dataX.push(i+1)
-    //    dataY.push(solves[i][1])
-    //}
-    //console.log("dataX",dataX)
-    //console.log("dataY",dataY)
-    //debugger;
-    //const { A, B } = logLogRegression(dataY,offset);
-    //console.log(`y = ${A} * x^{${B}}`);
     const iters = parseInt(document.getElementById("powerLawIterations").value)
     const times = window.userData.solves[window.selectedSess].map(s => s[1]);
     const { a, b, c, r2 } = powerLawFit(times, {iterations: iters});
@@ -412,20 +365,14 @@ function runPowerLaw() {
     powerLawAnalysisCoeffs[2] = c
     powerLawAnalysisCoeffs[3] = r2
 
-    console.log(`RT ≈ ${a.toFixed(3)} · P^(-${b.toFixed(3)}) + ${c.toFixed(3)} (R² = ${r2.toFixed(4)})`);
+    console.log(`RT = ${a.toFixed(3)} · P^(-${b.toFixed(3)}) + ${c.toFixed(3)} (R² = ${r2.toFixed(4)})`);
 
 }
 
-//function runPowerLaw() {
-    
-   // const times = window.userData.solves[window.selectedSess].map(s => s[1]);
-   // const { a, b, c, r2 } = powerLawFit(times);
-//}
 
 //#region handle series settings box
 //the color selector
-const colorSelector = document.getElementById("seriesColorSelector")
-colorSelector.addEventListener("change", function () {
+document.getElementById("seriesColorSelector").addEventListener("change", function () {
     const seriesNumber = parseInt(document.getElementById("seriesSettingsBox").name)
     
     //update saved color
@@ -449,9 +396,9 @@ colorSelector.addEventListener("change", function () {
         toggleButtons[seriesNumber - i].style = "box-shadow: 2px 2px 3px 3px " + window.userData.colors[seriesNumber - i]
     }
 })
+
 //the width selector
-const widthSelector = document.getElementById("seriesWidthSelector")
-widthSelector.addEventListener("change", function () {
+document.getElementById("seriesWidthSelector").addEventListener("change", function () {
     const seriesNumber = parseInt(document.getElementById("seriesSettingsBox").name)
     for (let i = 0; i <= 1; i++) {
         //update saved width
@@ -468,18 +415,16 @@ widthSelector.addEventListener("change", function () {
             }
             
         }
-        else {
-            window.g.updateOptions({series: {[label_]: { strokeWidth: width_ }}})
-        }
+
+        else { window.g.updateOptions({series: {[label_]: { strokeWidth: width_ }}}) }
     } 
 })
+
 //the points/lines radio
-const timeSelectPoints = document.getElementById("seriesTimePoints") 
-timeSelectPoints.addEventListener("click", function() { 
+document.getElementById("seriesTimePoints").addEventListener("click", function() { 
     window.g.updateOptions({series: {"Time": {drawPoints: true, pointSize: window.userData.widths[1], strokeWidth: 0}}})
 })
-const timeSelectLines = document.getElementById("seriesTimeLines")
-timeSelectLines.addEventListener("click", function() {
+document.getElementById("seriesTimeLines").addEventListener("click", function() {
     window.g.updateOptions({series: {"Time": {drawPoints: false, strokeWidth: window.userData.widths[1]}}})
 })
 //#endregion
@@ -523,9 +468,7 @@ function graphTabStartup() {
 window.saveGraphTabAsImg = function() {
     //center this or the ancient library will not  
     document.querySelectorAll('.dygraph-xlabel').forEach(xlabel => {
-        if (xlabel.parentElement) {
-            xlabel.parentElement.style.textAlign = 'center';
-        }
+        if (xlabel.parentElement) { xlabel.parentElement.style.textAlign = 'center'; }
     });
 
     const imagething = document.getElementById("dygraphImage")
@@ -554,105 +497,93 @@ window.saveGraphTabAsImg = function() {
  * The array index 0 → P = 1, index 1 → P = 2, ...  (Avoids divide-by-zero.)
  *
  * @param {number[]} y   – array of response times ( ≥ 0 )
- * @param {object}   [opt] – { iterations: 800, learningRate: 1e-6 }
+ * @param {object}   [opt] – { iterations: 1000, learningRate: 1e-6 }
  * @returns {{a:number, b:number, c:number, r2:number}}
  */
 function powerLawFit(y, opt = {}) {
-    //debugger;
-  const n  = y.length;
-  if (n < 3) throw new Error('Need at least 3 points');
+    const n  = y.length;
+    if (n < 3) throw new Error('Need at least 3 points');
 
-  // Build the x-axis: practice count P = 1, 2, ...
-  const x = Array.from({ length: n }, (_, i) => i + 1);
+    // Build the x-axis
+    const x = Array.from({ length: n }, (_, i) => i + 1);
 
-  /* ------------------------------------------------------------------
-   * 1. Rough closed-form starting guess.
-   *    Assume c ≈ min(y);   fit log(RT − c) = log a  − b log P
-   * ------------------------------------------------------------------ */
-  //let c = Math.min(...y);                          // shift so RT − c > 0
-  const fastest = Math.min(...y);
-  let c = fastest
-  if (!isFinite(c)) c = 0;
+    // 1. Closed-form starting guess
+    //let c = Math.min(...y);                          // shift so RT − c > 0
+    const fastest = Math.min(...y);
+    let c = fastest
+    if (!isFinite(c)) c = 0;
 
-  const lnX = x.map(Math.log);
-  const lnY = y.map(v => Math.log(Math.max(v - c, 1e-12)));
+    const lnX = x.map(Math.log);
+    const lnY = y.map(v => Math.log(Math.max(v - c, 1e-12)));
 
-  const sum = arr => arr.reduce((s, v) => s + v, 0);
-  const Sx  = sum(lnX),
+    const sum = arr => arr.reduce((s, v) => s + v, 0);
+    const Sx  = sum(lnX),
         Sy  = sum(lnY),
         Sxx = sum(lnX.map(v => v * v)),
         Sxy = sum(lnX.map((v, i) => v * lnY[i]));
 
-  const slope = (n * Sxy - Sx * Sy) / (n * Sxx - Sx * Sx); // = –b
-  const intercept = (Sy - slope * Sx) / n;                 // = ln a
+    const slope = (n * Sxy - Sx * Sy) / (n * Sxx - Sx * Sx); // = –b
+    const intercept = (Sy - slope * Sx) / n;                 // = ln a
 
-  let a = Math.exp(intercept);
-  let b = -slope;
+    let a = Math.exp(intercept);
+    let b = -slope;
 
-  /* ------------------------------------------------------------------
-   * 2. Refine with gradient descent on Σ(RT̂ − RT)²
-   * ------------------------------------------------------------------ */
-  const iters = opt.iterations   ?? 1000;
-  const lr    = opt.learningRate ?? 1e-6;
+    // 2. Gradient descent
+    const iters = opt.iterations   ?? 1000;
+    const lr    = opt.learningRate ?? 1e-6;
     const clip    = 1e6;                                 // gradient-norm cap
 
-  for (let k = 0; k < iters; ++k) {
-    let gA = 0, gB = 0, gC = 0, ssTot = 0, ssRes = 0;
+    for (let k = 0; k < iters; ++k) {
+        let gA = 0, gB = 0, gC = 0;
 
-    const lrDecayed = lr / Math.sqrt(k + 1); // decay learning rate
-    //const lrDecayed = lr / Math.pow(k+1,0.3); // decay learning rate
+        for (let i = 0; i < n; ++i) {
+            const xi = x[i];
+            const yi = y[i];
+            const xiNegB = Math.pow(xi, -b);
+            const yhat   = a * xiNegB + c;
+            const diff   = yhat - yi;
+
+            // Gradients of squared error w.r.t. a, b, c
+            gA += 2 * diff * xiNegB;
+            gB += 2 * diff * a * xiNegB * (-lnX[i]);
+            gC += 2 * diff;
+
+        }
+
+        // normalise gradients so no single step is too large
+        const gNorm = Math.hypot(gA, gB, gC);
+        if (gNorm > clip) {
+            gA *= clip / gNorm;
+            gB *= clip / gNorm;
+            gC *= clip / gNorm;
+        }
+
+        const lrDecayed = lr / Math.sqrt(k + 1); // decay learning rate
+        //const lrDecayed = lr / Math.pow(k+1,0.3); // decay learning rate
+        
+        //a -= lr * gA;
+        //b -= lr * gB;
+        //c -= lr * gC;
+        a -= lrDecayed * gA;
+        b -= lrDecayed * gB;
+        c -= lrDecayed * gC;
+        if(c > fastest) c = fastest; // don't let c go above the fastest time
+
+        // Tiny parameter updates => converged
+        //if (Math.max(Math.abs(lr * gA), Math.abs(lr * gB), Math.abs(lr * gC)) < 1e-12) break;
+        if (Math.max(Math.abs(lrDecayed * gA), Math.abs(lrDecayed * gB), Math.abs(lrDecayed * gC)) < 1e-12) break;
+    }
+
+    // Coefficient of determination
+    const mean = y.reduce((s, v) => s + v, 0) / n;
+    let ssRes = 0, ssTot = 0;
     for (let i = 0; i < n; ++i) {
-      const xi = x[i];
-      const yi = y[i];
-      const xiNegB = Math.pow(xi, -b);
-      const yhat   = a * xiNegB + c;
-      const diff   = yhat - yi;
-
-      // Gradients of squared error w.r.t. a, b, c
-      gA += 2 * diff * xiNegB;
-      gB += 2 * diff * a * xiNegB * (-Math.log(xi));
-      gC += 2 * diff;
-
-      ssRes += diff * diff;
-      ssTot += (yi - (Sy / n)) ** 2;
+        const diff = (a * Math.exp(-b * lnX[i]) + c) - y[i];
+        ssRes += diff * diff;
+        ssTot += (y[i] - mean) ** 2;
     }
+    const r2 = 1 - ssRes / ssTot;
 
-    // normalise gradients so no single step is crazy-large
-    const gNorm = Math.hypot(gA, gB, gC);
-    if (gNorm > clip) {
-      gA *= clip / gNorm;
-      gB *= clip / gNorm;
-      gC *= clip / gNorm;
-    }
-
-    
-    
-    //a -= lr * gA;
-    //b -= lr * gB;
-    //c -= lr * gC;
-    a -= lrDecayed * gA;
-    b -= lrDecayed * gB;
-    c -= lrDecayed * gC;
-    if(c > fastest) c = fastest; // don't let c go above the fastest time
-
-    //console.log("a",a.toFixed(3),"b",b.toFixed(3),"c",c.toFixed(3))
-
-    // Tiny parameter updates ⇒ converged
-    //if (Math.max(Math.abs(lr * gA), Math.abs(lr * gB), Math.abs(lr * gC)) < 1e-12) break;
-    if (Math.max(Math.abs(lrDecayed * gA), Math.abs(lrDecayed * gB), Math.abs(lrDecayed * gC)) < 1e-12) break;
-  }
-
-  // Coefficient of determination
-  const r2 = 1 - (() => {
-    let ssRes = 0, ssTot = 0, mean = y.reduce((s, v) => s + v, 0) / n;
-    for (let i = 0; i < n; ++i) {
-      const diff = (a * Math.pow(i + 1, -b) + c) - y[i];
-      ssRes += diff * diff;
-      ssTot += (y[i] - mean) ** 2;
-    }
-    return ssRes / ssTot;
-  })();
-
-  return { a, b, c, r2 };
+    return { a, b, c, r2 };
 }
 

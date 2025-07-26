@@ -168,7 +168,7 @@ function logLogRegression(data, offset = 0) {
 }
 
 /**
- * Quick log�linear regression to get an initial guess for [A,B].
+ * Quick log linear regression to get an initial guess for [A,B].
  * Assumes x[i], y[i]>0.
  */
 function linearInit(x, y) {
@@ -187,7 +187,7 @@ function linearInit(x, y) {
 }
 
 /**
- * Solve 2�2 linear system M�delta = v, where
+ * Solve 2x2 linear system M*delta = v, where
  *   M = [[m00,m01],[m10,m11]] and v = [v0, v1].
  */
 function solve2x2(m00, m01, m10, m11, v0, v1) {
@@ -200,22 +200,22 @@ function solve2x2(m00, m01, m10, m11, v0, v1) {
 }
 
 /**
- * Levenberg�Marquardt nonlinear least squares for y = A e^(B x).
+ * Levenberg-Marquardt nonlinear least squares for y = A e^(B x).
  *
- * @param {number[]} x       � array of independent variables
- * @param {number[]} y       � array of dependent variables (y_i > 0)
- * @param {object}   [opts]  � optional settings:
+ * @param {number[]} x       array of independent variables
+ * @param {number[]} y       array of dependent variables (y_i > 0)
+ * @param {object}   [opts]  optional settings:
  *    maxIter (default=100),
  *    tol     (default=1e-8),
  *    lambda0 (default=1e-3)
- * @returns {{A:number,B:number}}  � fitted parameters
+ * @returns {{A:number,B:number}}   fitted parameters
  */
 
 function nonlinearExponentialFit(x, y, opts = {}) {
     const n = x.length;
     let { maxIter = 100, tol = 1e-8, lambda0 = 1e-3 } = opts;
 
-    // initial guess from log�linear fit
+    // initial guess from log-linear fit
     let { A, B } = linearInit(x, y);
 
     let lambda = lambda0;

@@ -71,7 +71,7 @@
                     <tr><th colspan="2">
                         <div style="display: flex;">
                             <p style="flex-grow: 1;">Create Series</p>
-                            <button id="createHelpButton" class="helpButton" onclick="document.getElementById('createHintOverlay').style.display = 'flex';">?</button>
+                            <button class="helpButton" onclick="document.getElementById('createHintOverlay').style.display = 'flex';">?</button>
                         </div>
                          </th></tr>
                 </tbody>
@@ -136,7 +136,7 @@
                     <tr><th colspan="2">
                         <div style="display: flex;">
                             <p style="flex-grow: 1;">Power Law Analysis</p>
-                            <button id="powerLawHelpButton" class="helpButton" onclick="document.getElementById('powerLawHintOverlay').style.display = 'flex';">?</button>
+                            <button class="helpButton" onclick="document.getElementById('powerLawHintOverlay').style.display = 'flex';">?</button>
                         </div>
                     </th></tr>
                 </tbody>
@@ -219,7 +219,7 @@
                         <th colspan="2">
                             <div style="display: flex;">
                                 <p style="flex-grow: 1;">Sliding window animation</p>
-                                <button id="slidingWindowHelpButton" class="helpButton" onclick="document.getElementById('slidingWindowHintOverlay').style.display = 'flex';">?</button>
+                                <button class="helpButton" onclick="document.getElementById('slidingWindowHintOverlay').style.display = 'flex';">?</button>
                             </div>
                         </th>
                     </tr>
@@ -274,7 +274,7 @@
                         <th colspan="2">
                             <div style="display: flex;">
                                 <p style="flex-grow: 1;">Creation animation</p>
-                                <button id="creationHelpButton" class="helpButton" onclick="document.getElementById('creationHintOverlay').style.display = 'flex';">?</button>
+                                <button class="helpButton" onclick="document.getElementById('creationHintOverlay').style.display = 'flex';">?</button>
                             </div>
                         </th>
                     </tr>
@@ -338,7 +338,7 @@
                 <tbody><tr><th colspan="3">
                     <div style="display: flex;">
                         <p style="flex-grow: 1;">Overlay distribution</p>
-                        <button id="distributionHelpButton" class="helpButton" onclick="document.getElementById('distributionHintOverlay').style.display = 'flex';">?</button>
+                        <button class="helpButton" onclick="document.getElementById('distributionHintOverlay').style.display = 'flex';">?</button>
                     </div>
                 </th></tr></tbody>
                 <tbody>
@@ -454,13 +454,13 @@
     </div>
 
     <div id="fileHintOverlay" class="hintOverlay">
-        <div id="fileHintContent" class="hintContent">
+        <div class="hintContent">
             <img src="resources/cstimer-export-help.jpg" alt="Export instructions for csTimer">
-            <button id="fileCloseHint" class="closeHint" onclick="document.getElementById('fileHintOverlay').style.display = 'none';">X</button>
+            <button class="closeHint" onclick="document.getElementById('fileHintOverlay').style.display = 'none';">X</button>
         </div>
     </div>
     <div id="createHintOverlay" class="hintOverlay">
-        <div id="createHintContent" class="hintContent">
+        <div class="hintContent">
             <table>
                 <th colspan="3" style="height: 40px;">
                     <p>Create new series</p>
@@ -470,7 +470,7 @@
                 </tr>
                 <tr><td>moX</td><td>mean of X</td><td>Computes the mean of the last X solves, with every solve considered.</td></tr>
             </table>
-            <button id="createCloseHint" class="closeHint" onclick="document.getElementById('createHintOverlay').style.display = 'none';">X</button>
+            <button class="closeHint" onclick="document.getElementById('createHintOverlay').style.display = 'none';">X</button>
         </div>
     </div>
     <div id="powerLawHintOverlay" class="hintOverlay">
@@ -495,7 +495,7 @@
         </div>
     </div>
     <div id="distributionHintOverlay" class="hintOverlay">
-        <div id="distributionHintContent" class="hintContent">
+        <div class="hintContent">
             <table>
                 <th colspan="3" style="height: 40px;">
                     <p>Overlay distribution</p>
@@ -512,15 +512,15 @@
                 <tr><td colspan="3"><b>KS: </b>Kolmogorov-Smirnov test for goodness of fit. </br>A lower number means a better fit</td></tr>
                 <tr><td colspan="3"><b>A^2: </b>Anderson-Darling test for goodness of fit. </br>A lower number means a better fit</td></tr>
             </table>
-            <button id="distributionCloseHint" class="closeHint" onclick="document.getElementById('distributionHintOverlay').style.display = 'none';">X</button>
+            <button class="closeHint" onclick="document.getElementById('distributionHintOverlay').style.display = 'none';">X</button>
         </div>
     </div>
     <div id="slidingWindowHintOverlay" class="hintOverlay">
-        <div id="slidingWindowHintContent" class="hintContent">
+        <div class="hintContent">
             <video controls autoplay width="960" height="540" alt="Sliding window diagram">
                 <source src="resources/slidingWindowAnimation.mp4" type="video/mp4" />
             </video>
-            <button id="slidingWindowCloseHint" class="closeHint" onclick="document.getElementById('slidingWindowHintOverlay').style.display = 'none';">X</button>
+            <button class="closeHint" onclick="document.getElementById('slidingWindowHintOverlay').style.display = 'none';">X</button>
             <table>
                 <tbody>
                     <tr>
@@ -547,11 +547,11 @@
         </div>
     </div>
     <div id="creationHintOverlay" class="hintOverlay">
-        <div id="creationHintContent" class="hintContent">
+        <div class="hintContent">
             <video controls autoplay width="960" height="540" alt="Creatiom diagram">
                 <source src="resources/creationAnimation.mp4" type="video/mp4" />
             </video>
-            <button id="creationCloseHint" class="closeHint" onclick="document.getElementById('creationHintOverlay').style.display = 'none';">X</button>
+            <button class="closeHint" onclick="document.getElementById('creationHintOverlay').style.display = 'none';">X</button>
             <table>
                 <tbody>
                     <tr>

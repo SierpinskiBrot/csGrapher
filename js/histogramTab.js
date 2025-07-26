@@ -15,11 +15,11 @@ document.getElementById("sldWinPlay").addEventListener("click", function() {
     else {window.creationPlaying = false; animateHistRange();} })
 //sliding window reset
 document.getElementById("sldWinReset").addEventListener("click", function() {
-    //histBucketInput.value = 1
     rangeSelectorApply()
     window.h.resetZoom();})
 //sliding window defaults
-document.getElementById("sldWinDefaults").addEventListener("click", function() {window.userData.genSlidingWindowDefaults();})
+document.getElementById("sldWinDefaults").addEventListener("click", function() {
+    window.userData.genSlidingWindowDefaults(); })
 
 //creation play
 document.getElementById("creationPlay").addEventListener("click", function() {
@@ -27,11 +27,11 @@ document.getElementById("creationPlay").addEventListener("click", function() {
     else {window.sldWinPlaying = false;animateHistCreate();} })
 //creation reset
 document.getElementById("creationReset").addEventListener("click", function() {
-    //histBucketInput.value = 1
     rangeSelectorApply()
     window.h.resetZoom(); })
 //creation defaults
-document.getElementById("creationDefaults").addEventListener("click", function() {window.userData.genCreationDefaults();})
+document.getElementById("creationDefaults").addEventListener("click", function() {
+    window.userData.genCreationDefaults(); })
 
 
 //distribution buttons
@@ -84,12 +84,12 @@ document.getElementById("histBucketReset").addEventListener("click", function() 
     updateHist();
 })
 
-
+//range select all
 document.getElementById("rangeSelectAll").addEventListener("click", function() {
     window.resetRangeSelector()
     rangeSelectorApply()
 })
-
+//range selector timeframes
 document.getElementById("histRangeLow").addEventListener("change", function() {rangeSelectorApply()})
 document.getElementById("histRangeHigh").addEventListener("change", function() {rangeSelectorApply()})
 document.getElementById("rangeSelect24H").addEventListener("click", function() {rangeSelectorCutoff(86400000)})
@@ -117,9 +117,10 @@ function rangeSelectorApply() {
 
 //resets the range selector to show the max range
 window.resetRangeSelector = function() {
+    const numSolves = window.userData.solves[window.selectedSess].length
     document.getElementById("histRangeLow").value = 1
-    document.getElementById("histRangeHigh").value = window.userData.solves[window.selectedSess].length
-    document.getElementById("histRangeHigh").max = window.userData.solves[window.selectedSess].length
+    document.getElementById("histRangeHigh").value = numSolves
+    document.getElementById("histRangeHigh").max = numSolves
 }
 
 //apply the selection to only solves done within the last cutoff milliseconds
@@ -173,9 +174,9 @@ window.genSessionDistribData = function() {
 // Update the histogram (with optional overlays)
 window.updateHist = function () {
     console.log("updateHist called")
+    window.selectedSess = document.getElementById("title-dropdown").value;
 
     if(window.distribMode == "pdf") {
-        window.selectedSess = document.getElementById("title-dropdown").value;
         
         const hist = window.userData.hist[window.selectedSess];
         const distrib = window.userData.distribData;
@@ -216,13 +217,10 @@ window.updateHist = function () {
 
     else if(window.distribMode == "cdf") {
         
-
         const cdf = window.userData.cdf
-
         const distribCdf = window.userData.distribCdfData
         const dLabels = window.userData.distribLabels;
         const numDistribs = distribCdf.length
-
 
         // Start building combined data
         const combined = cdf.map(([x, y], i) => {
@@ -261,8 +259,7 @@ window.updateHist = function () {
 function createHistRange(bucketSize, range, offset) {
     const bucketSize_ = parseFloat(bucketSize)
     const hist = []
-    let j = window.selectedSess
-    const solves = window.userData.solves[j]
+    const solves = window.userData.solves[window.selectedSess]
     const numSolves = solves.length
     let max = 0;
     //find the max time
@@ -483,7 +480,13 @@ function histogramTabStartup() {
     const dNames = window.userData.distribLabels
     const dColors = window.userData.distribColors
     for (let i = 0; i < dNames.length; i++) {
-        window.h.updateOptions({ series: { [dNames[i]]: { fillGraph: false, stepPlot: false, color: [dColors[i]], strokeWidth: 2 } } })
+        window.h.updateOptions({ 
+            series: { [dNames[i]]: { 
+                fillGraph: false, 
+                stepPlot: false, 
+                color: [dColors[i]], 
+                strokeWidth: 2 
+            } } })
     }
 
 }
@@ -494,7 +497,7 @@ function genDefaultColumnWidths() {
     for (let j = 0; j < window.userData.numSessions; j++) {
         const times = [];
 
-        //extract solves and find the max time
+        //extract solves
         for (let i = 0; i < solves[j].length; i++) {
             times.push(solves[j][i][1]);
         }
