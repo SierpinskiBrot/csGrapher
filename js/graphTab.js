@@ -357,7 +357,7 @@ document.getElementById("powerLawIterations").addEventListener("change", functio
 
 function runPowerLaw() {
     const iters = parseInt(document.getElementById("powerLawIterations").value)
-    const times = window.userData.solves[window.selectedSess].map(s => s[9]);
+    const times = window.userData.solves[window.selectedSess].map(s => s[1]);
     const clean = times.filter(t => t > 0 && Number.isFinite(t));
     const { a, b, c, r2 } = powerLawFit(clean, {iterations: iters});
 
