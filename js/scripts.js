@@ -17,7 +17,7 @@ const overlayIds = [
     'creationHintOverlay',
     'createHintOverlay',
     'distributionHintOverlay',
-    'loglogHintOverlay'
+    'powerLawHintOverlay'
 ];
 
 function setupOverlayDismiss(id) {

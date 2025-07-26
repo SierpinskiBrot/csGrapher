@@ -135,23 +135,27 @@
                 <tbody>
                     <tr><th colspan="2">
                         <div style="display: flex;">
-                            <p style="flex-grow: 1;">Log-Log Analysis</p>
-                            <button id="loglogHelpButton" class="helpButton" onclick="document.getElementById('loglogHintOverlay').style.display = 'flex';">?</button>
+                            <p style="flex-grow: 1;">Power Law Analysis</p>
+                            <button id="powerLawHelpButton" class="helpButton" onclick="document.getElementById('powerLawHintOverlay').style.display = 'flex';">?</button>
                         </div>
                     </th></tr>
                 </tbody>
                 <tbody>
                     <tr><td colspan="2" style="padding: 0;">
                         <div class="radio">
-                            <input type="radio" id="loglogAnalysisOn" name="loglogAnalysis">
-                            <label for="loglogAnalysisOn">On</label>
-                            <input type="radio" id="loglogAnalysisOff" name="loglogAnalysis" checked>
-                            <label for="loglogAnalysisOff">Off</label>
+                            <input type="radio" id="powerLawAnalysisOn" name="powerLawAnalysis">
+                            <label for="powerLawAnalysisOn">On</label>
+                            <input type="radio" id="powerLawAnalysisOff" name="powerLawAnalysis" checked>
+                            <label for="powerLawAnalysisOff">Off</label>
                         </div>
                     </td></tr>
                     <tr>
-                        <td>Offset:</td>
-                        <td><input style="width: -webkit-fill-available" type="number" min="0" value="0" id="loglogOffset"></input></td>
+                        <td>Iterations:</td>
+                        <td><input style="width: -webkit-fill-available" type="number" min="1" step="1" value="1000" id="powerLawIterations"></input></td>
+                    </tr>
+                    <tr>
+                        <td>R^2:</td>
+                        <td><p id="powerLawR2" style="text-align: left;">0.0</p></td>
                     </tr>
                 </tbody>
             </table>
@@ -469,25 +473,25 @@
             <button id="createCloseHint" class="closeHint" onclick="document.getElementById('createHintOverlay').style.display = 'none';">X</button>
         </div>
     </div>
-    <div id="loglogHintOverlay" class="hintOverlay">
-        <div id="loglogHintContent" class="hintContent">
+    <div id="powerLawHintOverlay" class="hintOverlay">
+        <div class="hintContent">
             <table>
                 <th colspan="3" style="height: 40px;">
-                    <p>Log-Log Analysis Mode</p>
+                    <p>Power Law Analysis Mode</p>
                 </th>
                 <tr>
                     <td colspan="3">
-                        Log-Log analysis mode will display the log-log regression of your data, which can be useful in predicting <br>
-                        future performance. When both axes are graphed logarithmically, the regression will be a straight line. <br>
-                        The buttons to switch between Date and Solve # on the x-axis are locked in this mode. <br>
+                        <a href="https://en.wikipedia.org/wiki/Power_law_of_practice">Power law of practice</a>
                     </td>
                 </tr>
                 <tr>
-                    <td>Offset</td><td><p>Offset should be an estimation of the number of solves you have done on the puzzle before you started <br> timing your solves in the csTimer session. (i.e. what number should be added to Solve # to get the 'real' solve #) </p>
-                                        <p>Alternatively, mess around with this until the graph looks good.</p></td>
+                    <td>Iterations</td>
+                    <td><p>How many iterations to run the regression for. </p>
+                        <p>More iterations will result in a more accurate regression, but will take longer.</p>
+                    </td>
                 </tr>
             </table>
-            <button id="loglogCloseHint" class="closeHint" onclick="document.getElementById('loglogHintOverlay').style.display = 'none';">X</button>
+            <button class="closeHint" onclick="document.getElementById('powerLawHintOverlay').style.display = 'none';">X</button>
         </div>
     </div>
     <div id="distributionHintOverlay" class="hintOverlay">
