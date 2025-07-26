@@ -211,7 +211,7 @@ window.updateGraph = function() {
         runPowerLaw();
         const solves = window.userData.solves2[window.selectedSess];
         const numSolves = solves.length
-        const offset = 0
+        const offset = parseInt(document.getElementById("powerLawOffset").value) || 0;
         const a = powerLawAnalysisCoeffs[0]
         const b = powerLawAnalysisCoeffs[1]
         const c = powerLawAnalysisCoeffs[2]
@@ -357,8 +357,9 @@ document.getElementById("powerLawIterations").addEventListener("change", functio
 
 function runPowerLaw() {
     const iters = parseInt(document.getElementById("powerLawIterations").value)
-    const times = window.userData.solves[window.selectedSess].map(s => s[1]);
-    const { a, b, c, r2 } = powerLawFit(times, {iterations: iters});
+    const times = window.userData.solves[window.selectedSess].map(s => s[9]);
+    const clean = times.filter(t => t > 0 && Number.isFinite(t));
+    const { a, b, c, r2 } = powerLawFit(clean, {iterations: iters});
 
     powerLawAnalysisCoeffs[0] = a
     powerLawAnalysisCoeffs[1] = b
@@ -502,15 +503,21 @@ window.saveGraphTabAsImg = function() {
  */
 function powerLawFit(y, opt = {}) {
     const n  = y.length;
+    const offset = parseInt(document.getElementById("powerLawOffset").value) || 0; // offset for the x-axis
+
     if (n < 3) throw new Error('Need at least 3 points');
 
     // Build the x-axis
-    const x = Array.from({ length: n }, (_, i) => i + 1);
+    const x = Array.from({ length: n }, (_, i) => i + 1 + offset); // 1, 2, 3, ..., n
+
 
     // 1. Closed-form starting guess
     //let c = Math.min(...y);                          // shift so RT − c > 0
-    const fastest = Math.min(...y);
+    //const fastest = Math.min(...y);
+    let fastest = 9999999999999999;
+    for(let i = 0; i < n; i++) {if(y[i] < fastest) fastest = y[i]}
     let c = fastest
+    
     if (!isFinite(c)) c = 0;
 
     const lnX = x.map(Math.log);

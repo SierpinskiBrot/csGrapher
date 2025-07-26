@@ -1,4 +1,4 @@
-export {gamma, erf, normalPDF, logit, logitNormPDF, logPDF, logCDF, logitNormCDF, standardNormalCDF, skewNormalPDF, gammaPDF, betaPDF, generalNormalCDF, betaCDF};
+export {digamma, trigamma, gamma, erf, normalPDF, logit, logitNormPDF, logPDF, logCDF, logitNormCDF, standardNormalCDF, skewNormalPDF, gammaPDF, betaPDF, generalNormalCDF, betaCDF};
 
 //gamma function
 function gamma(z) {
@@ -208,4 +208,19 @@ function logPDF(x, mu, sigma) {
 
 function logCDF(x, mu, sigma) {
     return 0.5 * (1 + erf((Math.log(x) - mu) / (sigma * Math.sqrt(2))))
+}
+
+function digamma(x) {
+    let result = 0;
+    while (x < 7) { result -= 1 / x; x++; }
+    const x2 = 1 / (x * x);
+    result += Math.log(x) - 0.5 / x - x2 * (1 / 12 - x2 * (1 / 120 - x2 / 252));
+    return result;
+}
+
+function trigamma(x) {
+    let result = 0;
+    while (x < 7) { result += 1 / (x * x); x++; }
+    const x2 = 1 / (x * x);
+    return result + 0.5 * x2 + (1 + x2 * (1 / 6 - x2 * (1 / 30 - x2 / 42))) / x;
 }

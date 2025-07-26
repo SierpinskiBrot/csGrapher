@@ -1,5 +1,5 @@
 import {sleep} from "./utils.js"
-import {normalPDF, skewNormalPDF, betaPDF, logit, logitNormPDF, logPDF, logCDF, logitNormCDF, gammaPDF, generalNormalCDF, betaCDF} from "./probabilities.js"
+import {digamma, trigamma, normalPDF, skewNormalPDF, betaPDF, logit, logitNormPDF, logPDF, logCDF, logitNormCDF, gammaPDF, generalNormalCDF, betaCDF} from "./probabilities.js"
 import {themes} from "./themes.js"
 
 export {histogramTabStartup, rangeSelectorApply}
@@ -526,7 +526,26 @@ function genDefaultColumnWidths() {
 function calculateDistributionCoeffs() {
     console.log("calculateDistributionCoeffs called")
     const solveTimes = window.userData.solves[window.selectedSess].map(s => s[1]);
+    const clean = solveTimes.filter(t => t > 0 && Number.isFinite(t));
+    const sorted = [...clean].sort((a,b) => a - b)
+    const trim = 0.01, q = 0.999, pad = 0.05;
+    const lower = Math.floor(trim*sorted.length);
+    const upper = Math.ceil(sorted.length*(1-trim));  
+    const trimmed = sorted.slice(lower, upper);
+    
+    const eps = 1e-12;
+    const maxIter = 5000, tol = 1e-12;
     const n =  window.userData.solves[window.selectedSess].length;
+
+    //robust scale parameter M (high quantile * (1 + pad) )
+    const idx = (trimmed.length - 1) * q;
+    const lo = Math.floor(idx), hi = Math.ceil(idx);
+    const quant = hi === lo 
+        ? trimmed[lo]
+        : trimmed[lo] + (idx - lo) * (trimmed[hi] - trimmed[lo]);
+    const M = quant * (1 + pad);
+    //debugger;
+    const scaled = trimmed.map(t => Math.min(Math.max(t / M, eps), 1 - eps))
     
     const mean = solveTimes.reduce((a, b) => a + b, 0) / n;
     const std = Math.sqrt(solveTimes.reduce((sum, t) => sum + (t - mean) ** 2, 0) / n);
@@ -539,6 +558,7 @@ function calculateDistributionCoeffs() {
 
 
     //--------------------SKEW DISTRIBUTION--------------------
+    /*
     // Estimate sample skewness γ1 = (1/n) ∑ ((x - μ)/σ)^3
     let skewness = solveTimes.reduce((sum, t) => sum + ((t - mean) / std) ** 3, 0) / n;
     //console.log("   real skewness:",skewness)
@@ -552,8 +572,65 @@ function calculateDistributionCoeffs() {
     const alpha_skew = delta / Math.sqrt(1 - delta * delta)
     const omega_skew = std / Math.sqrt(1 - 2 * delta * delta / Math.PI);
     const xi_skew = mean - omega_skew * delta * Math.sqrt(2 / Math.PI);
+    */
 
-    window.userData.skewCoeffs = {xi: xi_skew, omega: omega_skew, alpha: alpha_skew} //store the coefficients
+    //skew mean, var, and skew
+    const skewN = trimmed.length;
+    const skewMean = trimmed.reduce((s, v) => s + v, 0) / skewN;
+    const m2 = trimmed.reduce((s, v) => s + (v - skewMean) ** 2, 0);
+    const m3 = trimmed.reduce((s, v) => s + (v - skewMean) ** 3, 0);
+
+    const s2 = m2 / (skewN - 1);
+    const ss = Math.sqrt(s2);
+
+    //unbiased fisher-pearson skewness g1
+    const g1 = (skewN * m3) / ((skewN - 1) * (skewN - 2) * ss ** 3);
+
+    if(Math.abs(g1) < 1e-12) {
+        //if skewness is too small, use normal distribution
+        window.userData.skewCoeffs = {xi: skewMean, omega: ss, alpha: 0};
+    } else {
+        const twoOverPi = 2 / Math.PI;
+        const gamma1FromDelta = delta => {
+            const delta0 = delta * Math.sqrt(twoOverPi);
+            const num = (4 - Math.PI) / 2 * delta0 ** 3;
+            const den = Math.pow(1 - delta0 ** 2, 1.5);
+            return num / den;
+        }
+
+        const f = delta => gamma1FromDelta(delta) - g1;
+
+        const delta_max = 0.995
+        let a = g1 < 0 ? -delta_max : 0;
+        let b = g1 < 0 ? 0 : delta_max;
+
+        let fa = f(a), fb = f(b);
+        //if(fa * fb > 0) throw new Error("Invalid skewness: " + g1);
+
+        let delta
+        for(let i = 0; i < maxIter; i++) {
+            delta = (a + b) / 2;
+            const fd = f(delta);
+            if(Math.abs(fd) < tol || (b - a) / 2 < tol) break; //convergence check
+
+            if(fa * fd < 0) {
+                b = delta;
+                fb = fd;
+            } else {
+                a = delta;
+                fa = fd;
+            }
+        }
+
+        const alpha_skew = delta / Math.sqrt(1 - delta * delta)
+        const omega_skew = ss / Math.sqrt(1 - twoOverPi * delta * delta);
+        const xi_skew = skewMean - omega_skew * delta * Math.sqrt(twoOverPi);
+
+        window.userData.skewCoeffs = {xi: xi_skew, omega: omega_skew, alpha: alpha_skew}
+    }
+
+
+
 
 
     //--------------------BETA DISTRIBUTION--------------------
@@ -561,41 +638,52 @@ function calculateDistributionCoeffs() {
     const v = (std ** 2) / (max ** 2);
     const alpha_beta = m * (m * (1-m) / v - 1);
     const beta_beta = (1-m) * (m * (1-m) / v - 1)
-
+    
     window.userData.betaCoeffs = {alpha: alpha_beta, beta: beta_beta, max: max} //store coeffs
 
 
     //--------------------GAMMA DISTRIBUTION--------------------
-    let meanLnX = solveTimes.reduce((sum, t) => sum + (Math.log(t)), 0) / n;
-    let meanXLnX = solveTimes.reduce((sum, t) => sum + (t*Math.log(t)), 0) / n;
+    const meanLog = clean.reduce((sum, t) => sum + Math.log(t), 0) / n;
+    const s = Math.log(mean) - meanLog
+    //Intitial guess for alpha (approx by Minkas method)
+    let alpha_gamma = (3 - s + Math.sqrt((s - 3) ** 2 + 24 * s)) / (12 * s);
 
-    //initial closed-form estimate
-    let theta_gamma = meanXLnX - mean * meanLnX
-    let alpha_gamma = mean / theta_gamma
-    //console.log("   original alpha, theta",alpha_gamma,theta_gamma)
+    //Newton-Raphson refinement
+    for(let i = 0; i < maxIter; i++) {
+        const psiAlpha = digamma(alpha_gamma);
+        const psiPrimeAlpha = trigamma(alpha_gamma);
+        const step = (Math.log(alpha_gamma) - psiAlpha - s) / (1 / alpha_gamma - psiPrimeAlpha);
+        alpha_gamma -= step;
+        if(Math.abs(step) < tol) break; //convergence check
+        if(alpha_gamma <= 0) alpha_gamma = 1e-3;
+    }
 
-    //bias correction
-    theta_gamma *= n / (n-1)
-    alpha_gamma = alpha_gamma - (1/n) * 
-        (3*alpha_gamma 
-        - (2/3)*(alpha_gamma/(1+alpha_gamma)) 
-        - (4/5)*(alpha_gamma/((1+alpha_gamma)**2)))
-    //console.log("   new alpha, theta",alpha_gamma,theta_gamma)
+    const theta_gamma = mean / alpha_gamma;
 
     window.userData.gammaCoeffs = {alpha: alpha_gamma, theta: theta_gamma} //store coeffs
 
 
     //--------------------LOGIT DISTRIBUTION--------------------    
-    const safeMax = max*1.01
-    let meanLogit = solveTimes.reduce((sum, t) => sum + (logit(t/safeMax)), 0) / n;
-    let stdLogit = solveTimes.reduce((sum, t) => sum + (logit(t/safeMax) - meanLogit) ** 2, 0) / n;
-    //console.log("mean logit:",meanLogit,"std logit:",stdLogit)
-    window.userData.logitCoeffs = {mu: meanLogit, sigma: stdLogit, max: safeMax}
+    if(clean.length < 5) throw new Error("Need >= 5 positive solve times for logit")
+    //logit-transform, avoid exact 0 or 1 by clamping tiny epsilon
+    const z = trimmed.map(t => {
+        const p = Math.min(Math.max(t / M, eps), 1 - eps);
+        return Math.log(p / (1 - p));
+    })
+    //MLE in logit-space
+    const logitN = z.length;
+    const meanLogit = z.reduce((s, v) => s + v, 0) / logitN;
+    const stdLogit = Math.sqrt(
+        z.reduce((s, v) => s + (v - meanLogit) ** 2, 0) / (logitN - 1)
+    )
+
+    window.userData.logitCoeffs = {mu: meanLogit, sigma: stdLogit, max: M}
 
 
     //--------------------LOG DISTRIBUTION--------------------
-    const mu_log = Math.log((mean ** 2) / Math.sqrt((mean ** 2) + (std ** 2)))
-    const var_log = Math.log(1 + (std ** 2) / (mean ** 2))
+    const logTimes = clean.map(t => Math.log(t));
+    const mu_log = logTimes.reduce((a, b) => a + b, 0) / n;
+    const var_log = logTimes.reduce((sum, t) => sum + (t - mu_log) ** 2, 0) / n;
 
     window.userData.logCoeffs = {mu: mu_log, sigma: Math.sqrt(var_log)}
 }
@@ -660,7 +748,8 @@ function createDistributionPDFs() {
     //--------------------LOGIT DISTRIBUTION--------------------
     sum = 0
     const logitData = binData.map(([x]) => {
-        const y = logitNormPDF(x/logitCoeffs.max, logitCoeffs.mu, logitCoeffs.sigma) / logitCoeffs.max
+        let y = 0;
+        if( x < logitCoeffs.max) y = logitNormPDF(x/logitCoeffs.max, logitCoeffs.mu, logitCoeffs.sigma) / logitCoeffs.max
         sum += y
         return [x, y]
     })
@@ -762,7 +851,8 @@ function createDistributionCDFs() {
 
     for(let i = 0; i < cdf.length; i++) {
         const x = cdf[i][0]
-        const distribY = logitNormCDF(x/logitCoeffs.max, logitCoeffs.mu, logitCoeffs.sigma)
+        let distribY = 1;
+        if(x < logitCoeffs.max) distribY = logitNormCDF(x/logitCoeffs.max, logitCoeffs.mu, logitCoeffs.sigma)
         logitCDF.push([x,distribY])
     }
     window.userData.distribCdfData[4] = logitCDF;
