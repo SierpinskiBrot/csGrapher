@@ -18,7 +18,7 @@ The buttons on the left allow you to toggle which series to see on the graph (ex
 The buttons on the right are to edit the axes of the graph. You can choose whether to have the date or the solve # on the x axis, 
 and can change the scale of either axis from linear to logarithmic. Note that using logarithmic on the x-axis will only works with solve #, not date
 
-On the right there is also 'Log-Log Analysis Mode'. This displays the log-log regression of the solve data and forecasts it into the future. Using the offset input underneath, it can also forecast into the past 
+On the right there is also 'Power Law Analysis Mode'. This displays the power law regression of the solve data and forecasts it into the future. 
 
 
 ## Histogram tab
