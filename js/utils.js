@@ -1,4 +1,4 @@
-export { makeArrayOfArrays, binarySearchInsertIdx, round, dhm, sleep, createButton, parseTime, nonlinearExponentialFit, exponentialRegression, logLogRegression };
+export { makeArrayOfArrays, binarySearchInsertIdx, round, dhm, sleep, createButton, parseTime, nonlinearExponentialFit};
 
 
 // Utility to make N arrays
@@ -83,89 +83,6 @@ function parseTime(t) {
     }
 }
 
-/*
-Performs exponential regression (y = a * e^(b x)) on an array of Y-values.
-X-values are taken as the indices (0, 1, 2, ...).
-*/
-function exponentialRegression(data) {
-    // Filter out non-positive Y (ln undefined) and map to {x,y}
-    const points = data
-        .map((y, x) => ({ x, y }))
-        .filter(pt => pt.y > 0);
-
-    const n = points.length;
-    if (n === 0) {
-        throw new Error("At least one positive y-value is required.");
-    }
-
-    // Compute sums for the normal equations
-    let sumX = 0, sumLnY = 0, sumXlnY = 0, sumX2 = 0;
-    for (const { x, y } of points) {
-        const lnY = Math.log(y);
-        sumX += (x+1);
-        sumLnY += lnY;
-        sumXlnY += (x + 1) * lnY;
-        sumX2 += (x + 1) * (x + 1);
-    }
-
-    // Solve for b 
-    const denom = n * sumX2 - sumX * sumX;
-    if (denom === 0) {
-        throw new Error("Cannot compute regression (all x-values identical?).");
-    }
-    const b = (n * sumXlnY - sumX * sumLnY) / denom;
-
-    // Then ln(a) 
-    const lnA = (sumLnY - b * sumX) / n;
-    const a = Math.exp(lnA);
-
-    return { a, b };
-}
-
-/**
- * Performs a log–log regression on an array of positive values.
- * Treats x = index+1 (so x starts at 1).
- * Models y ≈ A * x^B.
- *
- * @param {number[]} data  Array of y values (must be > 0).
- * @returns {{ A: number, B: number }}  Regression constants so y ≈ A * x^B
- */
-function logLogRegression(data, offset = 0) {
-  // Prepare arrays of ln(x) and ln(y), skipping any non-positive y
-  const logX = [];
-  const logY = [];
-  
-  for (let i = 0; i < data.length; i++) {
-    const y = data[i];
-    const x = i + 1 + offset;            // avoid log(0)
-    if (y > 0) {
-      logX.push(Math.log(x));
-      logY.push(Math.log(y));
-    }
-  }
-  
-  const n = logX.length;
-  if (n === 0) {
-    throw new Error("No positive data points to regress.");
-  }
-  
-  // Compute sums needed for the linear regression
-  const sumX  = logX.reduce((a, b) => a + b, 0);
-  const sumY  = logY.reduce((a, b) => a + b, 0);
-  const sumXY = logX.reduce((a, xi, i) => a + xi * logY[i], 0);
-  const sumXX = logX.reduce((a, xi) => a + xi * xi, 0);
-  
-  // slope B = (n*Σ(xy) - Σx*Σy) / (n*Σ(x^2) - (Σx)^2)
-  const B = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
-  
-  // intercept C = (Σy - B*Σx) / n  where C = ln(A)
-  const C = (sumY - B * sumX) / n;
-  
-  // Convert back: A = e^C
-  const A = Math.exp(C);
-  
-  return { A, B };
-}
 
 /**
  * Quick log linear regression to get an initial guess for [A,B].
@@ -295,4 +212,36 @@ function nonlinearExponentialFit(x, y, opts = {}) {
     console.log("a",A,"b",B)
     return { A, B };
 }
+
+export function rowsToUPlotCols(rows, isDate) {
+  if (!rows.length) return [];
+
+  const nSeries = rows[0].length;
+  const cols = Array.from({length: nSeries}, () => []);
+
+  for (const r of rows) {
+    let x = r[0];
+
+    // 1  X is a Date() ----------------------------------------------
+    if (x instanceof Date)          x = x.getTime() / 1000;      // ms → s
+
+    // 2  X is milliseconds (big number > 1e12) ----------------------
+    else if (isDate && x > 1e12) x = x / 1000;
+
+    // 3  X is already seconds or a solve-index ----------------------
+    cols[0].push(x);
+
+    // copy Y columns unchanged
+    for (let i = 1; i < nSeries; i++) cols[i].push(r[i]);
+  }
+  return cols;
+}
+
+export let xAxisIsDate = false;        // default
+export function setXAxisMode(isDate) { xAxisIsDate = isDate; }
+export let xAxisIsLog = false;
+export function setXAxisLog(isLog) { xAxisIsLog = isLog; }
+export let yAxisIsLog = false;
+export function setYAxisLog(isLog) { yAxisIsLog = isLog; }
+
 

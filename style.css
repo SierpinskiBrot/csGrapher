@@ -15,6 +15,15 @@
   --on-error: #fafbe7;
 }
 
+.u-series > * {
+    padding: 0px;
+    line-height: 15px;
+}
+
+.u-legend .u-off > * {
+    display: none;
+}
+
 html, body {
     margin: 0px;
     height: 100vh;

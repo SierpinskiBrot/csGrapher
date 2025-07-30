@@ -1,10 +1,11 @@
 import "../lib/dygraph.js";
 import "../lib/dygraph-extra.js"
+import "../lib/uPlot.iife.min.js";
 
 import { makeArrayOfArrays, binarySearchInsertIdx, round, parseTime} from "./utils.js"
-import { graphTabStartup } from "./graphTab.js";
+import { graphTabStartup, resetRegressions } from "./graphTab.js";
 import { histogramTabStartup, rangeSelectorApply } from "./histogramTab.js";
-import { updatePBTable, statisticsTabStartup } from "./statisticsTab.js"
+import { updatePBTable, pbTabStartup } from "./pbTab.js"
 
 
 window.selectedSess = 0; //selected session from the cstimer
@@ -55,7 +56,6 @@ graphButton.addEventListener("click", function () {
     window.resetContainers();
     graphContainer.style.display = "flex";
     graphButton.classList.add("pressed");
-    window.g.resize();
     window.updateGraph();
 })
 statsButton.addEventListener("click", function() {
@@ -82,8 +82,8 @@ function dropdownOnChange() {
     window.selectedSess = document.getElementById("title-dropdown").value;
     //Only update what is on screen
     if(window.currentTab == "graph") { 
+        resetRegressions();
         window.updateGraph();
-        window.g.resetZoom();
     }
 
     else if (window.currentTab == "hist") {
@@ -145,7 +145,7 @@ jsonDataFile.addEventListener("change", function() {
         
         graphTabStartup();
         histogramTabStartup();
-        statisticsTabStartup();
+        pbTabStartup();
         
     }
 
@@ -429,8 +429,8 @@ class UserData {
             for (let i = 0; i < solves.length; i++) {
                 const newVal = solves[i][1];
                 if (i < x) { //Cant make an average without enough data
-                    if(index == undefined) { solves[i].push(NaN); } 
-                    else { solves[i].splice(index,0,NaN); }
+                    if(index == undefined) { solves[i].push(null); } 
+                    else { solves[i].splice(index,0,null); }
                     // Insert new solve time in sorted position
                     const insertIdx = binarySearchInsertIdx(windo, newVal);
                     if (insertIdx === -1) windo.push(newVal);
@@ -473,8 +473,8 @@ class UserData {
             for (let i = 0; i < solves.length; i++) {
                 const newVal = solves[i][1];
                 if (i < x) { //Cant make an average without enough data
-                    if(index == undefined) { solves[i].push(NaN); } 
-                    else { solves[i].splice(index,0,NaN); }
+                    if(index == undefined) { solves[i].push(null); } 
+                    else { solves[i].splice(index,0,null); }
                     windo.push(newVal)
                 } else {
                     windo.splice(0,1)  // Remove oldest solve from window
@@ -505,7 +505,7 @@ class UserData {
         for(let j = 0; j < this.numSessions; j++){
             if(this.solves[j].length != 0) {
 
-                const seriesStatistics = {};
+                const seriesPBs = {};
                 const times = []
                 const dates = []
                 const solveNums = []
@@ -560,17 +560,17 @@ class UserData {
                     }
                 }
 
-                seriesStatistics.times = times;
-                seriesStatistics.dates = dates;
-                seriesStatistics.solveNums = solveNums;
-                seriesStatistics.bestSinceLastPB = bestSinceLastPB;
+                seriesPBs.times = times;
+                seriesPBs.dates = dates;
+                seriesPBs.solveNums = solveNums;
+                seriesPBs.bestSinceLastPB = bestSinceLastPB;
 
                 //index is undefined for the original series, 
                 //must be specified for additional series so they are in the right order
                 if (index == undefined) {
-                    this.pbInfo[j].push(seriesStatistics);
+                    this.pbInfo[j].push(seriesPBs);
                 } else {
-                    this.pbInfo[j].splice((idx - 1) / 2, 0, seriesStatistics)
+                    this.pbInfo[j].splice((idx - 1) / 2, 0, seriesPBs)
                 }
 
             }

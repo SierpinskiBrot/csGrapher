@@ -3,14 +3,16 @@
     <title>csGrapher</title>
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1, user-scalable=0">
     <link rel="stylesheet" type="text/css" href="lib/dygraph.css" />
+    <link rel="stylesheet" type="text/css" href="lib/uPlot.min.css" />
     <link rel="stylesheet" type="text/css" href="style.css">
     <script type="text/javascript" src="lib/dygraph.js"></script>
     <script type="text/javascript" src="lib/dygraph-extra.js"></script>
+    <script type="text/javascript" src="lib/uPlot.iife.min.js"></script>
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <script type="module" src="js/scripts.js"></script>
     <script type="module" src="js/themes.js"></script>
     <script type="module" src="js/histogramTab.js"></script>
-    <script type="module" src="js/statisticsTab.js"></script>
+    <script type="module" src="js/pbTab.js"></script>
 
 
 </head>
@@ -44,7 +46,7 @@
             <p>Histogram</p>
         </button>
         <button type="button" id="statsButton">
-            <p>Statistics</p>
+            <p>PBs</p>
         </button>
     </div>
     <div id="graphContainer" style="display: flex; flex-wrap: nowrap;">
@@ -108,9 +110,9 @@
             <div>
                 <div class="buttonsTitle"><p>Edit X-axis</p></div>
                 <div class="radio">
-                    <input type="radio" id="xSelectDate" name="xAxisData" checked>
+                    <input type="radio" id="xSelectDate" name="xAxisData">
                     <label for="xSelectDate">Date</label>
-                    <input type="radio" id="xSelectSolve" name="xAxisData">
+                    <input type="radio" id="xSelectSolve" name="xAxisData" checked>
                     <label for="xSelectSolve">Solve #</label>
                 </div>
                 <div class="radio">
@@ -135,46 +137,31 @@
                 <tbody>
                     <tr><th colspan="2">
                         <div style="display: flex;">
-                            <p style="flex-grow: 1;">Power Law Analysis</p>
-                            <button class="helpButton" onclick="document.getElementById('powerLawHintOverlay').style.display = 'flex';">?</button>
+                            <p style="flex-grow: 1;">Regression Analysis</p>
+                            <button class="helpButton" onclick="document.getElementById('regressionHintOverlay').style.display = 'flex';">?</button>
                         </div>
                     </th></tr>
                 </tbody>
                 <tbody>
-                    <tr><td colspan="2" style="padding: 0;">
-                        <div class="radio">
-                            <input type="radio" id="powerLawAnalysisOn" name="powerLawAnalysis">
-                            <label for="powerLawAnalysisOn">On</label>
-                            <input type="radio" id="powerLawAnalysisOff" name="powerLawAnalysis" checked>
-                            <label for="powerLawAnalysisOff">Off</label>
-                        </div>
-                    </td></tr>
                     <tr>
                         <td>Iterations:</td>
-                        <td><input style="width: -webkit-fill-available" type="number" min="1" step="1" value="1000" id="powerLawIterations"></input></td>
+                        <td><input style="width: -webkit-fill-available" type="number" min="1" max="999999" step="1" value="1000" id="powerLawIterations"></input></td>
                     </tr>
                     <tr>
-                        <td>Offset:</td>
-                        <td><input style="width: -webkit-fill-available" type="number" min="1" step="1" value="0" id="powerLawOffset"></input></td>
+                        <td style="text-align: center;">Name</td>
+                        <td style="text-align: center;">R^2</td>
                     </tr>
                     <tr>
-                        <td>R^2:</td>
-                        <td><p id="powerLawR2" style="text-align: left;">0.0</p></td>
+                        <td><button id="powerLawToggle" class="seriesToggle">Power Law</button></td>
+                        <td><p id="powerLawR2" class="R2val">N/A</p></td>
                     </tr>
-                </tbody>
-            </table>
-            <br>
-            <table class="formTable">
-                <tbody>
                     <tr>
-                        <th>Download as PNG</th>
+                        <td><button id="logLogToggle" class="seriesToggle">Log-Log</button></td>
+                        <td><p id="loglogR2" class="R2val">N/A</p></td>
                     </tr>
-                </tbody>
-                <tbody>
                     <tr>
-                        <td>
-                            <button onclick="window.saveGraphTabAsImg()">Open</button>
-                        </td>
+                        <td><button id="exponentialToggle" class="seriesToggle">Exponential</button></td>
+                        <td><p id="exponentialR2" class="R2val">N/A</p></td>
                     </tr>
                 </tbody>
             </table>
@@ -477,7 +464,7 @@
             <button class="closeHint" onclick="document.getElementById('createHintOverlay').style.display = 'none';">X</button>
         </div>
     </div>
-    <div id="powerLawHintOverlay" class="hintOverlay">
+    <div id="regressionHintOverlay" class="hintOverlay">
         <div class="hintContent">
             <table>
                 <th colspan="3" style="height: 40px;">
@@ -582,12 +569,11 @@
             <input id="seriesWidthSelector" type="number" class="width-input" min="0" max="10">
         </label>
         <div class="radio" id="seriesTimeStyleRadio">
-            <input type="radio" id="seriesTimePoints" name="seriesTimeStyle" checked>
+            <input type="radio" id="seriesTimePoints" name="seriesTimeStyle">
             <label for="seriesTimePoints">Points</label>
-            <input type="radio" id="seriesTimeLines" name="seriesTimeStyle">
+            <input type="radio" id="seriesTimeLines" name="seriesTimeStyle" checked>
             <label for="seriesTimeLines">Lines</label>
         </div>
         <button id="seriesCloseSelector" class="close-settings" onclick="document.getElementById('seriesSettingsBox').style.display = 'none'">X</button>
     </div>
-    <img style="display: none;" id="dygraphImage"/>
 </body>

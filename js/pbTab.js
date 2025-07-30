@@ -1,6 +1,6 @@
 import { dhm } from "./utils.js"
 import { themes } from "./themes.js"
-export { updatePBTable, statisticsTabStartup }
+export { updatePBTable, pbTabStartup }
 
 //create the list for stats tab
 function updatePBTable(sess, series) {
@@ -64,7 +64,7 @@ function updatePBTable(sess, series) {
     }
 }
 
-function statisticsTabStartup() {
+function pbTabStartup() {
     updatePBTable(0, 0)
     drawPBPredictionGraphs(0,0)
 }
