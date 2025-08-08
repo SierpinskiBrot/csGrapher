@@ -493,7 +493,7 @@ function legendAsTooltipPlugin({ className, style = { backgroundColor: themes[wi
 
         // show/hide tooltip on enter/exit
         overEl.addEventListener("mouseenter", () => {legendEl.style.display = null;});
-        //overEl.addEventListener("mouseleave", () => {legendEl.style.display = "none";});
+        overEl.addEventListener("mouseleave", () => {legendEl.style.display = "none";});
 
         // let tooltip exit plot
     //	overEl.style.overflow = "visible";

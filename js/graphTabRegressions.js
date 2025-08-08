@@ -4,7 +4,7 @@ export const regressions = [
   {
     id:     "powerLaw",
     label:  "Power-Law Fit",
-    color:  "#000000",
+    color:  "#ff0000",
     width:  3,
     r2: 0,
     A: 0,
@@ -17,7 +17,7 @@ export const regressions = [
   {
     id:     "logLog",
     label:  "Log-Log Fit",
-    color:  "#ff0000",
+    color:  "#000000",
     width:  2,
     r2: 0,
     A: 0,

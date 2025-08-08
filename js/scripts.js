@@ -6,6 +6,7 @@ import { makeArrayOfArrays, binarySearchInsertIdx, round, parseTime} from "./uti
 import { graphTabStartup, resetRegressions } from "./graphTab.js";
 import { histogramTabStartup, rangeSelectorApply } from "./histogramTab.js";
 import { updatePBTable, pbTabStartup } from "./pbTab.js"
+import { activityTabStartup, drawHeatmap } from "./activityTab.js";
 
 
 window.selectedSess = 0; //selected session from the cstimer
@@ -40,9 +41,11 @@ window.currentTab = "graph";
 const graphButton = document.getElementById("graphButton");
 const histogramButton = document.getElementById("histogramButton");
 const statsButton = document.getElementById("statsButton");
+const activityButton = document.getElementById("activityButton");
 const graphContainer = document.getElementById("graphContainer");
 const histogramContainer = document.getElementById("histogramContainer");
 const statsContainer = document.getElementById("statsContainer");
+const activityContainer = document.getElementById("activityContainer");
 window.resetContainers = function() {
     histogramContainer.style.display = "none";
     histogramButton.classList.remove("pressed");
@@ -50,6 +53,8 @@ window.resetContainers = function() {
     statsButton.classList.remove("pressed");
     graphContainer.style.display = "none";
     graphButton.classList.remove("pressed");
+    activityContainer.style.display = "none";
+    activityButton.classList.remove("pressed");
 }
 graphButton.addEventListener("click", function () {
     window.currentTab = "graph";
@@ -74,6 +79,13 @@ statsButton.addEventListener("click", function() {
     if(!clickOccured) {
         updatePBTable(window.dropdown.value,0) 
     }
+})
+activityButton.addEventListener("click", function() {
+    window.currentTab = "activity";
+    window.resetContainers();
+    activityContainer.style.display = "flex";
+    activityButton.classList.add("pressed");
+    drawHeatmap();
 })
 //#endregion
 
@@ -109,6 +121,9 @@ function dropdownOnChange() {
         if(!clickOccured) {
             updatePBTable(window.dropdown.value,0) 
         }
+    }
+    else if (window.currentTab == "activity") {
+        drawHeatmap();
     }
 
 }
@@ -146,6 +161,7 @@ jsonDataFile.addEventListener("change", function() {
         graphTabStartup();
         histogramTabStartup();
         pbTabStartup();
+        activityTabStartup();
         
     }
 
