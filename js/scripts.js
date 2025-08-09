@@ -156,7 +156,7 @@ jsonDataFile.addEventListener("change", function() {
         window.dropdown.setAttribute("value", window.selectedSess);
         window.dropdown.addEventListener("change", dropdownOnChange)
         document.getElementById("hintButton").after(window.dropdown)
-
+        debugger;
         
         graphTabStartup();
         histogramTabStartup();
@@ -242,6 +242,8 @@ class UserData {
         this.distribCdfData =      [[],           [],         [],         [],          [],          []];
         this.distribADids = ["normAD", "skewAD", "betaAD", "gammaAD", "logitAD", "logAD"]; //ids for elements showing AD statistic
         this.distribKSids = ["normKS", "skewKS", "betaKS", "gammaKS", "logitKS", "logKS"]; //ids for elements showing KS statistic
+
+        this.averageVisibilities = [false, false, false]
         
 
         //pb data for stats panel

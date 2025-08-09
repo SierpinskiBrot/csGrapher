@@ -44,6 +44,7 @@ export function drawHeatmap() {
     for(let d = 0; d < 7; d++) {
         for(let h = 0; h < 24; h++) {
             ctx.fillStyle = `rgba(0, 0, 255, ${binned[d][h] / max})`;
+            //if(binned[d][h] == 0) ctx.fillStyle = "#000"
             ctx.fillRect(left + h * cellW, top + d * cellH, cellW, cellH);
         }
     }

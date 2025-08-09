@@ -227,7 +227,8 @@ button.seriesToggle.pressed {
 
 #graphLeftButtons, #histLeftButtons {
     width: 20%;
-    overflow-y: auto
+    overflow-y: auto;
+    min-width: min-content
 }
 #statsLeftButtons {
     width: 15%;
@@ -235,6 +236,7 @@ button.seriesToggle.pressed {
 }
 #graphRightButtons, #histRightButtons {
     width: 20%;
+    min-width: min-content
 }
 #statsRightButtons {
     width: 25%;
@@ -428,6 +430,23 @@ table.formTable > tbody > tr > th, #predictionsTable > tbody > tr > th, #pbInfoT
 canvas.statsRegressionCanvas {
     border-bottom: solid thin var(--on-background);
     width: 100%
+}
+
+#histRangeLow::-webkit-inner-spin-button {
+display: none;
+}
+#histRangeLow::-webkit-outer-spin-button {
+display: none;
+}
+#histRangeHigh::-webkit-inner-spin-button {
+display: none;
+}
+#histRangeHigh::-webkit-outer-spin-button {
+display: none;
+}
+#histRangeLow, #histRangeHigh {
+    border-width: 1px;
+    padding: 1px;
 }
 
 

@@ -37,22 +37,61 @@ document.getElementById("creationDefaults").addEventListener("click", function()
 //distribution buttons
 document.getElementById("showHistNorm").addEventListener("click", function() {
     window.userData.distribVisibilities[0] = !window.userData.distribVisibilities[0];
+    window.userData.distribVisibilities[0]
+        ? document.getElementById("showHistNorm").classList.add("pressed")
+        : document.getElementById("showHistNorm").classList.remove("pressed")
     updateHist(); })
 document.getElementById("showHistSkew").addEventListener("click", function() {
     window.userData.distribVisibilities[1] = !window.userData.distribVisibilities[1];
+    window.userData.distribVisibilities[1]
+        ? document.getElementById("showHistSkew").classList.add("pressed")
+        : document.getElementById("showHistSkew").classList.remove("pressed")
     updateHist(); })
 document.getElementById("showHistBeta").addEventListener("click", function() {
     window.userData.distribVisibilities[2] = !window.userData.distribVisibilities[2];
+    window.userData.distribVisibilities[2]
+        ? document.getElementById("showHistBeta").classList.add("pressed")
+        : document.getElementById("showHistBeta").classList.remove("pressed")
     updateHist(); })
 document.getElementById("showHistGamma").addEventListener("click", function() {
     window.userData.distribVisibilities[3] = !window.userData.distribVisibilities[3];
+    window.userData.distribVisibilities[3]
+        ? document.getElementById("showHistGamma").classList.add("pressed")
+        : document.getElementById("showHistGamma").classList.remove("pressed")
     updateHist(); })
 document.getElementById("showHistLogit").addEventListener("click", function() {
     window.userData.distribVisibilities[4] = !window.userData.distribVisibilities[4];
+    window.userData.distribVisibilities[4]
+        ? document.getElementById("showHistLogit").classList.add("pressed")
+        : document.getElementById("showHistLogit").classList.remove("pressed")
     updateHist(); })
 document.getElementById("showHistLog").addEventListener("click", function() {
     window.userData.distribVisibilities[5] = !window.userData.distribVisibilities[5];
+    window.userData.distribVisibilities[5]
+        ? document.getElementById("showHistLog").classList.add("pressed")
+        : document.getElementById("showHistLog").classList.remove("pressed")
     updateHist(); })
+
+//average buttons
+document.getElementById("showHistMean").addEventListener("click", function() {
+    window.userData.averageVisibilities[0] = !window.userData.averageVisibilities[0];
+    window.userData.averageVisibilities[0]
+        ? document.getElementById("showHistMean").classList.add("pressed")
+        : document.getElementById("showHistMean").classList.remove("pressed")
+    updateHist(); })
+document.getElementById("showHistMedian").addEventListener("click", function() {
+    window.userData.averageVisibilities[1] = !window.userData.averageVisibilities[1];
+    window.userData.averageVisibilities[1]
+        ? document.getElementById("showHistMedian").classList.add("pressed")
+        : document.getElementById("showHistMedian").classList.remove("pressed")
+    updateHist(); })
+document.getElementById("showHistMode").addEventListener("click", function() {
+    window.userData.averageVisibilities[2] = !window.userData.averageVisibilities[2];
+    window.userData.averageVisibilities[2]
+        ? document.getElementById("showHistMode").classList.add("pressed")
+        : document.getElementById("showHistMode").classList.remove("pressed")
+    updateHist(); })
+
 
 const probDistribButton = document.getElementById("clickProbDistrib")
 const cumDistribButton = document.getElementById("clickCumDistrib")
@@ -213,6 +252,9 @@ window.updateHist = function () {
             labels: labels,
             valueRange: null,
         });
+        window.h.ready(function () {
+            window.h.setAnnotations(getAnnotations())
+        })
     }
 
     else if(window.distribMode == "cdf") {
@@ -254,9 +296,45 @@ window.updateHist = function () {
     
 };
 
+function getAnnotations() {
+    const vis = window.userData.averageVisibilities
+    const avgs = window.histAverages
+    const annotations = []
+    if(vis[0]) {
+        annotations.push({
+            series: "Probability",
+            x: avgs.mean,
+            shortText: "Mean",
+            width: 33,
+            attachAtBottom: true,
+            tickHeight: 5
+        })
+    }
+    if(vis[1]) {
+        annotations.push({
+            series: "Probability",
+            x: avgs.median,
+            shortText: "Median",
+            width: 45,
+            attachAtBottom: true,
+            tickHeight: 25
+        })
+    }
+    if(vis[2]) {
+        annotations.push({
+            series: "Probability",
+            x: avgs.modeBucket,
+            shortText: "Mode",
+            width: 45,
+            attachAtBottom: true,
+            tickHeight: 45
+        })
+    }
+    return annotations;
+}
 
 
-function createHistRange(bucketSize, range, offset) {
+function createHistRange2(bucketSize, range, offset) {
     const bucketSize_ = parseFloat(bucketSize)
     const hist = []
     const solves = window.userData.solves[window.selectedSess]
@@ -278,6 +356,85 @@ function createHistRange(bucketSize, range, offset) {
         hist[bucket][1] += 1;
     }
     return hist;
+}
+function createHistRange(bucketSize, range, offset) {
+  const bucketSize_ = parseFloat(bucketSize);
+  const solves = window.userData.solves[window.selectedSess];
+  const numSolves = solves.length;
+
+  // figure out the slice [start, end) we’re using
+  const end = Math.max(0, numSolves - offset);
+  const start = Math.max(0, end - range);
+  const n = end - start;
+
+  // empty case
+  if (n <= 0) {
+    window.histAverages = { mean: NaN, median: NaN, modeBucket: NaN, modeCount: 0 };
+    return [];
+  }
+
+  // one pass: bucket counts, sum, times[], mode tracking
+  const counts = [];                   // sparse array: counts[bucket] = frequency
+  const times = new Float64Array(n);   // for exact median via quickselect
+  let sum = 0;
+  let maxBucket = -1;
+  let modeBucket = 0, modeCount = 0;
+
+  for (let i = start, k = 0; i < end; i++, k++) {
+    const t = solves[i][1];
+    times[k] = t;
+    sum += t;
+
+    const bucket = (t / bucketSize_) | 0; // fast floor
+    const c = (counts[bucket] = (counts[bucket] | 0) + 1);
+    if (c > modeCount) { modeCount = c; modeBucket = bucket; }
+    if (bucket > maxBucket) maxBucket = bucket;
+  }
+
+  // exact median with Quickselect (linear time expected)
+  function selectKth(arr, k) {
+    let lo = 0, hi = arr.length - 1;
+    while (true) {
+      const pivot = arr[(lo + hi) >> 1];
+      let i = lo, j = hi;
+      while (i <= j) {
+        while (arr[i] < pivot) i++;
+        while (arr[j] > pivot) j--;
+        if (i <= j) { const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp; i++; j--; }
+      }
+      if (k <= j) hi = j;
+      else if (k >= i) lo = i;
+      else return arr[k];
+    }
+  }
+  let median;
+  if (n & 1) {
+    median = selectKth(times, n >> 1);
+  } else {
+    const k = (n >> 1);
+    const a = selectKth(times, k - 1);
+    const b = selectKth(times, k);
+    median = (a + b) * 0.5;
+  }
+
+  const mean = sum / n;
+
+  // build hist in the same shape as before: [[bucketStart, count], ...]
+  const hist = new Array(maxBucket + 1);
+  for (let b = 0; b <= maxBucket; b++) {
+    hist[b] = [b * bucketSize_, counts[b] | 0];
+  }
+
+  // expose summary
+  window.histAverages = {
+    mean: Math.floor(mean/bucketSize_)*bucketSize_,
+    median: Math.floor(median/bucketSize_)*bucketSize_,
+    // mode is the bucket with the most solves (not the raw mode)
+    modeBucket: modeBucket * bucketSize_,
+    modeCount
+  };
+
+  return hist;
 }
 
 
@@ -354,8 +511,9 @@ async function animateHistRange() {
         window.h.updateOptions({
             file: hist,
             dateWindow: [0,xmax],
-            labels: ["Time(s)", "Frequency"],
+            labels: ["Time(s)", "Probability"],
         });
+        window.h.setAnnotations(getAnnotations())
 
         await sleep(frameTime)
 
@@ -402,6 +560,7 @@ async function animateHistCreate() {
     } else {
         window.h.updateOptions({valueRange: null})
     }
+    
 
     //for the progress bar
     const totalFrames = Math.floor(numSolves/step)
@@ -416,6 +575,7 @@ async function animateHistCreate() {
     for(let b = 0; b <= max+1; b+= bucketSize) {hist.push([b,0]);}
 
     //animate
+    /*
     for(let i = 0; i < numSolves; i++) {
         if(!window.creationPlaying) break; //animation can be cancelled with stop button
 
@@ -429,8 +589,9 @@ async function animateHistCreate() {
             window.h.updateOptions({
                 file: hist,
                 dateWindow: [0,Xmax],
-                labels: ["Time(s)", "Frequency"],
+                labels: ["Time(s)", "Probability"],
             });
+            window.h.setAnnotations(getAnnotations())
             
             //update progress bar
             frame++
@@ -438,6 +599,30 @@ async function animateHistCreate() {
 
             await sleep(1)
         } 
+    }
+        */
+
+    for(let range = 0; range < numSolves-step; range+=step) {
+        if(!window.creationPlaying) break; //animation can be cancelled with stop button
+
+        
+        const hist = createHistRange(bucketSize,range,numSolves-range)
+
+        //only draw every STEP frames, so animation isnt too slow
+        
+        window.h.updateOptions({
+            file: hist,
+            dateWindow: [0,Xmax],
+            labels: ["Time(s)", "Probability"],
+        });
+        window.h.setAnnotations(getAnnotations())
+        
+        //update progress bar
+        frame++
+        progressBar.style.width = `${(frame/totalFrames)*100}%`
+
+        await sleep(1)
+         
     }
 
     //reset the button
@@ -488,6 +673,8 @@ function histogramTabStartup() {
                 strokeWidth: 2 
             } } })
     }
+
+    histogramButton.click()
 
 }
 
