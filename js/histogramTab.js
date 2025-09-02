@@ -150,8 +150,9 @@ function rangeSelectorApply() {
 
     const hist = createHistRange(bucketSize, range, offset)
     window.userData.hist[window.selectedSess] = hist
-
+    genSessionDistribData();
     updateHist()
+    
 }
 
 //resets the range selector to show the max range
@@ -192,8 +193,6 @@ histogramButton.addEventListener("click", function () {
     histBucketInput.value = window.userData.histDefaultWidths[window.selectedSess]
     window.resetRangeSelector();
     rangeSelectorApply()
-    window.genSessionDistribData();
-    window.updateHist();
     if (window.distribMode == "pdf") window.h.resetZoom();
     window.userData.genSlidingWindowDefaults(); window.userData.genCreationDefaults();
 })
@@ -201,10 +200,10 @@ histogramButton.addEventListener("click", function () {
 
 
 window.genSessionDistribData = function() {
+    createCDF()
     calculateDistributionCoeffs();
     createDistributionPDFs();
 
-    createCDF()
     createDistributionCDFs();
     performAndersonDarlingTest();
     performKSTest();
@@ -221,17 +220,19 @@ window.updateHist = function () {
         const distrib = window.userData.distribData;
         const dLabels = window.userData.distribLabels;
         const numDistribs = distrib.length;
-
-        const numSolves = window.userData.solves[window.selectedSess].length;
+        
+        const start = document.getElementById("histRangeLow").value
+        const end = document.getElementById("histRangeHigh").value
+        const numSolves = end - start + 1;
         const bucketWidth = hist[1][0] - hist[0][0];
         
         // Start building combined data
         const combined = hist.map(([x, y], i) => {
-            const row = [x, y/numSolves];
+            const row = [x, y];
 
             for(let d = 0; d < numDistribs; d++) {
                 if(window.userData.distribVisibilities[d]) {
-                    row.push(distrib?.[d]?.[i]?.[1] * bucketWidth?? null);
+                    row.push(distrib?.[d]?.[i]?.[1] * bucketWidth * numSolves?? null);
                 }
             }
 
@@ -239,7 +240,7 @@ window.updateHist = function () {
         });
 
         // Build labels array
-        const labels = ["Time(s)", "Probability"];
+        const labels = ["Time(s)", "Frequency"];
         for(let d = 0; d < numDistribs; d++) {
             if(window.userData.distribVisibilities[d]) {
                 labels.push(dLabels[d])
@@ -258,7 +259,7 @@ window.updateHist = function () {
     }
 
     else if(window.distribMode == "cdf") {
-        
+        createDistributionCDFs() 
         const cdf = window.userData.cdf
         const distribCdf = window.userData.distribCdfData
         const dLabels = window.userData.distribLabels;
@@ -302,7 +303,7 @@ function getAnnotations() {
     const annotations = []
     if(vis[0]) {
         annotations.push({
-            series: "Probability",
+            series: "Frequency",
             x: avgs.mean,
             shortText: "Mean",
             width: 33,
@@ -312,7 +313,7 @@ function getAnnotations() {
     }
     if(vis[1]) {
         annotations.push({
-            series: "Probability",
+            series: "Frequency",
             x: avgs.median,
             shortText: "Median",
             width: 45,
@@ -322,7 +323,7 @@ function getAnnotations() {
     }
     if(vis[2]) {
         annotations.push({
-            series: "Probability",
+            series: "Frequency",
             x: avgs.modeBucket,
             shortText: "Mode",
             width: 45,
@@ -442,7 +443,9 @@ window.createCDF = function() {
     console.log("createCDF called")
 
     const solves = window.userData.solves[window.selectedSess];
-    const times = solves.map(s => s[1]);
+    const start = document.getElementById("histRangeLow").value
+    const end = document.getElementById("histRangeHigh").value
+    const times = solves.slice(start-1,end).map(s => s[1]);
 
     // Sort ascending
     const sorted = [...times].sort((a, b) => a - b);
@@ -463,7 +466,7 @@ window.createCDF = function() {
     window.userData.cdfRange = [0,max];
     window.userData.cdf = Array.from(cdf.entries());
     return Array.from(cdf.entries());
-
+    
 }
 
 
@@ -511,7 +514,7 @@ async function animateHistRange() {
         window.h.updateOptions({
             file: hist,
             dateWindow: [0,xmax],
-            labels: ["Time(s)", "Probability"],
+            labels: ["Time(s)", "Frequency"],
         });
         window.h.setAnnotations(getAnnotations())
 
@@ -613,7 +616,7 @@ async function animateHistCreate() {
         window.h.updateOptions({
             file: hist,
             dateWindow: [0,Xmax],
-            labels: ["Time(s)", "Probability"],
+            labels: ["Time(s)", "Frequency"],
         });
         window.h.setAnnotations(getAnnotations())
         
@@ -657,9 +660,8 @@ function histogramTabStartup() {
         );
     });
 
-    window.genSessionDistribData();
-    window.resetRangeSelector();
-    genDefaultColumnWidths();
+    
+    
 
     //styling for the distributions
     const dNames = window.userData.distribLabels
@@ -674,7 +676,11 @@ function histogramTabStartup() {
             } } })
     }
 
-    histogramButton.click()
+    window.resetRangeSelector();
+    genDefaultColumnWidths();
+    histBucketInput.value = window.userData.histDefaultWidths[window.selectedSess]
+    rangeSelectorApply()
+    window.updateHist();
 
 }
 
@@ -712,7 +718,11 @@ function genDefaultColumnWidths() {
 //calculate the coefficients (parameters) for each of the types of distribution
 function calculateDistributionCoeffs() {
     console.log("calculateDistributionCoeffs called")
-    const solveTimes = window.userData.solves[window.selectedSess].map(s => s[1]);
+    const start = document.getElementById("histRangeLow").value
+    const end = document.getElementById("histRangeHigh").value
+    if(end - start < 5) return alert("Distributions not calculated (<5 solves selected)");
+    const solveTimes = window.userData.solves[window.selectedSess].map(s => s[1]).slice(start-1,end);
+
     const clean = solveTimes.filter(t => t > 0 && Number.isFinite(t));
     const sorted = [...clean].sort((a,b) => a - b)
     const trim = 0.01, q = 0.999, pad = 0.05;
@@ -722,7 +732,7 @@ function calculateDistributionCoeffs() {
     
     const eps = 1e-12;
     const maxIter = 5000, tol = 1e-12;
-    const n =  window.userData.solves[window.selectedSess].length;
+    const n =  end - start + 1;
 
     //robust scale parameter M (high quantile * (1 + pad) )
     const idx = (trimmed.length - 1) * q;

@@ -17,8 +17,90 @@ window.addEventListener("resize", e => {
     u.setSize(getSize());
 });
 
+document.getElementById("presetCstimer").onclick = () => {
+    for(let i = 0; i < window.userData.labels.length; i++) {
+        const lbl = window.userData.labels[i];
+        window.userData.widths[i-1] = 3;
+        window.userData.visibilities[i-1] = true;
+
+        if(lbl === 'Time') {
+            window.userData.colors[i-1] = "#555";
+            window.userData.colors[i] = "#555";
+        }
+        else if(lbl === "ao5") {
+            window.userData.colors[i-1] = "#F00";
+            window.userData.colors[i] = "#F00";
+        }
+        else if(lbl === "ao12") {
+            window.userData.colors[i-1] = "#00F";
+            window.userData.colors[i] = "#00F";
+        }
+        else {
+            window.userData.visibilities[i-1] = false;
+        }
+    }
+    createAllSeriesRows();
+    buildMainPlot();
+}
+document.getElementById("presetDefault").onclick = () => {
+    const newColors = ["#084C61","#084C61","#177E89","#177E89","#86A06A","#86A06A","#F2934A","#F2934A","#E45E3D","#E45E3D"];
+    const newWidths = [2,         2,          2,           2,          2,          2,          2,          2,          2,           2]
+    const newVisibilities = [true,true,       true,        false,      true,       false,      true,       false,      true,        false];
+    for(let i = 0; i < window.userData.labels.length - 10; i++) {
+        newColors.push("#000")
+        newWidths.push(2)
+        newVisibilities.push(false)
+    }
+    window.userData.colors = newColors;
+    window.userData.widths = newWidths;
+    window.userData.visibilities = newVisibilities;
+    createAllSeriesRows();
+    buildMainPlot();
+}
+document.getElementById("presetGrayscale").onclick = () => {
+    const newColors = [];
+    const newWidths = []
+    const newVisibilities = [];
+    const n = window.userData.labels.length-1;
+    for(let i = 0; i < n; i+=2) {
+        const gray = Math.floor(255 * i / (n-1));
+        newColors.push(rgbToHex(gray, gray, gray))
+        newColors.push(rgbToHex(gray, gray, gray))
+        newWidths.push(2)
+        newWidths.push(2)
+        newVisibilities.push(true)
+        newVisibilities.push(false)
+    }
+    window.userData.colors = newColors;
+    window.userData.widths = newWidths;
+    window.userData.visibilities = newVisibilities;
+    createAllSeriesRows();
+    buildMainPlot();
+}
+
+function rgbToHex(r, g, b) {
+  return (
+    "#" +
+    [r, g, b]
+      .map((x) => {
+        const hex = x.toString(16);
+        return hex.length === 1 ? "0" + hex : hex;
+      })
+      .join("")
+  );
+}
+
+document.getElementById("allSeriesWidthSelector").addEventListener("change", (e) => {
+    const val = parseInt(e.target.value);
+    for(let i = 0; i < window.userData.widths.length; i++) {
+        window.userData.widths[i] = val;
+    }
+    buildMainPlot();
+})
+
 
 function buildMainPlot() {
+    if (!window.userData) return; // No data loaded yet
     const sess = document.getElementById("title-dropdown").value;
     const rows = xAxisIsDate
         ? window.userData.solves[sess]     // [ date, y1, y2 … ]
@@ -198,6 +280,7 @@ function createSeriesRow(i) {
         settings.style.display = settings.style.display === 'block' ? 'none' : 'block';
         settings.style.top = e.pageY + "px"
         settings.style.left = e.pageX + 10 + "px"
+        document.getElementById("seriesSettingsHeader").innerText = "Series Settings (" + window.userData.labels[i] + ")"
 
         //use the name attribute to know which series is being edited
         settings.name = i+1 
@@ -253,6 +336,7 @@ document.getElementById("addSeriesBtn").addEventListener("click", () => {
 
     if (isNaN(size) || size < 1) return alert("Please enter a valid number.");
     if (size == 1 || (type == "ao" && size == 2)) return alert("Bro")
+    if (!window.userData) return alert("Please upload a file first")
   
     const label1 = `${type}${size}`;
     const label2 = "PB "+label1
@@ -306,6 +390,13 @@ document.getElementById("addSeriesBtn").addEventListener("click", () => {
     updateGraph();
 });
 
+document.getElementById("allSeriesSettings").addEventListener("click", (e) => {
+    const settings = document.getElementById("allSeriesSettingsBox")
+        //make the settings box visible and move it to the cursor
+        settings.style.display = settings.style.display === 'block' ? 'none' : 'block';
+        settings.style.top = e.pageY + "px"
+        settings.style.left = e.pageX + 10 + "px"
+})
 
 
 //Update the graph
@@ -328,6 +419,7 @@ ySelectLog.onclick    = () => { if (!yAxisIsLog)  { setYAxisLog(true);   buildMa
 const activeRegs = {powerLaw: false, logLog: false, exponential: false, linear: false};
 
 powerLawToggle.onclick = () => {
+    if(!window.userData) return alert("Please upload a file first"); 
     activeRegs.powerLaw = !activeRegs.powerLaw;
     if(activeRegs.powerLaw) {
         powerLawToggle.classList.add("pressed");
@@ -344,6 +436,7 @@ powerLawToggle.onclick = () => {
     buildMainPlot();
 }
 logLogToggle.onclick = () => {
+    if(!window.userData) return alert("Please upload a file first"); 
     activeRegs.logLog = !activeRegs.logLog;
     if(activeRegs.logLog) { 
         logLogToggle.classList.add("pressed");
@@ -359,6 +452,7 @@ logLogToggle.onclick = () => {
     buildMainPlot();
 }
 exponentialToggle.onclick = () => {
+    if(!window.userData) return alert("Please upload a file first"); 
     activeRegs.exponential = !activeRegs.exponential;
     if(activeRegs.exponential) {
         exponentialToggle.classList.add("pressed");

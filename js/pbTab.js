@@ -8,7 +8,11 @@ function updatePBTable(sess, series) {
     //calcRegressionCoeffs(sess, series)
     drawPBPredictionGraphs(sess, series)
     const seriesStats = window.userData.pbInfo[sess][series]
-    document.getElementById("bestSince").innerText = `The best time since your last PB was ${seriesStats.bestSinceLastPB.toFixed(3)}s`
+    document.getElementById("bestSince").innerText = `The best time since your last PB was ${seriesStats.bestSinceLastPB.toFixed(3)}s.
+                                                        The mean time since your last PB is ${seriesStats.meanSinceLastPB.toFixed(3)}s,
+                                                        with a standard deviation of ${seriesStats.stdSinceLastPB.toFixed(3)}s.`
+    //document.getElementById("meanSince").innerText = `The mean time since your last PB is ${seriesStats.meanSinceLastPB.toFixed(3)}s`
+    //document.getElementById("stdSince").innerText = `The standard deviation since your last PB is ${seriesStats.stdSinceLastPB.toFixed(3)}s`
     const pbStatsBody = document.getElementById("pbStatsBody")
     pbStatsBody.replaceChildren();
 

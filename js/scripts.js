@@ -19,7 +19,7 @@ const overlayIds = [
     'creationHintOverlay',
     'createHintOverlay',
     'distributionHintOverlay',
-    'powerLawHintOverlay'
+    'regressionHintOverlay'
 ];
 
 function setupOverlayDismiss(id) {
@@ -156,7 +156,7 @@ jsonDataFile.addEventListener("change", function() {
         window.dropdown.setAttribute("value", window.selectedSess);
         window.dropdown.addEventListener("change", dropdownOnChange)
         document.getElementById("hintButton").after(window.dropdown)
-        debugger;
+        //debugger;
         
         graphTabStartup();
         histogramTabStartup();
@@ -582,6 +582,15 @@ class UserData {
                 seriesPBs.dates = dates;
                 seriesPBs.solveNums = solveNums;
                 seriesPBs.bestSinceLastPB = bestSinceLastPB;
+                let sumSinceLastPB = 0;
+                for(let i = solveNums[solveNums.length-1]; i < this.solves[j].length; i++) {sumSinceLastPB += this.solves[j][i][idx]}
+                const numSinceLastPB = this.solves[j].length - solveNums[solveNums.length-1]
+                seriesPBs.meanSinceLastPB = sumSinceLastPB/numSinceLastPB;
+                let stdSinceLastPB = 0;
+                for(let i = solveNums[solveNums.length-1]; i < this.solves[j].length; i++) {stdSinceLastPB += (this.solves[j][i][idx]-seriesPBs.meanSinceLastPB)**2}
+                stdSinceLastPB /= numSinceLastPB;
+                stdSinceLastPB = stdSinceLastPB**0.5
+                seriesPBs.stdSinceLastPB = stdSinceLastPB;
 
                 //index is undefined for the original series, 
                 //must be specified for additional series so they are in the right order

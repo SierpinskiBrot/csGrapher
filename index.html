@@ -57,9 +57,10 @@
             <table id="toggleTable">
                 <tbody>
                     <tr>
-                        <th colspan="3" class="buttonsTitle">
+                        <th colspan="2" class="buttonsTitle">
                             <p>Toggle Series</p>
                         </th>
+                        <th style="background-color: var(--on-background)"><button type="button" class="seriesSettings"  style="box-shadow: none;" id="allSeriesSettings">></button></th>
                     </tr>
                 </tbody>
                 <tbody id="toggleTableBody">
@@ -243,8 +244,8 @@
                         <td>Y axis</td>
                         <td>
                             <select id="sldWinYaxis">
-                                <option value="dynamic">Dynamic</option>
                                 <option value="static">Static</option>
+                                <option value="dynamic">Dynamic</option>
                             </select>
                         </td>
                     </tr>
@@ -429,8 +430,9 @@
         </table>
         <div id="statsRightButtons">
             <table id="pbInfoTable">
-                <tbody><tr><th>Info</th></tr></tbody>
+                <tbody><tr><th colspan="2">Info</th></tr></tbody>
                 <tbody>
+                    
                     <tr>
                         <td>
                             <p id="bestSince"></p>
@@ -490,22 +492,47 @@
     <div id="regressionHintOverlay" class="hintOverlay">
         <div class="hintContent">
             <table>
-                <th colspan="3" style="height: 40px;">
-                    <p>Power Law Analysis Mode</p>
+                <th colspan="2" style="height: 40px;">
+                    <p>Regression Analysis Mode</p>
                 </th>
                 <tr>
-                    <td colspan="3">
+                    <td>Iterations</td>
+                    <td><p>How many iterations to run the regression for. <b>ONLY AFFECTS THE POWER LAW REGRESSION</b></p>
+                        <p>More iterations will result in a more accurate regression, but will take longer.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td>R^2</td>
+                    <td><p>A measure from 0 to 1 of how well the regression explains the data.</p>
+                        <p>For a very bad fit, this can be negative.</p>
+                        <p>This is only computed after running the regression to avoid lag.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Power Law</td>
+                    <td>
+                        <p>Fits data to y = A * N^(-B) + C using gradient descent.</p>
+                        <p>Will often overestimate the time of early solves, and may take a few seconds to compute.</p>
                         <a href="https://en.wikipedia.org/wiki/Power_law_of_practice">Power law of practice</a>
                     </td>
                 </tr>
                 <tr>
-                    <td>Iterations</td>
-                    <td><p>How many iterations to run the regression for. </p>
-                        <p>More iterations will result in a more accurate regression, but will take longer.</p>
+                    <td>Log-Log</td>
+                    <td>
+                        <p>Fits data to y = A * N^B using regression. This is often the best regression.</p>
+                        <p>Will appear as a straight line when graphed on log-log axes.</p>
                     </td>
                 </tr>
+                <tr>
+                    <td>Exponential</td>
+                    <td>
+                        <p>Fits data to y = A * e^(N*B) using regression. This regression is often too flat.</p>
+                        <p>Will appear as a straight line when graphed with a log y-axis</p>
+                    </td>
+                </tr>
+                
             </table>
-            <button class="closeHint" onclick="document.getElementById('powerLawHintOverlay').style.display = 'none';">X</button>
+            <button class="closeHint" onclick="document.getElementById('regressionHintOverlay').style.display = 'none';">X</button>
         </div>
     </div>
     <div id="distributionHintOverlay" class="hintOverlay">
@@ -583,6 +610,7 @@
         </div>
     </div>
     <div id="seriesSettingsBox" class="settings-box">
+        <b><p id="seriesSettingsHeader"></p></b>
         <label>
             Color:
             <input id="seriesColorSelector" type="color" class="color-input">
@@ -598,5 +626,21 @@
             <label for="seriesTimeLines">Lines</label>
         </div>
         <button id="seriesCloseSelector" class="close-settings" onclick="document.getElementById('seriesSettingsBox').style.display = 'none'">X</button>
+    </div>
+    <div id="allSeriesSettingsBox" class="settings-box">
+        <b><p>Series Settings (Master)</p></b>
+        <br>
+
+        <p>Click to apply preset</p>
+        <button class="presetButton" id="presetDefault">Default</button>
+        <button class="presetButton" id="presetCstimer">csTimer</button>
+        <button class="presetButton" id="presetGrayscale">Grayscale</button>
+        <br><br>
+
+        <p>Adjust width for all series:</p>
+        <input id="allSeriesWidthSelector" type="number" class="width-input" min="0" max="10">
+        <br>
+
+        <button id="allSeriesCloseSelector" class="close-settings" onclick="document.getElementById('allSeriesSettingsBox').style.display = 'none'">X</button>
     </div>
 </body>

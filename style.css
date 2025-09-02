@@ -380,7 +380,7 @@ div.hintContent .hintWarning {
     padding: 8px;
     display: none;
     z-index: 10;
-    box-shadow: var(--on-surface) 2px 2px;
+    box-shadow: var(--on-surface) 2px 2px 6px;
 }
 .settings-box label {
     display: block;
