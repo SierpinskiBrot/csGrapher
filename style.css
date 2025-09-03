@@ -216,7 +216,6 @@ button.seriesToggle.pressed {
     justify-content: center;
     align-items: start;
     border: 3px solid var(--on-background);
-    overflow: hidden
 }
 
 #histogramDiv {
