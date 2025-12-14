@@ -272,17 +272,20 @@ class UserData {
         }
         
         //Delete DNFs
+        
         const ddstartTime = performance.now() 
         for(let j = 0; j < this.numSessions; j++) {
             for(let i = 0; i < this.solves[j].length; i++) {
                 if(this.solves[j][i][1] == 0) {
-                    this.solves[j].splice(i,1);
-                    i-=1;
+                    this.solves[j][i][1] = null
+                    //this.solves[j].splice(i,1);
+                    //i-=1;
                 }
             }
         }
         const ddendTime = performance.now()
         console.log(`delete dnfs: ${round(ddendTime - ddstartTime)} milliseconds`)
+        
 
         //create the default data series
         const ddsstartTime = performance.now() 
@@ -468,6 +471,7 @@ class UserData {
                     sum = 0;
                     for(let k = clip; k < x-clip; k++) {sum+=windo[k]}
                     mean = sum/trimmedSize
+                    if(mean == 0 || windo[0] == null) mean = null
 
                     if (index === undefined) { solves[i].push(mean); } 
                     else { solves[i].splice(index, 0, mean); }
@@ -500,8 +504,13 @@ class UserData {
             
                     //mean of window
                     sum = 0;
-                    for(let k = 0; k < x; k++) {sum+=windo[k]}
+                    let includesNull = false;
+                    for(let k = 0; k < x; k++) {
+                        sum+=windo[k]
+                        if(windo[k] == null) includesNull = true
+                    }
                     mean = sum/x
+                    if(mean == 0 || includesNull) mean = null
 
                     if (index === undefined) { solves[i].push(mean); } 
                     else { solves[i].splice(index, 0, mean); }
@@ -553,7 +562,7 @@ class UserData {
                     const solveTime = this.solves[j][i][idx];
                     const prevPB = this.solves[j][i-1][idx+1]
                     //if the time is less than prev pb, update the rolling pb
-                    if (solveTime < prevPB) {
+                    if (solveTime && solveTime < prevPB) {
                         if(index == undefined) {
                             this.solves[j][i].push(solveTime)
                         }
@@ -573,7 +582,7 @@ class UserData {
                         } else {
                             this.solves[j][i].splice(idx + 1, 0, prevPB)
                         }
-                        if (solveTime < bestSinceLastPB) bestSinceLastPB = solveTime;
+                        if (solveTime && solveTime < bestSinceLastPB) bestSinceLastPB = solveTime;
 
                     }
                 }
@@ -583,11 +592,17 @@ class UserData {
                 seriesPBs.solveNums = solveNums;
                 seriesPBs.bestSinceLastPB = bestSinceLastPB;
                 let sumSinceLastPB = 0;
-                for(let i = solveNums[solveNums.length-1]; i < this.solves[j].length; i++) {sumSinceLastPB += this.solves[j][i][idx]}
-                const numSinceLastPB = this.solves[j].length - solveNums[solveNums.length-1]
+                let numSinceLastPB = 0
+                for(let i = solveNums[solveNums.length-1]; i < this.solves[j].length; i++) {
+                    sumSinceLastPB += this.solves[j][i][idx]
+                    if(this.solves[j][i][idx]) numSinceLastPB++;
+                }
+                
                 seriesPBs.meanSinceLastPB = sumSinceLastPB/numSinceLastPB;
                 let stdSinceLastPB = 0;
-                for(let i = solveNums[solveNums.length-1]; i < this.solves[j].length; i++) {stdSinceLastPB += (this.solves[j][i][idx]-seriesPBs.meanSinceLastPB)**2}
+                for(let i = solveNums[solveNums.length-1]; i < this.solves[j].length; i++) {
+                    if(this.solves[j][i][idx]) {stdSinceLastPB += (this.solves[j][i][idx]-seriesPBs.meanSinceLastPB)**2}
+                }
                 stdSinceLastPB /= numSinceLastPB;
                 stdSinceLastPB = stdSinceLastPB**0.5
                 seriesPBs.stdSinceLastPB = stdSinceLastPB;

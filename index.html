@@ -164,7 +164,7 @@
                         <td><p id="loglogR2" class="R2val">N/A</p></td>
                     </tr>
                     <tr>
-                        <td><button id="exponentialToggle" class="seriesToggle">Exponential</button></td>
+                        <td><button id="exponentialToggle" class="seriesToggle">Logarithmic</button></td>
                         <td><p id="exponentialR2" class="R2val">N/A</p></td>
                     </tr>
                 </tbody>
@@ -519,14 +519,14 @@
                 <tr>
                     <td>Log-Log</td>
                     <td>
-                        <p>Fits data to y = A * N^B using regression. This is often the best regression.</p>
+                        <p>Fits data to y = A * N^B using regression. Usually a good regression</p>
                         <p>Will appear as a straight line when graphed on log-log axes.</p>
                     </td>
                 </tr>
                 <tr>
-                    <td>Exponential</td>
+                    <td>Logarithmic</td>
                     <td>
-                        <p>Fits data to y = A * e^(N*B) using regression. This regression is often too flat.</p>
+                        <p>Fits data to y = A + B*log(N+1) using regression. This is often the best regression.</p>
                         <p>Will appear as a straight line when graphed with a log y-axis</p>
                     </td>
                 </tr>

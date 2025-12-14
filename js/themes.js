@@ -51,6 +51,69 @@ const themes = {
     '--on-background':' #877614',
     '--on-surface':' #ad201c',
     '--on-error':' #ebfce9',
+  },
+  dark: {
+  /* Primary Colors - Softer red with better contrast */
+  '--color-primary': '#ff6b6b',
+  '--color-primary-variant': '#e85a5a', 
+  '--color-secondary': '#ffd93d',
+  '--color-secondary-variant': '#ffed4e',
+  
+  /* Background Colors - Rich dark grays */
+  '--color-background': '#1a1d23',
+  '--color-surface': '#242831',
+  '--color-surface-odd': '#2a2f3a',
+  
+  /* Additional surface variations for depth */
+  '--color-surface-elevated': '#2f3441',
+  '--color-surface-header': '#1e2129',
+  '--color-surface-sidebar': '#20252e',
+  
+  /* Error state */
+  '--color-error': '#ff5252',
+  
+  /* Text colors on backgrounds */
+  '--on-primary': '#ffffff',
+  '--on-secondary': '#1a1d23',
+  '--on-background': '#e4e6ea',
+  '--on-surface': '#d1d5db',
+  '--on-error': '#ffffff',
+  
+  /* Additional semantic colors */
+  '--color-success': '#4ade80',
+  '--color-warning': '#fbbf24',
+  '--color-info': '#60a5fa',
+  
+  /* Border and divider colors */
+  '--color-border': '#374151',
+  '--color-border-light': '#4b5563',
+  '--color-divider': '#374151',
+  
+  /* Interactive states */
+  '--color-hover': 'rgba(255, 255, 255, 0.08)',
+  '--color-active': 'rgba(255, 255, 255, 0.12)',
+  '--color-focus': 'rgba(255, 107, 107, 0.3)',
+  '--color-disabled': '#6b7280',
+  
+  /* Chart and data visualization colors */
+  '--color-chart-primary': '#ff6b6b',
+  '--color-chart-secondary': '#ffd93d',
+  '--color-chart-accent-1': '#60a5fa',
+  '--color-chart-accent-2': '#34d399',
+  '--color-chart-accent-3': '#f472b6',
+  '--color-chart-grid': '#374151',
+  '--color-chart-text': '#9ca3af',
+  
+  /* Shadow and elevation */
+  '--shadow-sm': '0 1px 2px rgba(0, 0, 0, 0.3)',
+  '--shadow-md': '0 4px 6px rgba(0, 0, 0, 0.4)',
+  '--shadow-lg': '0 10px 15px rgba(0, 0, 0, 0.5)',
+  
+  /* Typography weights for hierarchy */
+  '--text-primary': '#f9fafb',
+  '--text-secondary': '#d1d5db',
+  '--text-tertiary': '#9ca3af',
+  '--text-disabled': '#6b7280',
   }
 };
 
@@ -65,6 +128,6 @@ function applyTheme(theme) {
     window.h.updateOptions({color: themes[theme]['--color-primary']})
 }
 
-document.getElementById("themeGreen").addEventListener("click", function() {applyTheme("green")})
+document.getElementById("themeGreen").addEventListener("click", function() {applyTheme("dark")})
 document.getElementById("themeBlue").addEventListener("click", function() {applyTheme("blue")})
 document.getElementById("themeGold").addEventListener("click", function() {applyTheme("gold")})

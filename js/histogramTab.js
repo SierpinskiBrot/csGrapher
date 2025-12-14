@@ -223,7 +223,12 @@ window.updateHist = function () {
         
         const start = document.getElementById("histRangeLow").value
         const end = document.getElementById("histRangeHigh").value
-        const numSolves = end - start + 1;
+        //const numSolves = end - start + 1;
+        let numSolves_ = 0
+        for(let i = 0; i < hist.length; i++) {
+            numSolves_ += hist[i][1]
+        }
+        const numSolves = numSolves_;
         const bucketWidth = hist[1][0] - hist[0][0];
         
         // Start building combined data
@@ -383,6 +388,7 @@ function createHistRange(bucketSize, range, offset) {
 
   for (let i = start, k = 0; i < end; i++, k++) {
     const t = solves[i][1];
+    if(t == null) continue;
     times[k] = t;
     sum += t;
 
@@ -445,7 +451,7 @@ window.createCDF = function() {
     const solves = window.userData.solves[window.selectedSess];
     const start = document.getElementById("histRangeLow").value
     const end = document.getElementById("histRangeHigh").value
-    const times = solves.slice(start-1,end).map(s => s[1]);
+    const times = solves.slice(start-1,end).map(s => s[1]).filter(t => t != null);
 
     // Sort ascending
     const sorted = [...times].sort((a, b) => a - b);
@@ -692,7 +698,7 @@ function genDefaultColumnWidths() {
 
         //extract solves
         for (let i = 0; i < solves[j].length; i++) {
-            times.push(solves[j][i][1]);
+            if(solves[j][i][1] != null) times.push(solves[j][i][1]);
         }
 
         // 2. Compute mean
@@ -721,7 +727,7 @@ function calculateDistributionCoeffs() {
     const start = document.getElementById("histRangeLow").value
     const end = document.getElementById("histRangeHigh").value
     if(end - start < 5) return alert("Distributions not calculated (<5 solves selected)");
-    const solveTimes = window.userData.solves[window.selectedSess].map(s => s[1]).slice(start-1,end);
+    const solveTimes = window.userData.solves[window.selectedSess].map(s => s[1]).slice(start-1,end).filter(t => t != null);;
 
     const clean = solveTimes.filter(t => t > 0 && Number.isFinite(t));
     const sorted = [...clean].sort((a,b) => a - b)
@@ -732,7 +738,7 @@ function calculateDistributionCoeffs() {
     
     const eps = 1e-12;
     const maxIter = 5000, tol = 1e-12;
-    const n =  end - start + 1;
+    const n = solveTimes.length;
 
     //robust scale parameter M (high quantile * (1 + pad) )
     const idx = (trimmed.length - 1) * q;

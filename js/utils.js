@@ -75,7 +75,7 @@ Parsing a solve time from cstimer
 function parseTime(t) {
     if(t[0] == 0) {return t[1];}               //normal solve
     else if(t[0] == 2000) {return t[1] + 2000} //+2
-    else if(t[0] == -1) {return 0}             //dnf
+    else if(t[0] == -1) {return null}             //dnf
     //erroneous time
     else {
         console.log("error parsing time:")

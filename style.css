@@ -193,6 +193,7 @@ button.seriesToggle.pressed {
     background: var(--color-surface);
     margin: 0px;
     padding: 0px;
+    color: var(--on-surface)
 }
 
 #toggleTableBody > tr:nth-child(even), #pbSeriesTableBody > tr:nth-child(even) {
@@ -403,6 +404,7 @@ div.hintContent .hintWarning {
     border-spacing: 0px;
     border: solid thin var(--on-background);
     background-color: var(--color-surface);
+    color: var(--on-surface)
 }
 .formTable tr:nth-child(even) {
     background-color: var(--color-surface-odd);

@@ -23,7 +23,8 @@ export const regressions = [
     A: 0,
     B: 0,
     compute: function(xs) {
-      return xs.map(x => this.A * Math.pow(x, this.B));
+    return xs.map(x => this.A * Math.pow(x, this.B));
+     
     }
   },
   {
@@ -35,7 +36,8 @@ export const regressions = [
     A: 0,
     B: 0,
     compute: function(xs) {
-      return xs.map(x => this.A * Math.exp(this.B * x));
+      //return xs.map(x => this.A * Math.exp(this.B * x));
+      return xs.map(x => this.A + this.B * Math.log(x+1))
     }
   },
 ];
@@ -123,7 +125,7 @@ export function powerLawFit(y, opt = {}) {
         a -= lrDecayed * gA;
         b -= lrDecayed * gB;
         c -= lrDecayed * gC;
-        if(c > fastest) c = fastest; // don't let c go above the fastest time
+        //if(c > fastest) c = fastest; // don't let c go above the fastest time
 
         // Tiny parameter updates => converged
         //if (Math.max(Math.abs(lr * gA), Math.abs(lr * gB), Math.abs(lr * gC)) < 1e-12) break;
@@ -212,7 +214,7 @@ export function logLogRegression(data) {
 Performs exponential regression (y = a * e^(b x)) on an array of Y-values.
 X-values are taken as the indices (0, 1, 2, ...).
 */
-export function exponentialRegression(data) {
+export function exponentialRegression2(data) {
     // Filter out non-positive Y (ln undefined) and map to {x,y}
     const points = data
         .map((y, x) => ({ x, y }))
@@ -260,4 +262,64 @@ export function exponentialRegression(data) {
     }
     const r2 = 1 - ssRes / ssTot;
     exponentialR2.innerText = r2.toFixed(3);
+}
+
+/*
+  Performs logarithmic regression (y = a + b * ln(x)) on an array of Y values.
+  X-values are the indices (0, 1, 2, …) shifted by +1 so ln(0) is avoided.
+*/
+export function exponentialRegression(data) {
+  // Build points with x = i + 1
+  const points = data
+    .map((y, i) => ({ x: i + 1, y }))
+    .filter(pt => Number.isFinite(pt.y));
+
+  const n = points.length;
+  if (n < 2) {
+    throw new Error("At least two data points are required.");
+  }
+
+  // Transform X -> ln(X) and accumulate for linear least squares
+  let sumLx = 0, sumY = 0, sumLx2 = 0, sumLxY = 0;
+  for (const { x, y } of points) {
+    if (x <= 0) throw new Error("Logarithmic regression requires x > 0.");
+    const lx = Math.log(x);
+    sumLx  += lx;
+    sumY   += y;
+    sumLx2 += lx * lx;
+    sumLxY += lx * y;
+  }
+
+  const denom = n * sumLx2 - sumLx * sumLx;
+  if (denom === 0) {
+    throw new Error("Cannot compute regression (all ln(x) values identical?).");
+  }
+
+  // Solve normal equations for a, b
+  const b = (n * sumLxY - sumLx * sumY) / denom;
+  const a = (sumY - b * sumLx) / n;
+
+  // Coefficient of determination R^2
+  const mean = sumY / n;
+  let ssRes = 0, ssTot = 0;
+  for (let i = 0; i < n; i++) {
+    const x = i + 1;
+    const y = data[i];
+    const yHat = a + b * Math.log(x);
+    const diffRes = y - yHat;
+    const diffTot = y - mean;
+    ssRes += diffRes * diffRes;
+    ssTot += diffTot * diffTot;
+  }
+  const r2 = 1 - (ssRes / ssTot);
+
+  // Optional: store wherever your app expects
+  // regressions[?].A = a;
+  // regressions[?].B = b;
+  // logarithmicR2.innerText = r2.toFixed(3);
+  regressions[2].A = a;
+    regressions[2].B = b; 
+    exponentialR2.innerText = r2.toFixed(3); 
+
+ // return { a, b, r2 };
 }
