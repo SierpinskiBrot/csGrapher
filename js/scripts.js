@@ -285,6 +285,13 @@ class UserData {
         }
         const ddendTime = performance.now()
         console.log(`delete dnfs: ${round(ddendTime - ddstartTime)} milliseconds`)
+
+        //Fix "Invalid Date" for very old cstimer files
+        this.sessIsReal = [];
+        for (let j = 0; j < this.numSessions; j++) {
+            this.sessIsReal[j] = this.normalizeSessionDates(this.solves[j]);
+        }
+
         
 
         //create the default data series
@@ -622,6 +629,83 @@ class UserData {
         console.log(`   pb ao${x}: ${round(pblendTime - pblstartTime)} milliseconds`)
         
     }
+
+    normalizeSessionDates(solves) {
+        const n = solves.length;
+        const isReal = new Uint8Array(n); // 0/1 and fast
+
+        // Collect indices that have real dates
+        const realIdx = [];
+        for (let i = 0; i < n; i++) {
+            const t = solves[i][0].getTime(); // Date object guaranteed
+            if (!Number.isNaN(t)) {
+            isReal[i] = 1;
+            realIdx.push(i);
+            }
+        }
+
+        // If no real dates at all, synthesize a monotonic timeline (still Date objects)
+        if (realIdx.length === 0) {
+            const now = Date.now();
+            const msPerSolve = 30_000; // fallback density
+            for (let i = 0; i < n; i++) {
+            solves[i][0] = new Date(now - (n - 1 - i) * msPerSolve);
+            }
+            return isReal; // all 0s
+        }
+
+        // Estimate typical ms-per-solve from consecutive real anchors, using median (inline)
+        const deltas = [];
+        for (let k = 1; k < realIdx.length; k++) {
+            const a = realIdx[k - 1], b = realIdx[k];
+            const ta = solves[a][0].getTime();
+            const tb = solves[b][0].getTime();
+            const di = b - a;
+            const dtPerSolve = (tb - ta) / di;
+            if (di > 0 && Number.isFinite(dtPerSolve)) deltas.push(dtPerSolve);
+        }
+
+        let msPerSolve = 30_000; // fallback if we can't compute
+        if (deltas.length) {
+            deltas.sort((x, y) => x - y);
+            const m = deltas.length >> 1;
+            msPerSolve = (deltas.length & 1) ? deltas[m] : (deltas[m - 1] + deltas[m]) / 2;
+            // simple sanity bounds
+            if (!Number.isFinite(msPerSolve) || msPerSolve <= 0) msPerSolve = 30_000;
+            if (msPerSolve < 250) msPerSolve = 250;
+            if (msPerSolve > 24 * 60 * 60 * 1000) msPerSolve = 24 * 60 * 60 * 1000;
+        }
+
+        // Fill gaps between real anchors by linear interpolation
+        for (let k = 0; k < realIdx.length - 1; k++) {
+            const a = realIdx[k], b = realIdx[k + 1];
+            const ta = solves[a][0].getTime();
+            const tb = solves[b][0].getTime();
+            const gap = b - a;
+
+            if (gap > 1) {
+            for (let i = a + 1; i < b; i++) {
+                const frac = (i - a) / gap;
+                solves[i][0] = new Date(ta + frac * (tb - ta));
+                // isReal[i] stays 0
+            }
+            }
+        }
+
+        // Extrapolate before first real
+        const first = realIdx[0];
+        for (let i = first - 1; i >= 0; i--) {
+            solves[i][0] = new Date(solves[i + 1][0].getTime() - msPerSolve);
+        }
+
+        // Extrapolate after last real
+        const last = realIdx[realIdx.length - 1];
+        for (let i = last + 1; i < n; i++) {
+            solves[i][0] = new Date(solves[i - 1][0].getTime() + msPerSolve);
+        }
+
+        return isReal; // Uint8Array of 0/1
+        }
 
 }
 

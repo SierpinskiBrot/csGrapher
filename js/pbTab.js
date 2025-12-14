@@ -39,6 +39,11 @@ function updatePBTable(sess, series) {
             pbForTimeCol.innerHTML = dhm(dateDiff);
         }
 
+        if(!window.userData.sessIsReal[sess][seriesStats.solveNums[i]-1]) {
+            dateCol.innerHTML = "Unknown"
+            pbForTimeCol.innerHTML = "Unknown"
+        }
+
         //Solve # column
         let solveCol = document.createElement("td")
         solveCol.innerHTML = seriesStats.solveNums[i]

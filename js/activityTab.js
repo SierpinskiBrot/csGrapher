@@ -1,11 +1,16 @@
 import { themes } from "./themes.js";
 
-function createBinnedData(solves) {
+function createBinnedData(solves, sessIsReal) {
     const binned = [];
     for(let j = 0; j < solves.length; j++) {
         const counts = Array.from({length:7}, () => Array(24).fill(0));
-        for (const s of solves[j]) {
-            const d = (s[0] instanceof Date) ? s[0] : new Date(s[0]);
+        const real = sessIsReal?.[j]
+
+        for (let i = 0; i < solves[j].length; i++) {
+            //skip estimated dates
+            if(real && real[i] === 0) continue;
+
+            const d = solves[j][i][0];
             const dow = d.getDay();           // 0=Sun...6=Sat
             const hour = d.getHours();        // 0..23
             counts[dow][hour] += 1;
@@ -16,7 +21,7 @@ function createBinnedData(solves) {
 }
 
 export function activityTabStartup() {
-    createBinnedData(window.userData.solves);
+    createBinnedData(window.userData.solves, window.userData.sessIsReal);
     drawHeatmap();
 }
 
