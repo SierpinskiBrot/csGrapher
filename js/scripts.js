@@ -478,7 +478,7 @@ class UserData {
                     sum = 0;
                     for(let k = clip; k < x-clip; k++) {sum+=windo[k]}
                     mean = sum/trimmedSize
-                    if(mean == 0 || windo[0] == null) mean = null
+                    if(mean == 0 || windo[clip] == null) mean = null
 
                     if (index === undefined) { solves[i].push(mean); } 
                     else { solves[i].splice(index, 0, mean); }
