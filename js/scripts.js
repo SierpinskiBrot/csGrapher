@@ -49,10 +49,13 @@ const activityContainer = document.getElementById("activityContainer");
 window.resetContainers = function() {
     histogramContainer.style.display = "none";
     histogramButton.classList.remove("pressed");
+
     statsContainer.style.display = "none";
     statsButton.classList.remove("pressed");
+
     graphContainer.style.display = "none";
     graphButton.classList.remove("pressed");
+
     activityContainer.style.display = "none";
     activityButton.classList.remove("pressed");
 }
@@ -61,6 +64,7 @@ graphButton.addEventListener("click", function () {
     window.resetContainers();
     graphContainer.style.display = "flex";
     graphButton.classList.add("pressed");
+
     window.updateGraph();
 })
 statsButton.addEventListener("click", function() {
@@ -68,6 +72,7 @@ statsButton.addEventListener("click", function() {
     window.resetContainers();
     statsContainer.style.display = "flex";
     statsButton.classList.add("pressed");
+
     let clickOccured = false;
     const buttons = document.getElementsByClassName('pbSeriesSelectButton pressed')
     for(let btn of buttons) {
@@ -85,6 +90,7 @@ activityButton.addEventListener("click", function() {
     window.resetContainers();
     activityContainer.style.display = "flex";
     activityButton.classList.add("pressed");
+
     drawHeatmap();
 })
 //#endregion
@@ -171,32 +177,7 @@ jsonDataFile.addEventListener("change", function() {
 
 class UserData {
     constructor(data) {
-        /** Incoming data format from csTimer
-         *  {
-         *      "session1":[[[solve1 time modifier, solve1 time],solve1 scramble,idk, solve1 UTC],[same shit for solve 2 and so on],[solve3],[...]],
-         *      "session2":[[[solve1 time modifier, solve1 time],solve1 scramble,idk, solve1 UTC],[same shit for solve 2 and so on],[solve3],[...]],
-         *      "...": [...],
-         *      "properties":
-         *          {
-         *              "sessionData":
-         *                  {
-         *                      "session # (1-numSessions)": 
-         *                          {
-         *                              "name": name of session,
-         *                              "opt": options like the scramble type,
-         *                              "rank": idk
-         *                              "stat": [#of solves, #of dnfs, mean time(ms)],
-         *                              "date": [solve1 UTC, most recent solve UTC]
-         *                          },
-         *                      "...": ...
-         *                  }
-         *              "useMilli": true/false,
-         *              "...useless stuff...""
-         *              "statalu": all the stats you see on the left, mine is "mo3 ao5 ao12 ao50 ao100 ao200 ao500 ao1000",
-         *              "...just a bunch more useless stuff...": ...
-         *          }
-         * }
-         */
+
         this.xTitle = "Date";
         this.xTitle2 = "Solve #";
 
@@ -204,6 +185,7 @@ class UserData {
 
         this.numSessions = 0;
         this.sessions = []; //names of sessions
+
         //Get the session names
         if(data?.properties?.sessionData != undefined){
             this.dataFormat = "csTimer"
@@ -217,8 +199,8 @@ class UserData {
         } else {
             console.log("this is acubemy data")
             this.dataFormat = "acubemy"
-            this.sessions.push("3x3")
-            this.numSessions = 1
+            this.sessions = ["3x3", "turns", "tps", "cross_time", "f2l_time", "oll_time", "pll_time", "move_times"]
+            this.numSessions = 8
         }
         
 
@@ -252,6 +234,7 @@ class UserData {
         
         //Add the first two columns: solve date, solve time
         if(this.dataFormat == "csTimer") {
+
             const fcstartTime = performance.now() 
             for (let s = 1; s <= this.numSessions; s++) {
                 const sessionKey = `session${s}`;
@@ -264,15 +247,90 @@ class UserData {
             }
             const fcendTime = performance.now()
             console.log(`first 2 cols: ${round(fcendTime - fcstartTime)} milliseconds`)
+
         } else if(this.dataFormat == "acubemy") {
-            for(let i = data.length - 1 ; i > 1 ; i--) {
-                this.solves[0].push([new Date(data[i].date)])                   //solve date
-                this.solves[0][data.length-i-1].push(0.001*data[i].total_time)  //solve time
+            //this for loop does the regular series
+            for(let i = data.length - 1 ; i > -1 ; i--) {
+                let date = new Date(data[i].date)
+                let totalTime = data[i].total_time
+                let crossTime = data[i].cross_time
+                let f2lTime = data[i].f2l_pair1_time+data[i].f2l_pair2_time+data[i].f2l_pair3_time+data[i].f2l_pair4_time
+                let ollTime = data[i].oll_time
+                let pllTime = data[i].pll_time
+
+                //if(!(crossTime && f2lTime && ollTime && pllTime)) continue;
+                if(data[i].analysis_type != "CFOP") continue;
+                if(totalTime >= 16000 || data[i].turns >= 88) continue;
+                
+                this.solves[0].push([date, 0.001*totalTime])    //3x3
+                this.solves[1].push([date, data[i].turns])      //turns
+                this.solves[2].push([date, data[i].tps])        //tps
+                this.solves[3].push([date, 0.001*crossTime])    //cross
+                this.solves[4].push([date, 0.001*f2lTime])      //f2l
+                this.solves[5].push([date, 0.001*ollTime])      //oll
+                this.solves[6].push([date, 0.001*pllTime])      //pll
+            }
+
+            console.log("Doing move times now")
+            const n = this.solves[0].length
+            this.meanCross = this.solves[3].map(s => s[1]).filter(t => t != null).reduce((a, b) => a + b, 0) / n;
+            this.meanF2l = this.solves[4].map(s => s[1]).filter(t => t != null).reduce((a, b) => a + b, 0) / n;
+            this.meanOll = this.solves[5].map(s => s[1]).filter(t => t != null).reduce((a, b) => a + b, 0) / n;
+            this.meanPll = this.solves[6].map(s => s[1]).filter(t => t != null).reduce((a, b) => a + b, 0) / n;
+            this.meanTime = this.solves[0].map(s => s[1]).filter(t => t != null).reduce((a, b) => a + b, 0) / n;
+
+            //mcp = meanCrossPercent, mfp = meanF2lPercent, etc.
+            const mcp = this.meanCross/this.meanTime
+            const mfp = this.meanF2l/this.meanTime
+            const mop = this.meanOll/this.meanTime
+            const mpp = this.meanPll/this.meanTime
+
+            for(let i = data.length - 1; i > -1; i--) {
+
+                const totalTime = data[i].total_time
+                const crossTime = data[i].cross_time
+                const f2lTime = data[i].f2l_pair1_time+data[i].f2l_pair2_time+data[i].f2l_pair3_time+data[i].f2l_pair4_time
+                const ollTime = data[i].oll_time
+                const pllTime = data[i].pll_time
+
+                //if(!(crossTime && f2lTime && ollTime && pllTime)) continue
+                if(data[i].analysis_type == "Roux") continue;
+                if(totalTime >= 16000 || data[i].turns >= 88) continue;
+
+                for(let m = 1; m < data[i].move_times.length-1; m++){
+                    let moveTime = Math.max(0.5*(data[i].move_times[m]+data[i].move_times[m-1]), data[i].move_times[m]-100)
+
+                    if(moveTime <= 0) continue
+
+                    let percentDone = 0
+
+                    if((moveTime <= crossTime) && crossTime) {                                      //cross moves
+                        percentDone = 100*(mcp*moveTime/crossTime)
+                    //} else if ( Math.abs(moveTime - crossTime) < 100 ||             //prevent boundary spikes at high res
+                      //          Math.abs(moveTime - (crossTime + f2lTime)) < 100 ||
+                      //          Math.abs(moveTime - totalTime+pllTime) < 100 ||
+                      //          !pllTime ) {
+                      //  percentDone = 100*(moveTime/totalTime)
+                    } else if ((moveTime <= (crossTime + f2lTime)) && f2lTime) {                    //f2l moves
+                        percentDone = 100*(mcp + mfp*(moveTime-crossTime)/f2lTime)
+                    }  else if ((moveTime < crossTime + f2lTime + ollTime) && ollTime) {         //oll moves
+                        percentDone = 100*(mcp + mfp + mop*(moveTime - f2lTime - crossTime)/ollTime)
+                    } else {                                                        //pll moves
+                        percentDone = 100*(mcp + mfp + mop + mpp*(moveTime - ollTime - f2lTime - crossTime)/pllTime)
+                    }
+                    if(moveTime > crossTime + f2lTime) {
+                        percentDone = 100*(mcp + mfp + (mop + mpp)*(moveTime - f2lTime - crossTime)/(pllTime+ollTime))
+                    }
+                    //if(percentDone > 100) percentDone = 100
+                    //percentDone = 100*(moveTime/totalTime)
+
+                    this.solves[7].push([new Date(percentDone*10000000), percentDone*this.meanTime/100])
+
+                }
             }
         }
         
         //Delete DNFs
-        
         const ddstartTime = performance.now() 
         for(let j = 0; j < this.numSessions; j++) {
             for(let i = 0; i < this.solves[j].length; i++) {
@@ -293,7 +351,6 @@ class UserData {
         }
 
         
-
         //create the default data series
         const ddsstartTime = performance.now() 
         this.pbsOfLastCol(1);
@@ -311,6 +368,7 @@ class UserData {
         //This creates solves2, which is solves but x-axis is solve#
         const s2startTime = performance.now() 
         this.createSolves2();
+        this.createSolves3();
         const s2endTime = performance.now()
         console.log(`create solves2: ${round(s2endTime - s2startTime)} milliseconds`)
         
@@ -332,6 +390,18 @@ class UserData {
         }
     }
 
+    createSolves3() {
+        this.solves3 = makeArrayOfArrays(this.numSessions);
+        for(let i = 0; i < this.numSessions; i++) {
+            let sum = 0;
+            for(let k = 0; k < this.solves[i].length; k++) {
+                this.solves3[i].push(Array.from(this.solves[i][k]))
+                sum += this.solves3[i][k][1]/3600
+                this.solves3[i][k][0] = sum
+            }
+        }
+    }
+
     createHist(bucketSize) {
         const j = window.selectedSess
         const bucketSize_ = parseFloat(bucketSize)
@@ -348,8 +418,8 @@ class UserData {
         }
 
         //create the buckets
-        for(let b = 0; b <= max+1; b+= bucketSize_) {
-            this.hist[j].push([b,0]);
+        for(let b = 0; b * bucketSize_ <= max+1; b++) {
+            this.hist[j].push([b*bucketSize_,0]);
         }
         //add the solves to buckets
         for(let i = 0; i < this.solves[j].length; i++) {
@@ -449,6 +519,7 @@ class UserData {
         
         let sum,mean
         for (let j = 0; j < this.numSessions; j++) {
+            //if(this.sessions[j] == "move_times") continue;
             const solves = this.solves[j];
             const clip = Math.ceil(0.05 * x); //Remove top and bottom 5% of solves
             const trimmedSize = x-clip*2
@@ -490,12 +561,14 @@ class UserData {
         console.log(`   push ao${x}: ${round(paendTime - pastartTime)} milliseconds`)
     }
 
+
     //append a column for the mean of the x last solves
     pushMean(x, index = undefined) {
         const pmstartTime = performance.now() 
         
         let sum,mean
         for (let j = 0; j < this.numSessions; j++) {
+            //if(this.sessions[j] == "move_times") continue;
             const solves = this.solves[j];
             let windo = [];
             
@@ -537,6 +610,7 @@ class UserData {
         
         //do this for each session
         for(let j = 0; j < this.numSessions; j++){
+            //if(this.sessions[j] == "move_times") continue;
             if(this.solves[j].length != 0) {
 
                 const seriesPBs = {};
@@ -630,6 +704,7 @@ class UserData {
         
     }
 
+
     normalizeSessionDates(solves) {
         const n = solves.length;
         const isReal = new Uint8Array(n); // 0/1 and fast
@@ -639,8 +714,8 @@ class UserData {
         for (let i = 0; i < n; i++) {
             const t = solves[i][0].getTime(); // Date object guaranteed
             if (!Number.isNaN(t)) {
-            isReal[i] = 1;
-            realIdx.push(i);
+                isReal[i] = 1;
+                realIdx.push(i);
             }
         }
 
@@ -649,7 +724,7 @@ class UserData {
             const now = Date.now();
             const msPerSolve = 30_000; // fallback density
             for (let i = 0; i < n; i++) {
-            solves[i][0] = new Date(now - (n - 1 - i) * msPerSolve);
+                solves[i][0] = new Date(now - (n - 1 - i) * msPerSolve);
             }
             return isReal; // all 0s
         }

@@ -19,6 +19,10 @@ function updatePBTable(sess, series) {
     for (let i = seriesStats.times.length - 1; i >= 0; i--) {
         let newRow = document.createElement("tr");
 
+        //PB # column
+        let pbNumCol = document.createElement("td")
+        pbNumCol.innerHTML = i+1
+
         //Date column
         let dateCol = document.createElement("td");
         let date = seriesStats.dates[i]
@@ -63,11 +67,13 @@ function updatePBTable(sess, series) {
         let timeCol = document.createElement("td");
         timeCol.innerHTML = seriesStats.times[i].toFixed(3)
 
+        newRow.appendChild(pbNumCol)
         newRow.appendChild(timeCol);
         newRow.appendChild(dateCol);
         newRow.appendChild(pbForTimeCol);
         newRow.appendChild(solveCol);
         newRow.appendChild(pbForSolvesCol);
+        //console.log(seriesStats)
 
         pbStatsBody.appendChild(newRow);
     }
@@ -91,9 +97,9 @@ function drawPBPredictionGraphs(sess, series) {
     }
 
     //draw graphs and get predictions
-    const solveNumP = drawGraph(solveNums, "solveNumRegression", "Solve #")
-    const timeP =     drawGraph(times, "solveTimeRegression", "Time")
-    const dateP = drawGraph(timePassed, "solveDateRegression", "Date")
+    const [solveNumP,solveNumPstd] = drawGraph(solveNums, "solveNumRegression", "Solve #")
+    const [timeP, timePstd] =     drawGraph(times, "solveTimeRegression", "Time")
+    const [dateP, datePstd] = drawGraph(timePassed, "solveDateRegression", "Date")
 
     //parse date prediction into a string
     let predictedDate = null;
@@ -104,8 +110,12 @@ function drawPBPredictionGraphs(sess, series) {
     }
 
     //write the predictions
-    document.getElementById("solveNumPrediction").innerText = `Next PB will happen around Solve # ${Math.ceil(solveNumP)}`
-    document.getElementById("solveTimePrediction").innerText = `Next PB will be around ${timeP.toFixed(3)}s`
+    document.getElementById("solveNumPrediction").innerText = 
+    `Next PB will happen around Solve #${Math.ceil(solveNumP)}
+    1 SD: #${Math.max(solveNums[solveNums.length-1]+1,Math.ceil(solveNumP-solveNumPstd))}-#${Math.ceil(solveNumP+solveNumPstd)}`
+    document.getElementById("solveTimePrediction").innerText = 
+    `Next PB will be around ${timeP.toFixed(3)}s
+    1 SD: ${Math.max(0.001,(timeP-timePstd)).toFixed(3)}s-${Math.min(times[times.length-1]-0.001,(timeP+timePstd)).toFixed(3)}s`
     document.getElementById("solveDatePrediction").innerText = `Next PB will happen around ${dateStr}`
 
 }
@@ -159,6 +169,14 @@ function drawGraph(data, graphId, ylabel) {
     //calc the slope and intercept for prediction line
     const rangeForSlope = Math.max(2, Math.floor(0.2 * n))
     const slope = (data[n - 1] - data[n - 1 - rangeForSlope]) / rangeForSlope
+//debugger;
+    let std = 0;
+    for(let i = n-1-rangeForSlope; i < n-1; i++) {
+        std += (Math.abs(data[i]-data[i-1])-Math.abs(slope))**2
+    }
+    std = Math.sqrt(std/(rangeForSlope-1))
+    
+    console.log(`${graphId}: ${std}`)
     const c = data[n - 1] - slope * (n - 1)
 
     //draw the prediction line
@@ -180,6 +198,6 @@ function drawGraph(data, graphId, ylabel) {
 
     const prediction = slope * (n) + c
     //console.log(ylabel, prediction)
-    return prediction;
+    return [prediction,std];
 }
 

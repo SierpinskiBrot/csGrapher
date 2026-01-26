@@ -302,6 +302,8 @@ window.updateHist = function () {
     
 };
 
+
+
 function getAnnotations() {
     const vis = window.userData.averageVisibilities
     const avgs = window.histAverages
@@ -442,6 +444,166 @@ function createHistRange(bucketSize, range, offset) {
   };
 
   return hist;
+}
+
+window.doTPSgraph = function(bucketSize,j,t,step,height){
+    let data = window.userData.solves[7]
+    window.userData.createHist(bucketSize)
+    let newHist = window.userData.hist[window.selectedSess]
+
+    let numSolves = window.userData.solves[0].length
+    //let factor = 0.01*bucketSize*window.userData.meanTime*numSolves
+    let factor = bucketSize*numSolves
+    for(let i = 0; i < newHist.length; i++) {
+        newHist[i][1] /= factor
+    }
+    if(j && t) newHist = smoothEMA(newHist, j, t);
+    window.h.updateOptions({
+            file: newHist,
+            labels: ["1", "2"],
+            xlabel: "% Done",
+            ylabel: 'TPS',
+            stepPlot: step,
+        })
+
+        window.h.ready(function() {
+            window.h.setAnnotations([
+        {
+            series: "2",
+            x: bucketSize*Math.floor(window.userData.meanCross*100/window.userData.meanTime/bucketSize),
+            shortText: "F2L",
+            width: 50,
+            attachAtBottom: true,
+            tickHeight: height
+        },
+        {
+            series: "2",
+            x: bucketSize*Math.floor((window.userData.meanCross+window.userData.meanF2l)*100/window.userData.meanTime/bucketSize),
+            shortText: "LL",
+            width: 33,
+            attachAtBottom: true,
+            tickHeight: height
+        },{
+            series: "22",
+            x: bucketSize*Math.floor((window.userData.meanTime-window.userData.meanPll)*100/window.userData.meanTime/bucketSize),
+            shortText: "PLL",
+            width: 33,
+            attachAtBottom: true,
+            tickHeight: height
+        }
+    ])
+        })
+    
+}
+window.compareTPS = function(newHist, name1, name2) {
+        //do the same doTPSgraph in other tab, copy window.h.file_ object as newHist    
+
+
+        let hist = window.h.file_
+
+        const combined = hist.map(([x, y], i) => {
+            const row = [x, y];
+            row.push(newHist[i]?.[1] ?? 0);
+            return row;
+        });
+
+        // Build labels array
+        const labels = ["% Done", name1, name2];
+
+        // Update Dygraph
+        window.h.updateOptions({
+            file: combined,
+            labels: labels,
+            valueRange: null,
+        });
+
+        window.h.ready(function() {
+            window.h.updateOptions({ 
+            series: { [name1]: { 
+                fillGraph: false, 
+                stepPlot: false, 
+                color: "#FF0000", 
+                strokeWidth: 5 
+            } } })
+        window.h.updateOptions({ 
+            series: { [name2]: { 
+                fillGraph: false, 
+                stepPlot: false, 
+                color: "#0000FF", 
+                strokeWidth: 5 
+            } } })
+        })  
+}
+window.compareTPS2 = function(newHist1, newHist2, name1, name2, name3) {
+        //do the same doTPSgraph in other tab, copy window.h.file_ object as newHist    
+
+
+        let hist = window.h.file_
+
+        const combined = hist.map(([x, y], i) => {
+            const row = [x, y];
+            row.push(newHist1[i]?.[1] ?? 0)
+            row.push(newHist2[i]?.[1] ?? 0)
+            return row;
+        });
+
+        // Build labels array
+        const labels = ["% Done", name1, name2,name3];
+
+        // Update Dygraph
+        window.h.updateOptions({
+            file: combined,
+            labels: labels,
+            valueRange: null,
+        });
+
+        window.h.ready(function() {
+            window.h.updateOptions({ 
+            series: { [name1]: { 
+                fillGraph: false, 
+                stepPlot: false, 
+                color: "#FF0000", 
+                strokeWidth: 5 
+                } } })
+            window.h.updateOptions({ 
+                series: { [name2]: { 
+                    fillGraph: false, 
+                    stepPlot: false, 
+                    color: "#0000FF", 
+                    strokeWidth: 5 
+                } } })
+            window.h.updateOptions({ 
+                series: { [name3]: { 
+                    fillGraph: false, 
+                    stepPlot: false, 
+                    color: "#00FF00", 
+                    strokeWidth: 5 
+                } } })
+        })  
+}
+
+function smoothEMA(newHist, radius = 10, tau = 4) {
+  const n = newHist.length;
+  const out = new Array(n);
+
+  for (let i = 0; i < n; i++) {
+    let num = 0;
+    let den = 0;
+
+    const lo = Math.max(0, i - radius);
+    const hi = Math.min(n - 1, i + radius);
+
+    for (let j = lo; j <= hi; j++) {
+      const d = Math.abs(j - i);
+      const w = Math.exp(-d / tau);
+      num += w * newHist[j][1];
+      den += w;
+    }
+
+    out[i] = [newHist[i][0], num / den];
+  }
+
+  return out;
 }
 
 

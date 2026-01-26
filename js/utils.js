@@ -213,32 +213,40 @@ function nonlinearExponentialFit(x, y, opts = {}) {
     return { A, B };
 }
 
-export function rowsToUPlotCols(rows, isDate) {
+export function rowsToUPlotCols(rows, isDate, xAxisIsLog) {
+    console.log(xAxisIsLog)
   if (!rows.length) return [];
 
   const nSeries = rows[0].length;
-  const cols = Array.from({length: nSeries}, () => []);
+  const cols = Array.from({ length: nSeries }, () => []);
 
   for (const r of rows) {
     let x = r[0];
 
-    // 1  X is a Date() ----------------------------------------------
-    if (x instanceof Date)          x = x.getTime() / 1000;      // ms → s
+    // 1) Date object -> seconds
+    if (x instanceof Date) x = x.getTime() / 1000;
 
-    // 2  X is milliseconds (big number > 1e12) ----------------------
+    // 2) Milliseconds timestamp -> seconds
     else if (isDate && x > 1e12) x = x / 1000;
 
-    // 3  X is already seconds or a solve-index ----------------------
+    // 3) If log axis, reject invalid domain
+    if (xAxisIsLog && !(x > 0 && Number.isFinite(x))) continue;
+
+    // push X
     cols[0].push(x);
 
-    // copy Y columns unchanged
-    for (let i = 1; i < nSeries; i++) cols[i].push(r[i]);
+    // push Y columns
+    for (let i = 1; i < nSeries; i++) {
+      cols[i].push(r[i]);
+    }
   }
+
+  console.log(cols)
   return cols;
 }
 
-export let xAxisIsDate = false;        // default
-export function setXAxisMode(isDate) { xAxisIsDate = isDate; }
+
+
 export let xAxisIsLog = false;
 export function setXAxisLog(isLog) { xAxisIsLog = isLog; }
 export let yAxisIsLog = false;
