@@ -357,6 +357,7 @@ function buildSeriesMeta() {
             points: (i === 1 && timeSeriesPoints) 
                 ? {
                         space: 0,
+                        size: (window.userData.widths[i - 1]+2),
                         fill: window.userData.colors[i - 1]
                 } : null,           
             dash: lbl[0] === 'P' ? [4, 4] : [],   
@@ -767,14 +768,14 @@ seriesWidthSelector.addEventListener("change", function () {
     const seriesNumber = parseInt(seriesSettingsBox.name)
     for (let i = 0; i <= 1; i++) {
         //update saved width
-        const width_ = this.value
+        const width_ = parseInt(this.value)
         window.userData.widths[seriesNumber - (i+1)] = width_;
         
         //update width on the graph
         window.u.series[seriesNumber - i].width = width_;
     } 
     //redraw with changes
-    window.u.redraw();
+    buildMainPlot();
 })
 
 let timeSeriesPoints = false;
