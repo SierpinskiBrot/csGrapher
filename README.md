@@ -8,24 +8,24 @@
 
 # Usage
 ## Graph tab
-![Graph Tab Screenshot](/resources/previews/graphTabV5.png)
+![Graph Tab Screenshot](/resources/previews/graphTabV6.png)
 This tab shows a more extensive version of csTimer's graph for the selected session
 
 Click and drag to zoom in on the graph, double click to zoom out
 
 The buttons on the left allow you to toggle which series to see on the graph (ex. PB Single, ao5, ao100) and change their colors and thicknesses. You can add a new series with the form underneath
 
-The buttons on the right are to edit the axes of the graph. You can choose whether to have the date or the solve # on the x axis, 
-and can change the scale of either axis from linear to logarithmic. Note that using logarithmic on the x-axis will only works with solve #, not date
+The buttons on the right are to edit the axes of the graph. You can choose whether to have the date, solve #, or hours spent on the x axis, 
+and can change the scale of either axis from linear to logarithmic. Note that using logarithmic on the x-axis will only works with solve # and hours, not date
 
-On the right there is also 'Power Law Analysis Mode'. This displays the power law regression of the solve data and forecasts it into the future. 
+On the right there is also the regression analysis panel. There are 3 types of regressions and options to change their appearance and how far they forecast.
 
 
 ## Histogram tab
-![Histogram Tab Screenshot](/resources/previews/histTabV5.png)
+![Histogram Tab Screenshot](/resources/previews/histTabV6.png)
 This tab shows a histogram of the solve times for the selected session
 
-Click and drag to zoom in on the histogram, double click to zoom out. Switch between probability distribution and cumulative distribution with the buttons above
+Click and drag to zoom in on the histogram, double click to zoom out. Switch between probability distribution and cumulative distribution with the buttons above the graph
 
 There is an input on the left to change the column width for the histogram and a button to reset it to 1 second.
 You can manually select which range of solves to view or click a button such as '6 Months' to filter to solves done within the last 6 months 
@@ -49,10 +49,15 @@ The creation animation form shows how the histogram evolved as more and more sol
 the column width (in seconds), the amount of solves added each frame, and the length of the x-axis
 
 
-## Statistics Tab
-![Screenshot 2025-05-13 193951](/resources/previews/statsTabV5.png)
+## PBs tab
+![PBs Tab Screenshot](/resources/previews/statsTabV6.png)
 This tab displays data about your pbs for the selected session
 
 For each pb, the table shows the solve time, date, how long it took to beat the pb, solve #, and how many solves it took to beat the pb
 
 On the right you can see predictions about your next pb; on which solve # it will occur, the solve time, and the day on which it will occur. Underneath each of these predictions is a small graph showing the approximation used to make these predictions
+
+
+## Activity tab
+![Activity Tab Screenshot](/resources/previews/activityTabV6.png)
+This tab shows how active you are during each hour of the day for the selected session
