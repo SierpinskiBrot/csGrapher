@@ -9,101 +9,97 @@ window.sldWinPlaying = false;
 window.creationPlaying = false;
 window.distribMode = "pdf"
 
+let stepHist = true
+histSelectStep.onclick = () => {if (!stepHist) {stepHist = true;  window.h.updateOptions({stepPlot: stepHist});}}
+histSelectLinear.onclick = () => {if (stepHist) {stepHist = false; window.h.updateOptions({stepPlot: stepHist});}}
+
 //sliding window play
-document.getElementById("sldWinPlay").addEventListener("click", function() {
+sldWinPlay.addEventListener("click", function() {
     if(window.sldWinPlaying) {window.sldWinPlaying = false;} 
     else {window.creationPlaying = false; animateHistRange();} })
 //sliding window reset
-document.getElementById("sldWinReset").addEventListener("click", function() {
-    rangeSelectorApply()
-    window.h.resetZoom();})
+sldWinReset.addEventListener("click", function() {rangeSelectorApply(); window.h.resetZoom();})
 //sliding window defaults
-document.getElementById("sldWinDefaults").addEventListener("click", function() {
-    window.userData.genSlidingWindowDefaults(); })
-
+sldWinDefaults.addEventListener("click", function() {window.userData.genSlidingWindowDefaults(); })
 //creation play
-document.getElementById("creationPlay").addEventListener("click", function() {
+creationPlay.addEventListener("click", function() {
     if(window.creationPlaying) {window.creationPlaying = false} 
     else {window.sldWinPlaying = false;animateHistCreate();} })
 //creation reset
-document.getElementById("creationReset").addEventListener("click", function() {
-    rangeSelectorApply()
-    window.h.resetZoom(); })
+creationReset.addEventListener("click", function() {rangeSelectorApply(); window.h.resetZoom(); })
 //creation defaults
-document.getElementById("creationDefaults").addEventListener("click", function() {
-    window.userData.genCreationDefaults(); })
+creationDefaults.addEventListener("click", function() {window.userData.genCreationDefaults(); })
 
 
 //distribution buttons
-document.getElementById("showHistNorm").addEventListener("click", function() {
+showHistNorm.addEventListener("click", function() {
     window.userData.distribVisibilities[0] = !window.userData.distribVisibilities[0];
     window.userData.distribVisibilities[0]
-        ? document.getElementById("showHistNorm").classList.add("pressed")
-        : document.getElementById("showHistNorm").classList.remove("pressed")
+        ? showHistNorm.classList.add("pressed")
+        : showHistNorm.classList.remove("pressed")
     updateHist(); })
-document.getElementById("showHistSkew").addEventListener("click", function() {
+showHistSkew.addEventListener("click", function() {
     window.userData.distribVisibilities[1] = !window.userData.distribVisibilities[1];
     window.userData.distribVisibilities[1]
-        ? document.getElementById("showHistSkew").classList.add("pressed")
-        : document.getElementById("showHistSkew").classList.remove("pressed")
+        ? showHistSkew.classList.add("pressed")
+        : showHistSkew.classList.remove("pressed")
     updateHist(); })
-document.getElementById("showHistBeta").addEventListener("click", function() {
+showHistBeta.addEventListener("click", function() {
     window.userData.distribVisibilities[2] = !window.userData.distribVisibilities[2];
     window.userData.distribVisibilities[2]
-        ? document.getElementById("showHistBeta").classList.add("pressed")
-        : document.getElementById("showHistBeta").classList.remove("pressed")
+        ? showHistBeta.classList.add("pressed")
+        : showHistBeta.classList.remove("pressed")
     updateHist(); })
-document.getElementById("showHistGamma").addEventListener("click", function() {
+showHistGamma.addEventListener("click", function() {
     window.userData.distribVisibilities[3] = !window.userData.distribVisibilities[3];
     window.userData.distribVisibilities[3]
-        ? document.getElementById("showHistGamma").classList.add("pressed")
-        : document.getElementById("showHistGamma").classList.remove("pressed")
+        ? showHistGamma.classList.add("pressed")
+        : showHistGamma.classList.remove("pressed")
     updateHist(); })
-document.getElementById("showHistLogit").addEventListener("click", function() {
+showHistLogit.addEventListener("click", function() {
     window.userData.distribVisibilities[4] = !window.userData.distribVisibilities[4];
     window.userData.distribVisibilities[4]
-        ? document.getElementById("showHistLogit").classList.add("pressed")
-        : document.getElementById("showHistLogit").classList.remove("pressed")
+        ? showHistLogit.classList.add("pressed")
+        : showHistLogit.classList.remove("pressed")
     updateHist(); })
-document.getElementById("showHistLog").addEventListener("click", function() {
+showHistLog.addEventListener("click", function() {
     window.userData.distribVisibilities[5] = !window.userData.distribVisibilities[5];
     window.userData.distribVisibilities[5]
-        ? document.getElementById("showHistLog").classList.add("pressed")
-        : document.getElementById("showHistLog").classList.remove("pressed")
+        ? showHistLog.classList.add("pressed")
+        : showHistLog.classList.remove("pressed")
     updateHist(); })
 
 //average buttons
-document.getElementById("showHistMean").addEventListener("click", function() {
+showHistMean.addEventListener("click", function() {
     window.userData.averageVisibilities[0] = !window.userData.averageVisibilities[0];
     window.userData.averageVisibilities[0]
-        ? document.getElementById("showHistMean").classList.add("pressed")
-        : document.getElementById("showHistMean").classList.remove("pressed")
+        ? showHistMean.classList.add("pressed")
+        : showHistMean.classList.remove("pressed")
     updateHist(); })
-document.getElementById("showHistMedian").addEventListener("click", function() {
+showHistMedian.addEventListener("click", function() {
     window.userData.averageVisibilities[1] = !window.userData.averageVisibilities[1];
     window.userData.averageVisibilities[1]
-        ? document.getElementById("showHistMedian").classList.add("pressed")
-        : document.getElementById("showHistMedian").classList.remove("pressed")
+        ? showHistMedian.classList.add("pressed")
+        : showHistMedian.classList.remove("pressed")
     updateHist(); })
-document.getElementById("showHistMode").addEventListener("click", function() {
+showHistMode.addEventListener("click", function() {
     window.userData.averageVisibilities[2] = !window.userData.averageVisibilities[2];
     window.userData.averageVisibilities[2]
-        ? document.getElementById("showHistMode").classList.add("pressed")
-        : document.getElementById("showHistMode").classList.remove("pressed")
+        ? showHistMode.classList.add("pressed")
+        : showHistMode.classList.remove("pressed")
     updateHist(); })
 
 
-const probDistribButton = document.getElementById("clickProbDistrib")
-const cumDistribButton = document.getElementById("clickCumDistrib")
-probDistribButton.addEventListener("click", function() {
-    cumDistribButton.classList.remove("pressed");
-    probDistribButton.classList.add("pressed");
+
+clickProbDistrib.addEventListener("click", function() {
+    clickCumDistrib.classList.remove("pressed");
+    clickProbDistrib.classList.add("pressed");
     window.distribMode = "pdf"
     updateHist();
 })
-cumDistribButton.addEventListener("click", function() {
-    probDistribButton.classList.remove("pressed");
-    cumDistribButton.classList.add("pressed");
+clickCumDistrib.addEventListener("click", function() {
+    clickProbDistrib.classList.remove("pressed");
+    clickCumDistrib.classList.add("pressed");
     window.userData.cdf = createCDF();
     window.distribMode = "cdf"
     updateHist();
@@ -111,31 +107,77 @@ cumDistribButton.addEventListener("click", function() {
 
 
 //col width input
-document.getElementById("histBucketInput").addEventListener("change", function() {
+histBucketInput.addEventListener("change", function() {
     rangeSelectorApply()
     createDistributionPDFs();
     updateHist(); })
 //reset
-document.getElementById("histBucketReset").addEventListener("click", function() {
+histBucketReset.addEventListener("click", function() {
     histBucketInput.value = 1
     rangeSelectorApply()
     createDistributionPDFs();
     updateHist();
 })
+histOffset.addEventListener("change", function() {
+    rangeSelectorApply();
+    createDistributionPDFs();
+    updateHist();
+})
+histOffsetBest.addEventListener("click", function() {
+    const lower = document.getElementById("histRangeLow").value
+    const upper = document.getElementById("histRangeHigh").value
+
+    const bucketSize = document.getElementById("histBucketInput").value
+    const range = upper - lower + 1
+    const offset = window.userData.solves[window.selectedSess].length - upper
+
+    let best3 = Infinity
+    let bestIdx3 = 0
+    let worst3 = -Infinity
+    let worstIdx3 = 0
+
+    const step = 0.001
+    const steps = Math.round(bucketSize / step)
+
+    for(let k = 0; k < steps; k++) {
+
+        const bucketOffset = k * step
+        const hist = createHistRange(bucketSize, range, offset,bucketOffset)
+
+        let sum3 = 0
+        for(let i = 1; i < hist.length-2; i++) {sum3 += (hist[i+1][1]-2*hist[i][1]+hist[i-1][1])**2}
+        
+        if(sum3 < best3) {
+            best3 = sum3
+            bestIdx3 = bucketOffset
+        }
+        if(sum3 > worst3) {
+            worst3 = sum3
+            worstIdx3 = bucketOffset
+        }
+        
+    }
+
+    console.log(`Best3: ${bestIdx3}: ${best3}`)
+    console.log(`Worst3: ${worstIdx3}: ${worst3}`)
+
+    histOffset.value = Number(bestIdx3.toFixed(3));
+    histOffset.dispatchEvent(new Event("change", { bubbles: true })); 
+})
 
 //range select all
-document.getElementById("rangeSelectAll").addEventListener("click", function() {
+rangeSelectAll.addEventListener("click", function() {
     window.resetRangeSelector()
     rangeSelectorApply()
 })
 //range selector timeframes
-document.getElementById("histRangeLow").addEventListener("change", function() {rangeSelectorApply()})
-document.getElementById("histRangeHigh").addEventListener("change", function() {rangeSelectorApply()})
-document.getElementById("rangeSelect24H").addEventListener("click", function() {rangeSelectorCutoff(86400000)})
-document.getElementById("rangeSelectWeek").addEventListener("click", function() {rangeSelectorCutoff(604800000)})
-document.getElementById("rangeSelectMonth").addEventListener("click", function() {rangeSelectorCutoff(2626560000)})
-document.getElementById("rangeSelect6Months").addEventListener("click", function() {rangeSelectorCutoff(15779232000)})
-document.getElementById("rangeSelectYear").addEventListener("click", function() {rangeSelectorCutoff(31557600000)})
+document.getElementById("histRangeLow").addEventListener(      "change", function() {rangeSelectorApply()})
+document.getElementById("histRangeHigh").addEventListener(     "change", function() {rangeSelectorApply()})
+document.getElementById("rangeSelect24H").addEventListener(    "click",  function() {rangeSelectorCutoff(86400000)})
+document.getElementById("rangeSelectWeek").addEventListener(   "click",  function() {rangeSelectorCutoff(604800000)})
+document.getElementById("rangeSelectMonth").addEventListener(  "click",  function() {rangeSelectorCutoff(2626560000)})
+document.getElementById("rangeSelect6Months").addEventListener("click",  function() {rangeSelectorCutoff(15779232000)})
+document.getElementById("rangeSelectYear").addEventListener(   "click",  function() {rangeSelectorCutoff(31557600000)})
 
 
 
@@ -146,14 +188,14 @@ function rangeSelectorApply() {
     const upper = document.getElementById("histRangeHigh").value
 
     const bucketSize = document.getElementById("histBucketInput").value
+    const bucketOffset = histOffset.value
     const range = upper - lower + 1
     const offset = window.userData.solves[window.selectedSess].length - upper
 
-    const hist = createHistRange(bucketSize, range, offset)
+    const hist = createHistRange(bucketSize, range, offset,bucketOffset)
     window.userData.hist[window.selectedSess] = hist
     genSessionDistribData();
     updateHist()
-    
 }
 
 //resets the range selector to show the max range
@@ -179,7 +221,6 @@ function rangeSelectorCutoff(cutoff) {
 }
 
 
-const histogramButton = document.getElementById("histogramButton");
 histogramButton.addEventListener("click", function () {
     window.currentTab = "hist";
     window.resetContainers();
@@ -218,8 +259,6 @@ window.updateHist = function () {
         const dLabels = window.userData.distribLabels;
         const numDistribs = distrib.length;
         
-        const start = document.getElementById("histRangeLow").value
-        const end = document.getElementById("histRangeHigh").value
         //const numSolves = end - start + 1;
         let numSolves_ = 0
         for(let i = 0; i < hist.length; i++) {
@@ -339,7 +378,7 @@ function getAnnotations() {
 }
 
 
-function createHistRange2(bucketSize, range, offset) {
+function createHistRangeOld(bucketSize, range, offset) {
     const bucketSize_ = parseFloat(bucketSize)
     const hist = []
     const solves = window.userData.solves[window.selectedSess]
@@ -440,6 +479,7 @@ function createHistRange(bucketSize, range, offset) {
     return hist;
 }
 
+
 window.doTPSgraph = function(bucketSize,j,t,step,height){
     let data = window.userData.solves[7]
     window.userData.createHist(bucketSize)
@@ -457,7 +497,7 @@ window.doTPSgraph = function(bucketSize,j,t,step,height){
             labels: ["1", "2"],
             xlabel: "% Done",
             ylabel: 'TPS',
-            stepPlot: step,
+            stepPlot: false,
         })
 
         window.h.ready(function() {
@@ -620,19 +660,14 @@ window.createCDF = function() {
     for (let i = 0; i < n; i++) {
         const x = sorted[i];
         const y = (i + 1) / n;
-        cdf.set(x, y); // later index overwrites earlier => keeps highest y
+        cdf.set(x, y); 
     }
 
-    // Convert map to array of [time, cdf] points
-    
     window.userData.cdfRange = [0,max];
     window.userData.cdf = Array.from(cdf.entries());
     return Array.from(cdf.entries());
     
 }
-
-
-
 
 //sliding window animation
 async function animateHistRange() {
@@ -657,7 +692,7 @@ async function animateHistRange() {
     //should have the lowest relative standard deviation and therefore the highest peak
     let yMax = 0;
     if(yAxisType == 'static') {
-        const hist = createHistRange(bucketSize,range,0)
+        const hist = createHistRange(bucketSize,range,0,0)
         for(let i = 0; i < hist.length; i++) {if(hist[i][1] > yMax) yMax = hist[i][1]}
         yMax *= 1.4 //to be safe
         window.h.updateOptions({valueRange: [0,yMax]})
@@ -672,7 +707,7 @@ async function animateHistRange() {
     for(let i = numSolves-range; i > 0; i-=step) {
         if(!window.sldWinPlaying) break; //animation can be cancelled with stop button
 
-        const hist = createHistRange(bucketSize,range,i)
+        const hist = createHistRange(bucketSize,range,i,0)
         window.h.updateOptions({
             file: hist,
             dateWindow: [0,xmax],
@@ -739,39 +774,12 @@ async function animateHistCreate() {
     //create the buckets
     for(let b = 0; b <= max+1; b+= bucketSize) {hist.push([b,0]);}
 
-    //animate
-    /*
-    for(let i = 0; i < numSolves; i++) {
-        if(!window.creationPlaying) break; //animation can be cancelled with stop button
-
-        //add the solve to the bucket
-        const time = solves[i][1];
-        const bucket = Math.floor(time/bucketSize);
-        hist[bucket][1] += 1;
-
-        //only draw every STEP frames, so animation isnt too slow
-        if(i % step == 0) {
-            window.h.updateOptions({
-                file: hist,
-                dateWindow: [0,Xmax],
-                labels: ["Time(s)", "Probability"],
-            });
-            window.h.setAnnotations(getAnnotations())
-            
-            //update progress bar
-            frame++
-            progressBar.style.width = `${(frame/totalFrames)*100}%`
-
-            await sleep(1)
-        } 
-    }
-        */
-
+   //animate
     for(let range = 0; range < numSolves-step; range+=step) {
         if(!window.creationPlaying) break; //animation can be cancelled with stop button
 
         
-        const hist = createHistRange(bucketSize,range,numSolves-range)
+        const hist = createHistRange(bucketSize,range,numSolves-range,0)
 
         //only draw every STEP frames, so animation isnt too slow
         
@@ -812,7 +820,7 @@ function histogramTabStartup() {
             {
                 xlabel: "Time(s)",
                 ylabel: "Frequency",
-                stepPlot: true,
+                stepPlot: stepHist,
                 fillGraph: true,
                 color: themes[window.currentTheme]['--color-primary'],
                 legend: "follow",
@@ -822,8 +830,6 @@ function histogramTabStartup() {
         );
     });
 
-    
-    
 
     //styling for the distributions
     const dNames = window.userData.distribLabels
@@ -857,15 +863,11 @@ function genDefaultColumnWidths() {
             if(solves[j][i][1] != null) times.push(solves[j][i][1]);
         }
 
-        // 2. Compute mean
         const mean = times.reduce((a, b) => a + b, 0) / times.length;
-
-        // 3. Compute std deviation
         const std = Math.sqrt(times.reduce((sum, t) => sum + (t - mean) ** 2, 0) / times.length);
-
-        // 4. Suggested col width
         const rawWidth = std / 6;
-        //  Snap to closest power-of-two fraction (0.25, 0.5, 1, 2, 4, ...)
+
+        //  Snap to closest power of two fraction (0.25, 0.5, 1, 2, ...
         const log2 = Math.round(Math.log2(rawWidth));
         const colWidth = Math.pow(2, log2);
 
@@ -917,22 +919,6 @@ function calculateDistributionCoeffs() {
 
 
     //--------------------SKEW DISTRIBUTION--------------------
-    /*
-    // Estimate sample skewness γ1 = (1/n) ∑ ((x - μ)/σ)^3
-    let skewness = solveTimes.reduce((sum, t) => sum + ((t - mean) / std) ** 3, 0) / n;
-    //console.log("   real skewness:",skewness)
-    //Max allowable is 1 or it explodes
-    if(skewness > 0.99) skewness = 0.99; if(skewness < -0.99) skewness = -0.99;
-
-    // Approximate shape parameter α from skewness (Pearson's method)
-    const a = Math.abs(skewness) ** (2/3)
-    const b = ((4-Math.PI)/2) ** (2/3);
-    const delta = Math.sign(skewness) * Math.min(Math.sqrt(Math.PI / 2 * (a/(a+b))),window.userData.maxDelta);
-    const alpha_skew = delta / Math.sqrt(1 - delta * delta)
-    const omega_skew = std / Math.sqrt(1 - 2 * delta * delta / Math.PI);
-    const xi_skew = mean - omega_skew * delta * Math.sqrt(2 / Math.PI);
-    */
-
     //skew mean, var, and skew
     const skewN = trimmed.length;
     const skewMean = trimmed.reduce((s, v) => s + v, 0) / skewN;
@@ -987,9 +973,6 @@ function calculateDistributionCoeffs() {
 
         window.userData.skewCoeffs = {xi: xi_skew, omega: omega_skew, alpha: alpha_skew}
     }
-
-
-
 
 
     //--------------------BETA DISTRIBUTION--------------------
@@ -1066,7 +1049,6 @@ function createDistributionPDFs() {
         sum += y;
         return [x, y];
     });
-
     window.userData.distribData[0] = normData; //store the norm pdf
 
 
@@ -1077,7 +1059,6 @@ function createDistributionPDFs() {
         sum += y;
         return [x, y];
     });
-
     window.userData.distribData[1] = skewData; //store the skew pdf
 
 
@@ -1088,7 +1069,6 @@ function createDistributionPDFs() {
         sum += y;
         return [x, y];
     });
-
     window.userData.distribData[2] = betaData; //store beta pdf
 
 
@@ -1100,7 +1080,6 @@ function createDistributionPDFs() {
         sum += y;
         return [x, y];
     });
-    
     window.userData.distribData[3] = gammaData; //store gamma pdf
 
 
@@ -1112,7 +1091,6 @@ function createDistributionPDFs() {
         sum += y
         return [x, y]
     })
-
     window.userData.distribData[4] = logitData
 
 
@@ -1123,7 +1101,6 @@ function createDistributionPDFs() {
         sum += y
         return [x, y]
     })
-
     window.userData.distribData[5] = logData
 
 }
@@ -1151,7 +1128,6 @@ function createDistributionCDFs() {
 
     //--------------------NORMAL DISTRIBUTION--------------------
     const normCDF = []
-
     for(let i = 0; i < cdf.length; i++) {
         const x = cdf[i][0]
         const distribY = generalNormalCDF(x, normCoeffs.mu, normCoeffs.sigma)
@@ -1163,7 +1139,6 @@ function createDistributionCDFs() {
     //--------------------SKEW DISTRIBUTION--------------------
     //using integration by adding up columns
     const skewCdf = []
-
     currentX = 0;
     distribY = 0
     for(let i = 0; i < cdf.length; i++) {
@@ -1179,7 +1154,6 @@ function createDistributionCDFs() {
 
     //--------------------BETA DISTRIBUTION--------------------
     const betaCdf = []
-
     for(let i = 0; i < cdf.length; i++) {
         const x = cdf[i][0]
         const distribY = betaCDF(x/betaCoeffs.max, betaCoeffs.alpha, betaCoeffs.beta)
@@ -1191,7 +1165,6 @@ function createDistributionCDFs() {
     //--------------------GAMMA DISTRIBUTION--------------------
     //using integration by adding up columns
     const gammaCDF_ = []
-
     currentX = 0;
     distribY = 0
     for(let i = 0; i < cdf.length; i++) {
@@ -1207,7 +1180,6 @@ function createDistributionCDFs() {
 
     //--------------------LOGIT DISTRIBUTION--------------------
     const logitCDF = []
-
     for(let i = 0; i < cdf.length; i++) {
         const x = cdf[i][0]
         let distribY = 1;
@@ -1219,7 +1191,6 @@ function createDistributionCDFs() {
 
     //--------------------LOG DISTRIBUTION--------------------
     const logCDF_ = []
-
     for(let i = 0; i < cdf.length; i++) {
         const x = cdf[i][0]
         const distribY = logCDF(x, logCoeffs.mu, logCoeffs.sigma)

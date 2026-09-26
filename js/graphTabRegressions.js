@@ -42,78 +42,68 @@ export const regressions = [
   },
 ];
 
-/*
-  Performs logarithmic regression: y = a + b * ln(x)
-
-  Inputs:
-    - yData: array of Y values
-    - xData: array of X values (same length as yData)
-  Notes:
-    - Pairs are filtered together: only finite x/y are kept.
-    - Requires x > 0 for ln(x).
-*/
+//Performs logarithmic regression: y = a + b * ln(x)
 export function logarithmicRegression(yData, xData) {
   if (!Array.isArray(yData) || !Array.isArray(xData)) {
-    throw new Error("logarithmicRegression expects (yData, xData) arrays.");
-  }
-  if (yData.length !== xData.length) {
-    throw new Error("xData and yData must have the same length.");
-  }
+      throw new Error("logarithmicRegression expects (yData, xData) arrays.");
+    }
+    if (yData.length !== xData.length) {
+      throw new Error("xData and yData must have the same length.");
+    }
 
-  // Build valid (x,y) pairs
-  const points = [];
-  for (let i = 0; i < yData.length; i++) {
-    const x = xData[i];
-    const y = yData[i];
+    // Build valid (x,y) pairs
+    const points = [];
+    for (let i = 0; i < yData.length; i++) {
+      const x = xData[i];
+      const y = yData[i];
 
-    if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
-    if (x <= 0) throw new Error("Logarithmic regression requires x > 0.");
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+      if (x <= 0) throw new Error("Logarithmic regression requires x > 0.");
 
-    points.push({ x, y });
-  }
+      points.push({ x, y });
+    }
 
-  const n = points.length;
-  if (n < 2) {
-    throw new Error("At least two valid (x,y) data points are required.");
-  }
+    const n = points.length;
+    if (n < 2) {
+      throw new Error("At least two valid (x,y) data points are required.");
+    }
 
-  // Accumulate for linear least squares in terms of L = ln(x)
-  let sumLx = 0, sumY = 0, sumLx2 = 0, sumLxY = 0;
-  for (const { x, y } of points) {
-    const lx = Math.log(x);
-    sumLx  += lx;
-    sumY   += y;
-    sumLx2 += lx * lx;
-    sumLxY += lx * y;
-  }
+    // Accumulate for linear least squares in terms of L = ln(x)
+    let sumLx = 0, sumY = 0, sumLx2 = 0, sumLxY = 0;
+    for (const { x, y } of points) {
+      const lx = Math.log(x);
+      sumLx  += lx;
+      sumY   += y;
+      sumLx2 += lx * lx;
+      sumLxY += lx * y;
+    }
 
-  const denom = n * sumLx2 - sumLx * sumLx;
-  if (denom === 0) {
-    throw new Error("Cannot compute regression (all ln(x) values identical?).");
-  }
+    const denom = n * sumLx2 - sumLx * sumLx;
+    if (denom === 0) {
+      throw new Error("Cannot compute regression (all ln(x) values identical?).");
+    }
 
-  // Solve for a, b
-  const b = (n * sumLxY - sumLx * sumY) / denom;
-  const a = (sumY - b * sumLx) / n;
+    // Solve for a, b
+    const b = (n * sumLxY - sumLx * sumY) / denom;
+    const a = (sumY - b * sumLx) / n;
 
-  // R^2 computed over the SAME filtered points
-  const mean = sumY / n;
-  let ssRes = 0, ssTot = 0;
-  for (const { x, y } of points) {
-    const yHat = a + b * Math.log(x);
-    const diffRes = y - yHat;
-    const diffTot = y - mean;
-    ssRes += diffRes * diffRes;
-    ssTot += diffTot * diffTot;
-  }
-  const r2 = ssTot === 0 ? 1 : (1 - ssRes / ssTot);
+    // R^2 computed over the SAME filtered points
+    const mean = sumY / n;
+    let ssRes = 0, ssTot = 0;
+    for (const { x, y } of points) {
+      const yHat = a + b * Math.log(x);
+      const diffRes = y - yHat;
+      const diffTot = y - mean;
+      ssRes += diffRes * diffRes;
+      ssTot += diffTot * diffTot;
+    }
+    const r2 = ssTot === 0 ? 1 : (1 - ssRes / ssTot);
 
-  regressions[2].A = a;
-  regressions[2].B = b;
-  logarithmicR2.innerText = r2.toFixed(3);
+    regressions[2].A = a;
+    regressions[2].B = b;
+    logarithmicR2.innerText = r2.toFixed(3);
 
-  // (Optional) return results too, in case you want to use it elsewhere
-  return { a, b, r2, n };
+    return { a, b, r2, n };
 }
 
 /**
@@ -232,7 +222,7 @@ export function powerLawFit(yData, xData, opt = {}) {
 
 /**
  * Log–log regression on (x,y) pairs (x>0, y>0).
- * Models: y ≈ A * x^B  => ln(y) = ln(A) + B ln(x)
+ * Models: y = A * x^B  => ln(y) = ln(A) + B ln(x)
  *
  * @param {number[]} yData
  * @param {number[]} xData

@@ -170,7 +170,7 @@ function nonlinearExponentialFit(x, y, opts = {}) {
         if (Math.abs(prevSSR - SSR) < tol) break;
         prevSSR = SSR;
 
-        // damped normal equations: (J^T J + lambda�diag(J^T J))�delta = J^T r
+        // damped normal equations: (J^T J + lambda diag(J^T J)) delta = J^T r
         const m00 = JtJ00 * (1 + lambda);
         const m01 = JtJ01;
         const m10 = JtJ01;
@@ -213,8 +213,7 @@ function nonlinearExponentialFit(x, y, opts = {}) {
     return { A, B };
 }
 
-export function rowsToUPlotCols(rows, isDate, xAxisIsLog) {
-    console.log(xAxisIsLog)
+export function rowsToUPlotCols(rows, isDate, xAxisIsLog_) {
   if (!rows.length) return [];
 
   const nSeries = rows[0].length;
@@ -223,13 +222,13 @@ export function rowsToUPlotCols(rows, isDate, xAxisIsLog) {
   for (const r of rows) {
     let x = r[0];
 
-    // 1) Date object -> seconds
+    // Date object -> seconds
     if (x instanceof Date) x = x.getTime() / 1000;
 
-    // 2) Milliseconds timestamp -> seconds
+    // Milliseconds timestamp -> seconds
     else if (isDate && x > 1e12) x = x / 1000;
 
-    // 3) If log axis, reject invalid domain
+    // If log axis, reject invalid domain
     if (xAxisIsLog && !(x > 0 && Number.isFinite(x))) continue;
 
     // push X
@@ -241,7 +240,6 @@ export function rowsToUPlotCols(rows, isDate, xAxisIsLog) {
     }
   }
 
-  console.log(cols)
   return cols;
 }
 
