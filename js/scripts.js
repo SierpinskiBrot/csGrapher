@@ -517,43 +517,26 @@ class UserData {
     pushAvg(x, index = undefined) {
         const pastartTime = performance.now() 
         
-        let sum,mean
-        for (let j = 0; j < this.numSessions; j++) {
-            //if(this.sessions[j] == "move_times") continue;
-            const solves = this.solves[j];
-            const clip = Math.ceil(0.05 * x); //Remove top and bottom 5% of solves
-            const trimmedSize = x-clip*2
-            let windo = [];
-            
-            for (let i = 0; i < solves.length; i++) {
-                const newVal = solves[i][1];
-                if (i < x) { //Cant make an average without enough data
-                    if(index == undefined) { solves[i].push(null); } 
-                    else { solves[i].splice(index,0,null); }
-                    // Insert new solve time in sorted position
-                    const insertIdx = binarySearchInsertIdx(windo, newVal);
-                    if (insertIdx === -1) windo.push(newVal);
-                    else windo.splice(insertIdx, 0, newVal);
-                } else {
-                    // Remove oldest solve from window
-                    const old = solves[i - x][1];
-                    const removeIdx = binarySearchInsertIdx(windo, old);
-                    if (removeIdx !== -1) windo.splice(removeIdx, 1);
-                    
-                    // Insert new solve time in sorted position
-                    const insertIdx = binarySearchInsertIdx(windo, newVal);
-                    if (insertIdx === -1) windo.push(newVal);
-                    else windo.splice(insertIdx, 0, newVal);
-            
-                    //mean of clipped portion
-                    sum = 0;
-                    for(let k = clip; k < x-clip; k++) {sum+=windo[k]}
-                    mean = sum/trimmedSize
-                    if(mean == 0 || windo[clip] == null) mean = null
+         x = Number(x);
+        const clip = Math.ceil(0.05 * x);
+        const trimmedSize = x - clip * 2;
+        const key = v => (v == null ? Infinity : v);
+        const put = (row, val) => index === undefined ? row.push(val) : row.splice(index, 0, val);
 
-                    if (index === undefined) { solves[i].push(mean); } 
-                    else { solves[i].splice(index, 0, mean); }
+        for (let j = 0; j < this.numSessions; j++) {
+            const solves = this.solves[j];
+            const windo = [];
+            for (let i = 0; i < solves.length; i++) {
+                const newKey = key(solves[i][1]);
+                windo.splice(binarySearchInsertIdx(windo, newKey), 0, newKey);
+                if (i >= x) {
+                    const oldKey = key(solves[i - x][1]);
+                    windo.splice(binarySearchInsertIdx(windo, oldKey), 1);
                 }
+                if (i < x - 1 || windo[x - clip - 1] === Infinity) { put(solves[i], null); continue; }
+                let sum = 0;
+                for (let k = clip; k < x - clip; k++) sum += windo[k];
+                put(solves[i], sum / trimmedSize);
             }
         }
 
@@ -633,7 +616,13 @@ class UserData {
                         this.solves[j][i].splice(idx+1,0,this.solves[j][i][idx])
                     }
                     
-                    if(this.solves[j][i][idx] > 0) break;
+                    const v = this.solves[j][i][idx];
+                    if (v > 0) {
+                        times.push(v);
+                        dates.push(this.solves[j][i][0]);
+                        solveNums.push(i + 1);
+                        break;
+                    }
                     
                 }
                 
@@ -653,7 +642,7 @@ class UserData {
                         bestSinceLastPB = Infinity
                         times.push(solveTime); //time
                         dates.push(this.solves[j][i][0]) //date
-                        solveNums.push(i); //solve #
+                        solveNums.push(i+1); //solve #
 
                     }
                     //otherwise, keep the current pb
@@ -674,14 +663,14 @@ class UserData {
                 seriesPBs.bestSinceLastPB = bestSinceLastPB;
                 let sumSinceLastPB = 0;
                 let numSinceLastPB = 0
-                for(let i = solveNums[solveNums.length-1]; i < this.solves[j].length; i++) {
+                for(let i = solveNums[solveNums.length-1] -1; i < this.solves[j].length; i++) {
                     sumSinceLastPB += this.solves[j][i][idx]
                     if(this.solves[j][i][idx]) numSinceLastPB++;
                 }
                 
                 seriesPBs.meanSinceLastPB = sumSinceLastPB/numSinceLastPB;
                 let stdSinceLastPB = 0;
-                for(let i = solveNums[solveNums.length-1]; i < this.solves[j].length; i++) {
+                for(let i = solveNums[solveNums.length-1] -1; i < this.solves[j].length; i++) {
                     if(this.solves[j][i][idx]) {stdSinceLastPB += (this.solves[j][i][idx]-seriesPBs.meanSinceLastPB)**2}
                 }
                 stdSinceLastPB /= numSinceLastPB;

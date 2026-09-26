@@ -141,7 +141,8 @@ document.getElementById("rangeSelectYear").addEventListener("click", function() 
 
 //applies the currently selected range and column input and updates the histogram
 function rangeSelectorApply() {
-    const lower = document.getElementById("histRangeLow").value
+    const lower = Math.max(1, parseInt(histRangeLow.value) || 1);
+    histRangeLow.value = lower;
     const upper = document.getElementById("histRangeHigh").value
 
     const bucketSize = document.getElementById("histBucketInput").value
@@ -165,19 +166,15 @@ window.resetRangeSelector = function() {
 
 //apply the selection to only solves done within the last cutoff milliseconds
 function rangeSelectorCutoff(cutoff) {
-    const solves = window.userData.solves[window.selectedSess]
-    const cutoffDate = new Date(Date.now() - cutoff)
-    let lower = solves.length
-    for(let i = 0; i < solves.length; i++) {
-        const diff = solves[i][0] - cutoffDate
-        if(diff > 0) {
-            lower = i
-            break
-        }
+    const solves = window.userData.solves[window.selectedSess];
+    const cutoffDate = Date.now() - cutoff;
+    let lower = -1;
+    for (let i = 0; i < solves.length; i++) {
+        if (solves[i][0].getTime() > cutoffDate) { lower = i + 1; break; }
     }
-    document.getElementById("histRangeLow").value = lower;
-    document.getElementById("histRangeHigh").value = solves.length
-
+    if (lower === -1) return alert("No solves in that timeframe");
+    histRangeLow.value = lower;
+    histRangeHigh.value = solves.length;
     rangeSelectorApply();
 }
 
@@ -366,84 +363,81 @@ function createHistRange2(bucketSize, range, offset) {
     return hist;
 }
 function createHistRange(bucketSize, range, offset) {
-  const bucketSize_ = parseFloat(bucketSize);
-  const solves = window.userData.solves[window.selectedSess];
-  const numSolves = solves.length;
+    const bucketSize_ = parseFloat(bucketSize);
+    const solves = window.userData.solves[window.selectedSess];
+    const numSolves = solves.length;
 
-  // figure out the slice [start, end) we’re using
-  const end = Math.max(0, numSolves - offset);
-  const start = Math.max(0, end - range);
-  const n = end - start;
+    // figure out the slice [start, end) we’re using
+    const end = Math.max(0, numSolves - offset);
+    const start = Math.max(0, end - range);
+    const n = end - start;
 
-  // empty case
-  if (n <= 0) {
-    window.histAverages = { mean: NaN, median: NaN, modeBucket: NaN, modeCount: 0 };
-    return [];
-  }
-
-  // one pass: bucket counts, sum, times[], mode tracking
-  const counts = [];                   // sparse array: counts[bucket] = frequency
-  const times = new Float64Array(n);   // for exact median via quickselect
-  let sum = 0;
-  let maxBucket = -1;
-  let modeBucket = 0, modeCount = 0;
-
-  for (let i = start, k = 0; i < end; i++, k++) {
-    const t = solves[i][1];
-    if(t == null) continue;
-    times[k] = t;
-    sum += t;
-
-    const bucket = (t / bucketSize_) | 0; // fast floor
-    const c = (counts[bucket] = (counts[bucket] | 0) + 1);
-    if (c > modeCount) { modeCount = c; modeBucket = bucket; }
-    if (bucket > maxBucket) maxBucket = bucket;
-  }
-
-  // exact median with Quickselect (linear time expected)
-  function selectKth(arr, k) {
-    let lo = 0, hi = arr.length - 1;
-    while (true) {
-      const pivot = arr[(lo + hi) >> 1];
-      let i = lo, j = hi;
-      while (i <= j) {
-        while (arr[i] < pivot) i++;
-        while (arr[j] > pivot) j--;
-        if (i <= j) { const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp; i++; j--; }
-      }
-      if (k <= j) hi = j;
-      else if (k >= i) lo = i;
-      else return arr[k];
+    // empty case
+    if (n <= 0) {
+        window.histAverages = { mean: NaN, median: NaN, modeBucket: NaN, modeCount: 0 };
+        return [];
     }
-  }
-  let median;
-  if (n & 1) {
-    median = selectKth(times, n >> 1);
-  } else {
-    const k = (n >> 1);
-    const a = selectKth(times, k - 1);
-    const b = selectKth(times, k);
-    median = (a + b) * 0.5;
-  }
 
-  const mean = sum / n;
+    // one pass: bucket counts, sum, times[], mode tracking
+    const counts = [];                   // sparse array: counts[bucket] = frequency
+    const times = new Float64Array(n);   // for exact median via quickselect
+    let sum = 0;
+    let maxBucket = -1;
+    let modeBucket = 0, modeCount = 0;
 
-  // build hist in the same shape as before: [[bucketStart, count], ...]
-  const hist = new Array(maxBucket + 1);
-  for (let b = 0; b <= maxBucket; b++) {
-    hist[b] = [b * bucketSize_, counts[b] | 0];
-  }
+    let m = 0;
+    for (let i = start; i < end; i++) {
+        const t = solves[i][1];
+        if (t == null) continue;
+        times[m++] = t;
+        sum += t;
 
-  // expose summary
-  window.histAverages = {
-    mean: Math.floor(mean/bucketSize_)*bucketSize_,
-    median: Math.floor(median/bucketSize_)*bucketSize_,
-    // mode is the bucket with the most solves (not the raw mode)
-    modeBucket: modeBucket * bucketSize_,
-    modeCount
-  };
+        const bucket = (t / bucketSize_) | 0; // fast floor
+        const c = (counts[bucket] = (counts[bucket] | 0) + 1);
+        if (c > modeCount) { modeCount = c; modeBucket = bucket; }
+        if (bucket > maxBucket) maxBucket = bucket;
+    }
+    if (m === 0) { window.histAverages = { mean: NaN, median: NaN, modeBucket: NaN, modeCount: 0 }; return []; }
 
-  return hist;
+    // exact median with Quickselect (linear time expected)
+    function selectKth(arr, k) {
+        let lo = 0, hi = arr.length - 1;
+        while (true) {
+        const pivot = arr[(lo + hi) >> 1];
+        let i = lo, j = hi;
+        while (i <= j) {
+            while (arr[i] < pivot) i++;
+            while (arr[j] > pivot) j--;
+            if (i <= j) { const tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp; i++; j--; }
+        }
+        if (k <= j) hi = j;
+        else if (k >= i) lo = i;
+        else return arr[k];
+        }
+    }
+
+    const valid = times.subarray(0, m);
+    let median;
+    if (m & 1) median = selectKth(valid, m >> 1);
+    else median = (selectKth(valid, (m >> 1) - 1) + selectKth(valid, m >> 1)) * 0.5;
+    const mean = sum / m;
+
+    // build hist in the same shape as before: [[bucketStart, count], ...]
+    const hist = new Array(maxBucket + 1);
+    for (let b = 0; b <= maxBucket; b++) {
+        hist[b] = [b * bucketSize_, counts[b] | 0];
+    }
+
+    // expose summary
+    window.histAverages = {
+        mean: Math.floor(mean/bucketSize_)*bucketSize_,
+        median: Math.floor(median/bucketSize_)*bucketSize_,
+        // mode is the bucket with the most solves (not the raw mode)
+        modeBucket: modeBucket * bucketSize_,
+        modeCount
+    };
+
+    return hist;
 }
 
 window.doTPSgraph = function(bucketSize,j,t,step,height){

@@ -99,6 +99,29 @@ allSeriesWidthSelector.addEventListener("change", (e) => {
     buildMainPlot();
 })
 
+let regXMap = x => x;
+
+function makeRegXMap(sess) {
+    const offset = parseFloat(regressionOffset.value) || 0;
+    if (xAxisDataType === "Date") {
+        let minT = Infinity, maxT = -Infinity;
+        for (const s of window.userData.solves[sess]) {
+            const t = s[0].getTime();
+            if (t < minT) minT = t;
+            if (t > maxT) maxT = t;
+        }
+        const startMs = minT - (maxT - minT) * offset;
+        return d => (d.getTime() - startMs) / 1000 + 1000;
+    }
+    if (xAxisDataType === "Solve #") {
+        const shift = Math.floor(offset * window.userData.solves[sess].length);
+        return x => x + shift;
+    }
+    const s3 = window.userData.solves3[sess];
+    const shift = offset * s3[s3.length - 1][0];
+    return x => x + shift;
+}
+
 
 function buildMainPlot() {
     if (!window.userData) return; // No data loaded yet
@@ -154,15 +177,11 @@ function buildMainPlot() {
             //offset (backwards)
             const offsetAmount = Math.max(0,Math.floor(offsetMultiplier*nOriginal))
 
-            for(let k = 1; k <= offsetAmount; k++) {
-                unshiftPoint(-k);
-            }
+            for (let k = 1; k <= offsetAmount; k++) unshiftPoint(1 - k);
 
             //forecast (forward)
             const fCount = Math.max(0, Math.floor((forecastMultiplier - 1) * nOriginal))
-            for(let i = 0; i < fCount; i++) {
-                pushPoint(nOriginal+i)
-            }
+            for (let i = 0; i < fCount; i++) pushPoint(nOriginal + 1 + i);
         } else if (xAxisDataType === "Hours") {
             const lastX = xs[xs.length - 1]
             const firstX = xs[0]
@@ -234,46 +253,9 @@ function buildMainPlot() {
     // for each active regression, compute and append its values
     regressions.forEach(reg => {
         if (!activeRegs[reg.id]) return;
-
-        // IMPORTANT: for Date x-axis, convert Date objects to seconds since first solve
-        let xForCompute = xs;
-
-        if (xAxisDataType === "Date") {
-            // Convert ALL dates (including offset dates) to seconds since earliest x (not “first solve”)
-            let tMin = Infinity;
-            for (const d of xs) {
-                if (!(d instanceof Date)) continue;
-                const t = d.getTime();
-                if (Number.isFinite(t) && t < tMin) tMin = t;
-            }
-            if (!Number.isFinite(tMin)) {
-                console.warn("Cannot compute regression on Date axis: no valid Date values.");
-                return;
-            }
-
-            xForCompute = xs.map(d => {
-                if (!(d instanceof Date)) return NaN;
-                const t = d.getTime();
-                if (!Number.isFinite(t)) return NaN;
-                return (t - tMin) / 1000 + 1000; // seconds since earliest x
-            });
-        } else {
-            xForCompute = xs.map(v => (Number.isFinite(v) ? v : Nan))
-        }
-
-        //shift so that the smallest xForCompute is 1
-        let minX = Infinity
-        for(const v of xForCompute) {
-            if(Number.isFinite(v) && v < minX) minX = v
-        }
-        const shift = 1 - minX
-        
-        xForCompute = xForCompute.map(v => (Number.isFinite(v) ? (v + shift) : Nan));
-
+        const xForCompute = xs.map(v => { const r = regXMap(v); return r > 0 ? r : NaN; });
         const preds = reg.compute(xForCompute);
-
-        // add one new column per row
-        preds.forEach((yhat, i) => displayed[i].push((yhat < 2*slowestSolve) ? yhat : null));
+        preds.forEach((yhat, i) => displayed[i].push(Number.isFinite(yhat) && yhat < 2 * slowestSolve ? yhat : null));
     });
 
 
@@ -571,91 +553,30 @@ ySelectLog.onclick    = () => { if (!yAxisIsLog)  { setYAxisLog(true);   buildMa
 const activeRegs = {powerLaw: false, logLog: false, logarithmic: false, linear: false};
 
 function getRegressionXYForSession(sess) {
-    // Y values (clean) are always solve times
     const solves = window.userData.solves[sess];
-    const solves2 = window.userData.solves2[sess];
-    const solves3 = window.userData.solves3[sess];
 
-    // Pick the raw x array depending on axis type
     let xRaw;
-    if (xAxisDataType === "Date") {
-        xRaw = solves.map(s => s[0]);
-    } else if (xAxisDataType === "Solve #") {
-        xRaw = solves2.map(s => s[0]);
-    } else if (xAxisDataType === "Hours") {
-        xRaw = solves3.map(s => s[0]);
-    } else {
-        // fallback: index+1
-        xRaw = solves.map((_, i) => i + 1);
-    }
+    if (xAxisDataType === "Date")         xRaw = solves.map(s => s[0]);
+    else if (xAxisDataType === "Solve #") xRaw = window.userData.solves2[sess].map(s => s[0]);
+    else                                  xRaw = window.userData.solves3[sess].map(s => s[0]);
 
-    // Build paired arrays, then filter pairs together
+    regXMap = makeRegXMap(sess);
+
     const x = [];
     const y = [];
-
-    const offsetMultiplier = regressionOffset.value
-
-    if (xAxisDataType === "Date") {
-        // Find first + last valid solve dates (ONLY from real solves)
-        let minT = Infinity, maxT = -Infinity;
-        for (const d of xRaw) {
-            if (!(d instanceof Date)) continue;
-            const t = d.getTime();
-            if (!Number.isFinite(t)) continue;
-            if (t < minT) minT = t;
-            if (t > maxT) maxT = t;
-        }
-        if (!Number.isFinite(minT) || !Number.isFinite(maxT) || maxT <= minT) {
-            throw new Error("No valid Date span found for x-axis.");
-        }
-
-        const spanMs = maxT - minT;
-
-
-        const startMs = minT - spanMs * offsetMultiplier;
-
-        // Build x/y, converting to seconds since startMs (offset-aware)
-        for (let i = 0; i < solves.length; i++) {
-            const d  = xRaw[i];
-            const yi = solves[i][1];
-
-            if (!(d instanceof Date)) continue;
-            const ms = d.getTime();
-            if (!Number.isFinite(ms)) continue;
-            if (!(yi > 0) || !Number.isFinite(yi)) continue;
-
-            // seconds since offset-start
-            x.push((ms - startMs) / 1000 + 1000);
-            y.push(yi);
-        }
-    } else {
-        for (let i = 0; i < solves.length; i++) {
-        const xi = xRaw[i];
+    for (let i = 0; i < solves.length; i++) {
+        const raw = xRaw[i];
         const yi = solves[i][1];
 
-        if (!Number.isFinite(xi)) continue;
-        if (!(yi > 0) || !Number.isFinite(yi)) continue;
+        if (raw instanceof Date && !Number.isFinite(raw.getTime())) continue; // bad date
+        if (!(yi > 0) || !Number.isFinite(yi)) continue;                      // DNF / junk
+
+        const xi = regXMap(raw);   // always a number now, for every axis type
+        if (!Number.isFinite(xi) || xi <= 0) continue;
 
         x.push(xi);
         y.push(yi);
-        }
     }
-
-    if(offsetMultiplier > 0) {
-        if (xAxisDataType === "Solve #") {
-            const n = solves.length;
-            const offsetAmount = Math.max(0, Math.floor(offsetMultiplier * n));
-            for (let i = 0; i < x.length; i++) x[i] = x[i] + offsetAmount;
-        } else if (xAxisDataType === "Hours") {
-            const lastX = xRaw[xRaw.length - 1];
-            if (Number.isFinite(lastX)) {
-                const shift0 = offsetMultiplier * lastX;
-                for (let i = 0; i < x.length; i++) x[i] = x[i] + shift0;
-            }
-        } 
-    }
-   
-
     return { x, y };
 }
 
