@@ -147,24 +147,24 @@ function betaCDF(x, alpha, beta) {
         let h = d;
 
         for (let m = 1; m < MAX_ITER; m++) {
-        m2 = 2 * m;
-        aa = m * (b - m) * x / ((a + m2 - 1) * (a + m2));
-        d = 1 + aa * d;
-        if (Math.abs(d) < EPS) d = EPS;
-        c = 1 + aa / c;
-        if (Math.abs(c) < EPS) c = EPS;
-        d = 1 / d;
-        h *= d * c;
+            m2 = 2 * m;
+            aa = m * (b - m) * x / ((a + m2 - 1) * (a + m2));
+            d = 1 + aa * d;
+            if (Math.abs(d) < EPS) d = EPS;
+            c = 1 + aa / c;
+            if (Math.abs(c) < EPS) c = EPS;
+            d = 1 / d;
+            h *= d * c;
 
-        aa = -(a + m) * (a + b + m) * x / ((a + m2) * (a + m2 + 1));
-        d = 1 + aa * d;
-        if (Math.abs(d) < EPS) d = EPS;
-        c = 1 + aa / c;
-        if (Math.abs(c) < EPS) c = EPS;
-        d = 1 / d;
-        let del = d * c;
-        h *= del;
-        if (Math.abs(del - 1.0) < EPS) break;
+            aa = -(a + m) * (a + b + m) * x / ((a + m2) * (a + m2 + 1));
+            d = 1 + aa * d;
+            if (Math.abs(d) < EPS) d = EPS;
+            c = 1 + aa / c;
+            if (Math.abs(c) < EPS) c = EPS;
+            d = 1 / d;
+            let del = d * c;
+            h *= del;
+            if (Math.abs(del - 1.0) < EPS) break;
         }
         return h;
     }
@@ -175,9 +175,9 @@ function betaCDF(x, alpha, beta) {
         a * Math.log(x) + b * Math.log(1 - x) - logBeta(a, b)
         );
         if (x < (a + 1) / (a + b + 2)) {
-        return bt * betacf(x, a, b) / a;
+            return bt * betacf(x, a, b) / a;
         } else {
-        return 1 - bt * betacf(1 - x, b, a) / b;
+            return 1 - bt * betacf(1 - x, b, a) / b;
         }
     }
         

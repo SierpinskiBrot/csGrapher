@@ -21,7 +21,6 @@ const overlayIds = [
     'distributionHintOverlay',
     'regressionHintOverlay'
 ];
-
 function setupOverlayDismiss(id) {
     const el = document.getElementById(id);
     if (el) {
@@ -32,20 +31,11 @@ function setupOverlayDismiss(id) {
         };
     }
 }
-
 overlayIds.forEach(setupOverlayDismiss);
 
 
 //#region handle the toolbar buttons on the top
 window.currentTab = "graph";
-const graphButton = document.getElementById("graphButton");
-const histogramButton = document.getElementById("histogramButton");
-const statsButton = document.getElementById("statsButton");
-const activityButton = document.getElementById("activityButton");
-const graphContainer = document.getElementById("graphContainer");
-const histogramContainer = document.getElementById("histogramContainer");
-const statsContainer = document.getElementById("statsContainer");
-const activityContainer = document.getElementById("activityContainer");
 window.resetContainers = function() {
     histogramContainer.style.display = "none";
     histogramButton.classList.remove("pressed");
@@ -178,9 +168,6 @@ jsonDataFile.addEventListener("change", function() {
 class UserData {
     constructor(data) {
 
-        this.xTitle = "Date";
-        this.xTitle2 = "Solve #";
-
         this.dataFormat = "" //either csTimer or acubemy
 
         this.numSessions = 0;
@@ -204,10 +191,12 @@ class UserData {
         }
         
 
-        this.labels = [ "Date",    "Time",    "PB Single", "ao5",     "PB ao5",  "ao12",    "PB ao12", "ao100",   "PB ao100", "ao1000",  "PB ao1000" ];
+        this.labels = [ "Date",    "Time",      "PB Single",   "ao5",        "PB ao5",    "ao12",      "PB ao12",   "ao100",     "PB ao100",    "ao1000",  "PB ao1000" ];
         this.colors = [            "#084C61", "#084C61",   "#177E89", "#177E89", "#86A06A", "#86A06A", "#F2934A", "#F2934A",  "#E45E3D", "#E45E3D"];
-        this.widths = [            2,         2,           2,         2,         2,         2,          2,        2,          2,          2]
-        this.visibilities = [      true,      true,        true,      false,     true,      false,      true,     false,      true,      false];
+        this.widths = [            2,            2,             2,           2,           2,           2,            2,           2,            2,          2]
+        this.visibilities = [      true,        true,          true,        false,       true,         false,        true,        false,         true,      false];
+
+        this.bands = []
         
         //   date, time, pb s, ao5, pb ao5, ao12, pb ao12, ao50, pb ao50, ao100, pb ao100, ao1000, pbao1000
         this.solves = makeArrayOfArrays(this.numSessions);
@@ -260,7 +249,7 @@ class UserData {
 
                 //if(!(crossTime && f2lTime && ollTime && pllTime)) continue;
                 if(data[i].analysis_type != "CFOP") continue;
-                if(totalTime >= 16000 || data[i].turns >= 88) continue;
+                //if(totalTime >= 16000 || data[i].turns >= 88) continue;
                 
                 this.solves[0].push([date, 0.001*totalTime])    //3x3
                 this.solves[1].push([date, data[i].turns])      //turns
@@ -306,11 +295,11 @@ class UserData {
 
                     if((moveTime <= crossTime) && crossTime) {                                      //cross moves
                         percentDone = 100*(mcp*moveTime/crossTime)
-                    //} else if ( Math.abs(moveTime - crossTime) < 100 ||             //prevent boundary spikes at high res
-                      //          Math.abs(moveTime - (crossTime + f2lTime)) < 100 ||
-                      //          Math.abs(moveTime - totalTime+pllTime) < 100 ||
-                      //          !pllTime ) {
-                      //  percentDone = 100*(moveTime/totalTime)
+                    } else if ( Math.abs(moveTime - crossTime) < 100 ||             //prevent boundary spikes at high res
+                                Math.abs(moveTime - (crossTime + f2lTime)) < 100 ||
+                                Math.abs(moveTime - totalTime+pllTime) < 100 ||
+                                !pllTime ) {
+                        percentDone = 100*(moveTime/totalTime)
                     } else if ((moveTime <= (crossTime + f2lTime)) && f2lTime) {                    //f2l moves
                         percentDone = 100*(mcp + mfp*(moveTime-crossTime)/f2lTime)
                     }  else if ((moveTime < crossTime + f2lTime + ollTime) && ollTime) {         //oll moves
@@ -318,13 +307,14 @@ class UserData {
                     } else {                                                        //pll moves
                         percentDone = 100*(mcp + mfp + mop + mpp*(moveTime - ollTime - f2lTime - crossTime)/pllTime)
                     }
-                    if(moveTime > crossTime + f2lTime) {
-                        percentDone = 100*(mcp + mfp + (mop + mpp)*(moveTime - f2lTime - crossTime)/(pllTime+ollTime))
-                    }
+                    //if(moveTime > crossTime + f2lTime) {
+                    //    percentDone = 100*(mcp + mfp + (mop + mpp)*(moveTime - f2lTime - crossTime)/(pllTime+ollTime))
+                    //}
                     //if(percentDone > 100) percentDone = 100
                     //percentDone = 100*(moveTime/totalTime)
 
-                    this.solves[7].push([new Date(percentDone*10000000), percentDone*this.meanTime/100])
+                    //this.solves[7].push([new Date(percentDone*10000000), percentDone*this.meanTime/100])
+                    this.solves[7].push([new Date(percentDone*10000000), percentDone])
 
                 }
             }
@@ -353,15 +343,29 @@ class UserData {
         
         //create the default data series
         const ddsstartTime = performance.now() 
+
         this.pbsOfLastCol(1);
+
         this.pushAvg(5);
+        this.createIQR(5)
+        this.createSTD(5)
         this.pbsOfLastCol(5);
+
         this.pushAvg(12);
+        this.createIQR(12)
+        this.createSTD(12)
         this.pbsOfLastCol(12);
+
         this.pushAvg(100);
+        this.createIQR(100)
+        this.createSTD(100)
         this.pbsOfLastCol(100);
+
         this.pushAvg(1000);
+        this.createIQR(1000)
+        this.createSTD(1000)
         this.pbsOfLastCol(1000);
+        
         const ddsendTime = performance.now()
         console.log(`default series: ${round(ddsendTime - ddsstartTime)} milliseconds`)
         
@@ -370,7 +374,7 @@ class UserData {
         this.createSolves2();
         this.createSolves3();
         const s2endTime = performance.now()
-        console.log(`create solves2: ${round(s2endTime - s2startTime)} milliseconds`)
+        console.log(`create solves2 and solves3: ${round(s2endTime - s2startTime)} milliseconds`)
         
 
         //add the data for histogram
@@ -452,7 +456,7 @@ class UserData {
 
         //-----width-----
         const rawWidth = deviation / 6;
-        //  Snap to closest power-of-two fraction (0.25, 0.5, 1, 2, 4, ...)
+        //  round to closest power of two fraction (0.25, 0.5, 1, 2, ...)
         const log2 = Math.round(Math.log2(rawWidth));
         const sldWinWidth = Math.pow(2, log2);
 
@@ -462,7 +466,7 @@ class UserData {
         //-----step-----
         const sldWinStep = Math.round(sldWinWindow / 100 + 1)
 
-        //-----xmax - 2 standard deviations-----
+        //-----xmax - 3 standard deviations-----
         const sldWinXmax = Math.round(mean+3*deviation+1);
 
         //-----time-----
@@ -497,14 +501,14 @@ class UserData {
 
         //-----width-----
         const rawWidth = deviation / 6;
-        //  Snap to closest power-of-two fraction (0.25, 0.5, 1, 2, 4, ...)
+        //  round to closest power of two fraction (0.25, 0.5, 1, 2, ...)
         const log2 = Math.round(Math.log2(rawWidth));
         const creationWidth = Math.pow(2, log2);
 
         //-----step-----
         const creationStep = Math.round(numSolves / 1000 + 1)
 
-        //-----xmax - 2 standard deviations-----
+        //-----xmax - 6 standard deviations-----
         const creationXmax = Math.round(mean+6*deviation+1);
 
         document.getElementById("creationWidth").value = creationWidth
@@ -515,19 +519,22 @@ class UserData {
 
     //append a column for the average of the x last solves
     pushAvg(x, index = undefined) {
+        //if index is undefined the new col will be appended to the end instead of spliced
         const pastartTime = performance.now() 
         
         let sum,mean
         for (let j = 0; j < this.numSessions; j++) {
             //if(this.sessions[j] == "move_times") continue;
             const solves = this.solves[j];
-            const clip = Math.ceil(0.05 * x); //Remove top and bottom 5% of solves
+            const clip = Math.ceil(0.05 * x); //remove top and bottom 5% of solves
             const trimmedSize = x-clip*2
             let windo = [];
             
             for (let i = 0; i < solves.length; i++) {
                 const newVal = solves[i][1];
-                if (i < x) { //Cant make an average without enough data
+
+                //Cant make an average without enough data
+                if (i < x) { 
                     if(index == undefined) { solves[i].push(null); } 
                     else { solves[i].splice(index,0,null); }
                     // Insert new solve time in sorted position
@@ -574,7 +581,9 @@ class UserData {
             
             for (let i = 0; i < solves.length; i++) {
                 const newVal = solves[i][1];
-                if (i < x) { //Cant make an average without enough data
+
+                //Cant make an average without enough data
+                if (i < x) { 
                     if(index == undefined) { solves[i].push(null); } 
                     else { solves[i].splice(index,0,null); }
                     windo.push(newVal)
@@ -600,6 +609,178 @@ class UserData {
 
         const pmendTime = performance.now()
         console.log(`   push mo${x}: ${round(pmendTime - pmstartTime)} milliseconds`)
+    }
+
+
+    createIQR(x) {
+        const band = {};
+        const upperBands = [];
+        const lowerBands = [];
+
+        // nulls treated as slowest => sort them to the end
+        const NULL_SENTINEL = Number.POSITIVE_INFINITY;
+
+        for (let j = 0; j < this.numSessions; j++) {
+            const solves = this.solves[j];
+            if (solves.length === 0) continue;
+
+            const upper = [];
+            const lower = [];
+
+            // first x points can't have a full window
+            for (let i = 0; i < x; i++) {
+                upper.push(null);
+                lower.push(null);
+            }
+
+            // sorted window of length x (values mapped so null goes to the end)
+            const windo = [];
+            let nullCount = 0;
+
+            // seed initial window using first x solves (indices 0..x-1)
+            for (let i = 0; i < x && i < solves.length; i++) {
+                const v = solves[i][1];
+                const mapped = (v == null) ? NULL_SENTINEL : v;
+                if (v == null) nullCount++;
+
+                const ins = binarySearchInsertIdx(windo, mapped);
+                if (ins === -1) windo.push(mapped);
+                else windo.splice(ins, 0, mapped);
+            }
+
+            // produce bands starting at i = x
+            for (let i = x; i < solves.length; i++) {
+                // slide: remove oldest, add newest
+                const oldV = solves[i - x][1];
+                const oldMapped = (oldV == null) ? NULL_SENTINEL : oldV;
+                if (oldV == null) nullCount--;
+
+                const rem = binarySearchInsertIdx(windo, oldMapped);
+                if (rem !== -1 && windo[rem] === oldMapped) windo.splice(rem, 1);
+
+                const newV = solves[i][1];
+                const newMapped = (newV == null) ? NULL_SENTINEL : newV;
+                if (newV == null) nullCount++;
+
+                const ins = binarySearchInsertIdx(windo, newMapped);
+                if (ins === -1) windo.push(newMapped);
+                else windo.splice(ins, 0, newMapped);
+
+                // If >= 25% are null, Q3 will land in null region => no band
+                if (nullCount / x >= 0.25) {
+                    upper.push(null);
+                    lower.push(null);
+                    continue;
+                }
+
+                // quartiles from sorted window (length x)
+                // using "nearest rank"-style indices (simple + fast)
+                const q1Idx = Math.floor(0.25 * (x - 1));
+                const q3Idx = Math.floor(0.75 * (x - 1));
+                const q1 = windo[q1Idx];
+                const q3 = windo[q3Idx];
+
+                // if something went wrong and quartile hits sentinel, null out
+                upper.push(q3 !== NULL_SENTINEL ? q3 : null);
+                lower.push(q1 !== NULL_SENTINEL ? q1 : null);
+            }
+
+            upperBands.push(upper);
+            lowerBands.push(lower);
+        }
+
+        band.upper = upperBands;
+        band.lower = lowerBands;
+        band.name = x;
+        band.type = "iqr";
+        band.enabled = false;
+
+        this.bands.push(band);
+    }
+
+    createSTD(x) {
+        const band = {};
+        const upperBands = [];
+        const lowerBands = [];
+
+        for (let j = 0; j < this.numSessions; j++) {
+            const solves = this.solves[j];
+            if (solves.length === 0) continue;
+
+            const upper = [];
+            const lower = [];
+
+            for (let i = 0; i < x; i++) {
+                upper.push(null);
+                lower.push(null);
+            }
+
+            // rolling stats over last x, ignoring nulls
+            let nullCount = 0;
+            let n = 0;        // non-null count
+            let sum = 0;
+            let sumSq = 0;
+
+            // seed window [0..x-1]
+            for (let i = 0; i < x && i < solves.length; i++) {
+                const v = solves[i][1];
+                if (v == null) {
+                    nullCount++;
+                } else {
+                    n++;
+                    sum += v;
+                    sumSq += v * v;
+                }
+            }
+
+            for (let i = x; i < solves.length; i++) {
+                // slide: remove oldest
+                const oldV = solves[i - x][1];
+                if (oldV == null) {
+                    nullCount--;
+                } else {
+                    n--;
+                    sum -= oldV;
+                    sumSq -= oldV * oldV;
+                }
+
+                // add newest
+                const newV = solves[i][1];
+                if (newV == null) {
+                    nullCount++;
+                } else {
+                    n++;
+                    sum += newV;
+                    sumSq += newV * newV;
+                }
+
+                // Requirement: if <5% are null, compute std from non-null points
+                // Otherwise, don't show the band.
+                if (nullCount / x >= 0.05 || n <= 1) {
+                    upper.push(null);
+                    lower.push(null);
+                    continue;
+                }
+
+                const mean = sum / n;
+                const varPop = Math.max(0, (sumSq / n) - mean * mean);
+                const std = Math.sqrt(varPop);
+
+                upper.push(mean + std);
+                lower.push(mean - std);
+            }
+
+            upperBands.push(upper);
+            lowerBands.push(lower);
+        }
+
+        band.upper = upperBands;
+        band.lower = lowerBands;
+        band.name = x;
+        band.type = "std";
+        band.enabled = false;
+
+        this.bands.push(band);
     }
 
 
@@ -646,8 +827,7 @@ class UserData {
                     if (solveTime && solveTime < prevPB) {
                         if(index == undefined) {
                             this.solves[j][i].push(solveTime)
-                        }
-                        else {
+                        } else {
                             this.solves[j][i].splice(idx + 1, 0, solveTime)
                         }
                         bestSinceLastPB = Infinity
@@ -712,24 +892,24 @@ class UserData {
         // Collect indices that have real dates
         const realIdx = [];
         for (let i = 0; i < n; i++) {
-            const t = solves[i][0].getTime(); // Date object guaranteed
+            const t = solves[i][0].getTime();
             if (!Number.isNaN(t)) {
                 isReal[i] = 1;
                 realIdx.push(i);
             }
         }
 
-        // If no real dates at all, synthesize a monotonic timeline (still Date objects)
+        // If no real dates at all, synthesize a timeline
         if (realIdx.length === 0) {
             const now = Date.now();
             const msPerSolve = 30_000; // fallback density
             for (let i = 0; i < n; i++) {
                 solves[i][0] = new Date(now - (n - 1 - i) * msPerSolve);
             }
-            return isReal; // all 0s
+            return isReal; // all 0
         }
 
-        // Estimate typical ms-per-solve from consecutive real anchors, using median (inline)
+        // Estimate typical ms per solve 
         const deltas = [];
         for (let k = 1; k < realIdx.length; k++) {
             const a = realIdx[k - 1], b = realIdx[k];
@@ -745,13 +925,13 @@ class UserData {
             deltas.sort((x, y) => x - y);
             const m = deltas.length >> 1;
             msPerSolve = (deltas.length & 1) ? deltas[m] : (deltas[m - 1] + deltas[m]) / 2;
-            // simple sanity bounds
+           
             if (!Number.isFinite(msPerSolve) || msPerSolve <= 0) msPerSolve = 30_000;
             if (msPerSolve < 250) msPerSolve = 250;
             if (msPerSolve > 24 * 60 * 60 * 1000) msPerSolve = 24 * 60 * 60 * 1000;
         }
 
-        // Fill gaps between real anchors by linear interpolation
+        // Fill gaps with linear interpolation
         for (let k = 0; k < realIdx.length - 1; k++) {
             const a = realIdx[k], b = realIdx[k + 1];
             const ta = solves[a][0].getTime();

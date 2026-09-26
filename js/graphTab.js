@@ -4,6 +4,7 @@ import {themes} from "./themes.js"
 export {graphTabStartup};
 import { rowsToUPlotCols, xAxisIsLog, setXAxisLog, yAxisIsLog, setYAxisLog } from "./utils.js";
 import { regressions, powerLawFit, logLogRegression, logarithmicRegression } from "./graphTabRegressions.js";
+import {solve} from  "../lib/gauss-jordan.js";
 
 function getSize() {
     return {
@@ -100,6 +101,130 @@ allSeriesWidthSelector.addEventListener("change", (e) => {
 })
 
 
+function hexToRgba(hex, a = 0.15) {
+    // accepts "#RRGGBB"
+    if (!hex || hex[0] !== "#" || hex.length !== 7) return `rgba(0,0,0,${a})`;
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${a})`;
+}
+
+function parseAvgSizeFromLabel(lbl) {
+    // supports ao5/mo12/etc
+    if (!lbl || lbl.length < 3) return null;
+    const prefix = lbl.slice(0, 2);
+    if (prefix !== "ao" && prefix !== "mo") return null;
+    const n = parseInt(lbl.slice(2), 10);
+    return Number.isFinite(n) ? n : null;
+}
+
+function findBand(type, size) {
+    const bands = window.userData?.bands || [];
+    return bands.find(b => b && b.type === type && b.name === size) || null;
+}
+
+function applyBandsToPlot({ displayed, baseSeriesMeta, regSeriesMeta, addedFront = 0, addedBack = 0 }) {
+    const sess = window.selectedSess;
+
+    let seriesMeta = [...baseSeriesMeta, ...regSeriesMeta];
+    const bandsOpt = [];
+
+    const allBands = window.userData?.bands || [];
+    if (!allBands.length) return { seriesMeta, bandsOpt };
+
+    for (const band of allBands) {
+        if (!band || !band.enabled) continue;
+        if (!band.upper || !band.lower) continue;
+
+        const upperRaw = band.upper[sess];
+        const lowerRaw = band.lower[sess];
+        if (!upperRaw || !lowerRaw) continue;
+
+        // Map band.name=5 => "ao5" series (fallback to "mo5" if needed)
+        let targetLabel = `ao${band.name}`;
+        let targetIdx = window.userData.labels.indexOf(targetLabel);
+        if (targetIdx < 0) {
+            targetLabel = `mo${band.name}`;
+            targetIdx = window.userData.labels.indexOf(targetLabel);
+        }
+        if (targetIdx < 0) continue;              // no matching series
+        if (targetIdx === 0) continue;            // never band-fill x-series
+
+        const seriesColor = window.userData.colors[targetIdx - 1];
+
+        // Pad for regression forecast points (you add rows at front/back)
+        const padFront = addedFront > 0 ? Array(addedFront).fill(null) : [];
+        const padBack  = addedBack  > 0 ? Array(addedBack).fill(null) : [];
+
+        const upper = padFront.concat(upperRaw, padBack);
+        const lower = padFront.concat(lowerRaw, padBack);
+
+        if (upper.length !== displayed.length || lower.length !== displayed.length) {
+            continue;
+        }
+
+        // Append the two band columns to displayed rows
+        for (let i = 0; i < displayed.length; i++) {
+            displayed[i].push(upper[i]);
+            displayed[i].push(lower[i]);
+        }
+
+        // Add two hidden series to uPlot
+        const upperIdx = seriesMeta.length;
+        seriesMeta.push({
+            label: `${band.type.toUpperCase()} ${targetLabel} (upper)`,
+            stroke: "transparent",
+            width: 0,
+            show: true,
+        });
+
+        const lowerIdx = seriesMeta.length;
+        seriesMeta.push({
+            label: `${band.type.toUpperCase()} ${targetLabel} (lower)`,
+            stroke: "transparent",
+            width: 0,
+            show: true,
+        });
+
+        // Add uPlot band fill between hidden upper/lower series
+        bandsOpt.push({
+            series: [upperIdx, lowerIdx],
+            fill: hexToRgba(seriesColor, 0.15),
+        });
+    }
+
+    return { seriesMeta, bandsOpt };
+}
+
+// IQR / STD band toggles (per-series)
+seriesToggleIqr.addEventListener("change", function () {
+    const seriesNumber = parseInt(seriesSettingsBox.name, 10);
+    const lbl = window.userData.labels[seriesNumber - 1]; 
+    const size = parseAvgSizeFromLabel(lbl);
+    if (!size) { this.checked = false; return; }
+
+    const band = findBand("iqr", size);
+    if (!band) { this.checked = false; return; }
+
+    band.enabled = this.checked;
+    buildMainPlot();
+});
+
+seriesToggleSTD.addEventListener("change", function () {
+    const seriesNumber = parseInt(seriesSettingsBox.name, 10);
+    const lbl = window.userData.labels[seriesNumber - 1];
+    const size = parseAvgSizeFromLabel(lbl);
+    if (!size) { this.checked = false; return; }
+
+    const band = findBand("std", size);
+    if (!band) { this.checked = false; return; }
+
+    band.enabled = this.checked;
+    buildMainPlot();
+});
+
+
 function buildMainPlot() {
     if (!window.userData) return; // No data loaded yet
     const sess = document.getElementById("title-dropdown").value;
@@ -117,17 +242,20 @@ function buildMainPlot() {
             break
     }
 
-    // deep-clone into displayedRows so we can append extra columns
+    // clone into displayedRows so we can append extra columns
     const displayed = rows.map(r => r.slice());
     let slowestSolve = 0
     for(let i = 0; i < displayed.length; i++) {
         if(displayed[i][1] > slowestSolve) slowestSolve = displayed[i][1]
     }
 
-    // extract primary x/y for fitting
+    // extract x/y for fitting
     let xs = window.userData.solves[sess].map(r => r[0])
     if(xAxisDataType == "Solve #") xs = window.userData.solves2[sess].map(r => r[0])
     if(xAxisDataType == "Hours") xs = window.userData.solves3[sess].map(r => r[0])
+
+    let addedFront = 0;
+    let addedBack = 0;
     
     // if any regressions are active, do forecasting
     if (activeRegs.powerLaw || activeRegs.logLog || activeRegs.logarithmic) {
@@ -137,136 +265,99 @@ function buildMainPlot() {
         const forecastMultiplier = regressionProjection.value
         const offsetMultiplier = regressionOffset.value
 
-        //Append one forecast point( x value + null-filled row)
+        //Append one forecast point( x value + null row)
         const pushPoint = (xVal) => {
             xs.push(xVal)
             displayed.push(new Array(nSeries).fill(null))
             displayed[displayed.length - 1][0] = xVal; //x is always col 0
+            addedBack++;
         }
-        //Prepend one offset point (x value + null-filled row)
+        //Prepend one offset point (x value + null row)
         const unshiftPoint = (xVal) => {
             xs.unshift(xVal)
             displayed.unshift(new Array(nSeries).fill(null))
             displayed[0][0] = xVal
+            addedFront++;
         }
 
         if (xAxisDataType === "Solve #") {
             //offset (backwards)
             const offsetAmount = Math.max(0,Math.floor(offsetMultiplier*nOriginal))
-
-            for(let k = 1; k <= offsetAmount; k++) {
-                unshiftPoint(-k);
-            }
+            for(let k = 1; k <= offsetAmount; k++) {unshiftPoint(-k);}
 
             //forecast (forward)
             const fCount = Math.max(0, Math.floor((forecastMultiplier - 1) * nOriginal))
-            for(let i = 0; i < fCount; i++) {
-                pushPoint(nOriginal+i)
-            }
+            for(let i = 0; i < fCount; i++) {pushPoint(nOriginal+i)}
+
         } else if (xAxisDataType === "Hours") {
             const lastX = xs[xs.length - 1]
             const firstX = xs[0]
-            const steps = 100
+            const steps = 1000
+            const offsetEnd = -offsetMultiplier * lastX
 
-            if(!Number.isFinite(lastX) || !Number.isFinite(firstX)) {
-                console.warn("Cannor offset/forecast hours: invalid x values")
-            } else {
-                const offsetEnd = -offsetMultiplier * lastX
-                //prepend points from firstX back to offsetEnd
-                if(offsetEnd < firstX) {
-                    const dx = (firstX-offsetEnd) / steps
-                    for(let i = 1; i <= steps; i++) {
-                        unshiftPoint(firstX-dx*i)
-                    }
-                }
-
-                const xStart = lastX;
-                const xEnd = forecastMultiplier * lastX
-                if(xEnd > xStart) {
-                    const dxF = (xEnd - xStart) / steps
-                    for(let i = 1; i <= steps; i++) pushPoint(xStart + dxF * i)
+            //prepend points from firstX back to offsetEnd
+            if(offsetEnd < firstX) {
+                const dx = (firstX-offsetEnd) / steps
+                for(let i = 1; i <= steps; i++) {
+                    unshiftPoint(firstX-dx*i)
                 }
             }
+
+            //forecast
+            const xStart = lastX;
+            const xEnd = forecastMultiplier * lastX
+            if(xEnd > xStart) {
+                const dxF = (xEnd - xStart) / steps
+                for(let i = 1; i <= steps; i++) pushPoint(xStart + dxF * i)
+            }
+            
         } else if (xAxisDataType === "Date") {
-            // Find earliest and latest valid dates in xs
-            let minT = Infinity, maxT = -Infinity;
-            for (const d of xs) {
-                if (!(d instanceof Date)) continue;
-                const t = d.getTime();
-                if (!Number.isFinite(t)) continue;
-                if (t < minT) minT = t;
-                if (t > maxT) maxT = t;
+            let minT = xs[0].getTime()
+            let maxT = xs[xs.length - 1].getTime()
+            const spanMs = maxT - minT;
+            const steps = 1000;
+
+            // offset
+            const startMs = minT - spanMs * offsetMultiplier;
+            if (startMs < minT) {
+                const dtBack = (minT - startMs) / steps;
+                for (let i = 1; i <= steps; i++) {
+                    unshiftPoint(new Date(minT - dtBack * i));
+                }
             }
 
-            if (!Number.isFinite(minT) || !Number.isFinite(maxT) || maxT <= minT) {
-                console.warn("Cannot offset/forecast date: invalid or zero date span");
-            } else {
-                const spanMs = maxT - minT;
-                const steps = 100;
+            // forecast
+            const endMs = minT + spanMs * forecastMultiplier;
+            const dtFwd = (endMs - maxT) / steps;
+            if (dtFwd > 0) {
+                for (let i = 1; i <= steps; i++) { pushPoint(new Date(maxT + dtFwd * i));}
+            } 
+             
+        } 
 
-                // OFFSET rule:
-                // startMs = firstSolve - (last-first)*offsetMultiplier
-                const startMs = minT - spanMs * offsetMultiplier;
-
-                if (startMs < minT) {
-                    const dtBack = (minT - startMs) / steps;
-                    for (let i = 1; i <= steps; i++) {
-                        unshiftPoint(new Date(minT - dtBack * i));
-                    }
-                }
-                // FORECAST rule (your existing behavior): endMs = firstSolve + span*forecastMultiplier
-                const endMs = minT + spanMs * forecastMultiplier;
-                const dtFwd = (endMs - maxT) / steps;
-
-                if (dtFwd > 0) {
-                    for (let i = 1; i <= steps; i++) {
-                        pushPoint(new Date(maxT + dtFwd * i));
-                    }
-                } else {
-                    console.warn("Cannot forecast date: non-positive step");
-                }
-            }  
-        } else {
-            console.warn("Unknown xAxisDataType:", xAxisDataType);
-        }
     }
 
     // for each active regression, compute and append its values
     regressions.forEach(reg => {
         if (!activeRegs[reg.id]) return;
 
-        // IMPORTANT: for Date x-axis, convert Date objects to seconds since first solve
         let xForCompute = xs;
 
         if (xAxisDataType === "Date") {
-            // Convert ALL dates (including offset dates) to seconds since earliest x (not “first solve”)
-            let tMin = Infinity;
-            for (const d of xs) {
-                if (!(d instanceof Date)) continue;
-                const t = d.getTime();
-                if (Number.isFinite(t) && t < tMin) tMin = t;
-            }
-            if (!Number.isFinite(tMin)) {
-                console.warn("Cannot compute regression on Date axis: no valid Date values.");
-                return;
-            }
+            // Convert all dates to seconds since earliest x
+            let tMin = xs[0].getTime();
 
             xForCompute = xs.map(d => {
-                if (!(d instanceof Date)) return NaN;
                 const t = d.getTime();
-                if (!Number.isFinite(t)) return NaN;
                 return (t - tMin) / 1000 + 1000; // seconds since earliest x
             });
         } else {
             xForCompute = xs.map(v => (Number.isFinite(v) ? v : Nan))
         }
 
-        //shift so that the smallest xForCompute is 1
-        let minX = Infinity
-        for(const v of xForCompute) {
-            if(Number.isFinite(v) && v < minX) minX = v
-        }
-        const shift = 1 - minX
+        //shift so that the smallest xForCompute is 0.001
+        let minX = xForCompute[0]
+        const shift = 0.001 - minX
         
         xForCompute = xForCompute.map(v => (Number.isFinite(v) ? (v + shift) : Nan));
 
@@ -287,6 +378,15 @@ function buildMainPlot() {
             dash: r.dash || [],
             show: true
     }));
+
+    // Apply bands (adds extra columns + hidden series + bands option)
+    const { seriesMeta, bandsOpt } = applyBandsToPlot({
+        displayed,
+        baseSeriesMeta: baseSeries,
+        regSeriesMeta: regSeries,
+        addedFront,
+        addedBack
+    });
 
     // convert to uPlot columns and re-create the plot
     const dataCols = rowsToUPlotCols(displayed, (xAxisDataType == "Date"), xAxisIsLog);
@@ -338,7 +438,8 @@ function buildMainPlot() {
                         }
             }
         ],
-        series: [...baseSeries, ...regSeries],
+        series: seriesMeta,
+        bands: bandsOpt,
         legend: { show: true },
     }, dataCols, graphdiv);
 
@@ -364,6 +465,109 @@ function buildSeriesMeta() {
         }))
 }
 
+// VERY simple residual overlay tool
+// Usage: window.residualsGraph()
+window.residualsGraph = function (T) {
+    if (!window.u) return console.warn("No plot.");
+
+    // find active regression
+    const active = regressions.filter(r => activeRegs[r.id]);
+    if (active.length !== 1) {
+        console.warn("Must have exactly one regression active.");
+        return;
+    }
+
+    const reg = active[0];
+
+    const data = window.u.data;   // uPlot columns format
+    const xCol = data[0];
+    console.log(data)
+
+    // regression is always the LAST visible series added in buildMainPlot
+    const regColIdx = data.length - 1;
+    const regCol = data[regColIdx];
+
+    const x = [];
+    const resid = [];
+
+
+    // subtract regression from all visible non-regression series
+    for (let s = 1; s < regColIdx; s++) {
+        if (!window.u.series[s].show) continue;
+
+        const col = data[s];
+        for (let i = 0; i < col.length; i++) {
+            if (col[i] != null && regCol[i] != null) {
+                //col[i] = col[i] - regCol[i];
+                if(s == 1) {
+                    x.push(data[0][i])
+                    //resid.push(col[i])
+                    resid.push(col[i] - regCol[i])
+                }
+            } else {
+                col[i] = null;
+            }
+            
+        }
+        
+    }
+    console.log(x)
+    console.log(resid)
+    const ft = fitFourierResidual(x,resid,T,x[x.length-1])
+
+    // zero out regression line itself
+    for (let i = 0; i < regCol.length; i++) {
+        //regCol[i] = 0;
+        if(regCol[i] != null) regCol[i] += ft(data[0][i])
+    }
+
+    window.u.setData(data);
+};
+
+function fitFourierResidual(x, residual, N, T) {
+    const m = x.length;
+    const cols = 2 * N;
+
+    // Build X matrix
+    const X = Array.from({ length: m }, () => new Array(cols).fill(0));
+
+    for (let i = 0; i < m; i++) {
+        for (let n = 1; n <= N; n++) {
+            const w = 2 * Math.PI * n / T;
+            X[i][2*(n-1)]     = Math.cos(w * x[i]);
+            X[i][2*(n-1) + 1] = Math.sin(w * x[i]);
+        }
+    }
+
+    // Compute X^T X and X^T y
+    const XtX = Array.from({ length: cols }, () => new Array(cols).fill(0));
+    const Xty = new Array(cols).fill(0);
+
+    for (let i = 0; i < m; i++) {
+        for (let j = 0; j < cols; j++) {
+            Xty[j] += X[i][j] * residual[i];
+            for (let k = 0; k < cols; k++) {
+                XtX[j][k] += X[i][j] * X[i][k];
+            }
+        }
+    }
+
+    // Solve small linear system
+    const beta = solve(XtX, Xty); // use your small matrix solver
+    console.log("beta")
+    console.log(beta)
+
+    return function(xVal) {
+        let sum = 0;
+        for (let n = 1; n <= N; n++) {
+            const w = 2 * Math.PI * n / T;
+            const a = beta[2*(n-1)];
+            const b = beta[2*(n-1)+1];
+            sum += a * Math.cos(w * xVal) + b * Math.sin(w * xVal);
+        }
+        return sum;
+    };
+}
 
 //Create the whole series toggle table, for pb tab aswell
 function createAllSeriesRows() {
@@ -431,6 +635,30 @@ function createSeriesRow(i) {
 
         //set the value of the width selector the the width of the series
         seriesWidthSelector.value = window.userData.widths[i - 1];
+
+        // --- Band checkbox states for this series ---
+        seriesToggleIqr.disabled = true;
+        seriesToggleSTD.disabled = true;
+        seriesToggleIqr.checked = false;
+        seriesToggleSTD.checked = false;
+
+        const lbl = window.userData.labels[i]; // this row's main series (e.g. "ao5")
+        const size = parseAvgSizeFromLabel(lbl);
+
+        if (size) {
+            const iqrBand = findBand("iqr", size);
+            if (iqrBand) {
+                seriesToggleIqr.disabled = false;
+                seriesToggleIqr.checked = !!iqrBand.enabled;
+            }
+
+            const stdBand = findBand("std", size);
+            if (stdBand) {
+                seriesToggleSTD.disabled = false;
+                seriesToggleSTD.checked = !!stdBand.enabled;
+            }
+        }
+        
     }, "seriesSettings")
 
     //create the button for the pbs tab
@@ -513,6 +741,8 @@ addSeriesBtn.addEventListener("click", () => {
     //calc the average/mean column
     if (type === "ao") window.userData.pushAvg(size, index);
     else window.userData.pushMean(size, index);
+    window.userData.createIQR(parseInt(size))
+    window.userData.createSTD(parseInt(size))
 
     //calc the pb column
     window.userData.pbsOfLastCol(size, index)
@@ -571,12 +801,12 @@ ySelectLog.onclick    = () => { if (!yAxisIsLog)  { setYAxisLog(true);   buildMa
 const activeRegs = {powerLaw: false, logLog: false, logarithmic: false, linear: false};
 
 function getRegressionXYForSession(sess) {
-    // Y values (clean) are always solve times
+
     const solves = window.userData.solves[sess];
     const solves2 = window.userData.solves2[sess];
     const solves3 = window.userData.solves3[sess];
 
-    // Pick the raw x array depending on axis type
+
     let xRaw;
     if (xAxisDataType === "Date") {
         xRaw = solves.map(s => s[0]);
@@ -584,10 +814,7 @@ function getRegressionXYForSession(sess) {
         xRaw = solves2.map(s => s[0]);
     } else if (xAxisDataType === "Hours") {
         xRaw = solves3.map(s => s[0]);
-    } else {
-        // fallback: index+1
-        xRaw = solves.map((_, i) => i + 1);
-    }
+    } 
 
     // Build paired arrays, then filter pairs together
     const x = [];
@@ -596,48 +823,30 @@ function getRegressionXYForSession(sess) {
     const offsetMultiplier = regressionOffset.value
 
     if (xAxisDataType === "Date") {
-        // Find first + last valid solve dates (ONLY from real solves)
-        let minT = Infinity, maxT = -Infinity;
-        for (const d of xRaw) {
-            if (!(d instanceof Date)) continue;
-            const t = d.getTime();
-            if (!Number.isFinite(t)) continue;
-            if (t < minT) minT = t;
-            if (t > maxT) maxT = t;
-        }
-        if (!Number.isFinite(minT) || !Number.isFinite(maxT) || maxT <= minT) {
-            throw new Error("No valid Date span found for x-axis.");
-        }
-
+        let minT = xRaw[0].getTime();
+        let maxT = xRaw[xRaw.length-1].getTime()
         const spanMs = maxT - minT;
-
-
         const startMs = minT - spanMs * offsetMultiplier;
 
-        // Build x/y, converting to seconds since startMs (offset-aware)
+        // Build x/y, converting to seconds since startMs
         for (let i = 0; i < solves.length; i++) {
             const d  = xRaw[i];
             const yi = solves[i][1];
-
-            if (!(d instanceof Date)) continue;
             const ms = d.getTime();
-            if (!Number.isFinite(ms)) continue;
             if (!(yi > 0) || !Number.isFinite(yi)) continue;
 
-            // seconds since offset-start
             x.push((ms - startMs) / 1000 + 1000);
             y.push(yi);
         }
+
     } else {
         for (let i = 0; i < solves.length; i++) {
-        const xi = xRaw[i];
-        const yi = solves[i][1];
+            const xi = xRaw[i];
+            const yi = solves[i][1];
+            if (!(yi > 0) || !Number.isFinite(yi)) continue;
 
-        if (!Number.isFinite(xi)) continue;
-        if (!(yi > 0) || !Number.isFinite(yi)) continue;
-
-        x.push(xi);
-        y.push(yi);
+            x.push(xi);
+            y.push(yi);
         }
     }
 
@@ -648,13 +857,10 @@ function getRegressionXYForSession(sess) {
             for (let i = 0; i < x.length; i++) x[i] = x[i] + offsetAmount;
         } else if (xAxisDataType === "Hours") {
             const lastX = xRaw[xRaw.length - 1];
-            if (Number.isFinite(lastX)) {
-                const shift0 = offsetMultiplier * lastX;
-                for (let i = 0; i < x.length; i++) x[i] = x[i] + shift0;
-            }
+            const shift0 = offsetMultiplier * lastX;
+            for (let i = 0; i < x.length; i++) x[i] = x[i] + shift0;
         } 
     }
-   
 
     return { x, y };
 }
@@ -670,7 +876,6 @@ powerLawToggle.onclick = () => {
         const { x, y } = getRegressionXYForSession(window.selectedSess);
         powerLawFit(y, x, { iterations: iters });
 
-        //console.log(regressions);
     } else {
         powerLawToggle.classList.remove("pressed");
     }
@@ -695,7 +900,6 @@ logLogToggle.onclick = () => {
         const { x, y } = getRegressionXYForSession(window.selectedSess);
         logLogRegression(y, x);
 
-        //console.log(regressions);
     } else {
         logLogToggle.classList.remove("pressed");
     }
@@ -713,7 +917,6 @@ logarithmicToggle.onclick = () => {
         const { x, y } = getRegressionXYForSession(window.selectedSess);
         logarithmicRegression(y, x);
 
-        //console.log(regressions);
     } else {
         logarithmicToggle.classList.remove("pressed");
     }
@@ -778,8 +981,8 @@ seriesWidthSelector.addEventListener("change", function () {
     buildMainPlot();
 })
 
-let timeSeriesPoints = false;
 //the points/lines radio
+let timeSeriesPoints = false;
 seriesTimePoints.addEventListener("click", function() { 
     timeSeriesPoints = true;
     buildMainPlot();
@@ -860,15 +1063,9 @@ function legendAsTooltipPlugin({ className, style = { backgroundColor: themes[wi
     };
 }
 
-powerLawSettings.addEventListener("click", (e) => {
-        openRegressionSettings(e, "Power-Law", "powerLaw")
-})
-logLogSettings.addEventListener("click", (e) => {
-    openRegressionSettings(e, "Log-Log","logLog")
-})
-logSettings.addEventListener("click", (e) => {
-    openRegressionSettings(e, "Logarithmic","logarithmic")
-})
+powerLawSettings.addEventListener("click", (e) => { openRegressionSettings(e, "Power-Law", "powerLaw")})
+logLogSettings.addEventListener("click", (e) => {   openRegressionSettings(e, "Log-Log","logLog")})
+logSettings.addEventListener("click", (e) => {      openRegressionSettings(e, "Logarithmic","logarithmic")})
 
 function openRegressionSettings(e, name, id) {
     //make the settings box visible and move it to the cursor
@@ -893,10 +1090,8 @@ function openRegressionSettings(e, name, id) {
 
 regressionColorSelector.addEventListener("change", function () {
     const id = regressionSettingsBox.name
-    
     //update saved color
     regressions.find(r => r.id === id).color = this.value;
-
     //rebuild the graph
     buildMainPlot();
 })
@@ -904,16 +1099,68 @@ regressionColorSelector.addEventListener("change", function () {
 //the width selector
 regressionWidthSelector.addEventListener("change", function () {
     const id = regressionSettingsBox.name
-    
     //update saved color
     regressions.find(r => r.id === id).width = this.value;
     //redraw with changes
     buildMainPlot();
 })
-regressionProjection.onchange = () => {
-    buildMainPlot();
-}
-regressionOffset.onchange = () => {
-    rebuildRegressions();
-    buildMainPlot();
-}
+
+regressionProjection.onchange = () => {buildMainPlot();}
+regressionOffset.onchange = () => {rebuildRegressions();buildMainPlot(); }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
