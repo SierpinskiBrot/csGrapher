@@ -3,37 +3,6 @@ export {themes};
 window.currentTheme = 'gold'
 
 const themes = {
-  green: {
-    '--color-primary': '#128629',
-    '--color-primary-variant': '#2ea93f',
-    '--color-secondary': '#84c750',
-    '--color-secondary-variant': '#9bd171',
-    '--color-background': '#5ac465',
-    '--color-surface': '#d4ebc2',
-    '--color-surface-odd': '#eef7e6',
-    '--color-error': '#128629',
-
-    '--on-primary': '#e7f6e9',
-    '--on-secondary': '#006400',
-    '--on-background': '#006713',
-    '--on-surface': '#006400',
-    '--on-error': '#F2E8CF',
-  },
-  blue: {
-    '--color-primary': '#6200EE',
-    '--color-primary-variant': '#3700B3',
-    '--color-secondary': '#03DAC6',
-    '--color-secondary-variant': '#018786',
-    '--color-background': '#FFFFFF',
-    '--color-surface': '#D6D6D6',
-    '--color-surface-odd': '#CCCCCC',
-    '--color-error': '#B00020',
-    '--on-primary': '#FFFFFF',
-    '--on-secondary': '#000000',
-    '--on-background': '#000000',
-    '--on-surface': '#000000',
-    '--on-error': '#FFFFFF',
-  },
   gold: {
     '--color-primary':' #db3a34',
     '--color-primary-variant':' #ad201c',
@@ -49,7 +18,54 @@ const themes = {
     '--on-background':' #877614',
     '--on-surface':' #ad201c',
     '--on-error':' #ebfce9',
-  }
+
+    '--toggle-off': '#ad201c',
+    '--on-toggle-off': '#eec98c',
+    '--graph-ink': '#000000',
+    'color-scheme': 'light',
+  },
+  slate: {
+    '--color-primary': '#5b7fb3',
+    '--color-primary-variant': '#3f5f8f',
+    '--color-secondary': '#343a40',
+    '--color-secondary-variant': '#454d55',
+    '--color-background': '#121417',
+    '--color-surface': '#1c1f23',
+    '--color-surface-odd': '#2c3238',
+    '--color-error': '#e5484d',
+
+    '--on-primary': '#ffffff',
+    '--on-secondary': '#e9ecef',
+    '--on-background': '#8b949e',
+    '--on-surface': '#dee2e6',
+    '--on-error': '#ffffff',
+
+    '--toggle-off': '#25292e',
+    '--on-toggle-off': '#8b949e',
+    '--graph-ink': '#ced4da',
+    'color-scheme': 'dark',
+  },
+  retro: {
+    '--color-primary': '#264653',
+    '--color-primary-variant': '#1a323b',
+    '--color-secondary': '#f4a261',
+    '--color-secondary-variant': '#f6c89f',
+    '--color-background': '#6fb8ad',
+    '--color-surface': '#f7eedc',
+    '--color-surface-odd': '#e9d9bb',
+    '--color-error': '#e76f51',
+
+    '--on-primary': '#f7eedc',
+    '--on-secondary': '#264653',
+    '--on-background': '#1a323b',
+    '--on-surface': '#264653',
+    '--on-error': '#ffffff',
+
+    '--toggle-off': '#264653',
+    '--on-toggle-off': '#f6c89f',
+    '--graph-ink': '#000000',
+    'color-scheme': 'light',
+  },
 }
 
 //apply a theme to the document
@@ -63,6 +79,16 @@ function applyTheme(theme) {
     window.dispatchEvent(new Event("themechange"))
 }
 
-document.getElementById("themeGreen").addEventListener("click", function() {applyTheme("green")})
-document.getElementById("themeBlue").addEventListener("click", function() {applyTheme("blue")})
-document.getElementById("themeGold").addEventListener("click", function() {applyTheme("gold")})
+//one radio button per theme
+for (const name in themes) {
+    const input = document.createElement("input");
+    input.type = "radio";
+    input.id = "theme" + name;
+    input.name = "themeSelector";
+    input.checked = name == window.currentTheme;
+    input.addEventListener("click", function() {applyTheme(name)})
+    const label = document.createElement("label");
+    label.htmlFor = input.id;
+    label.textContent = name[0].toUpperCase() + name.slice(1);
+    themeRadio.append(input, label);
+}

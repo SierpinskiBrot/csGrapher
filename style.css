@@ -13,6 +13,9 @@
   --on-background: #877614;
   --on-surface: #ad201c;
   --on-error: #fafbe7;
+
+  --toggle-off: #ad201c;
+  --on-toggle-off: #eec98c;
 }
 
 .u-series > * {
@@ -175,9 +178,9 @@ button.seriesSettings:hover, button.seriesToggle:hover {
 }
 
 button.seriesToggle.pressed {
-    border: var(--on-secondary) inset !important;
-    background: var(--on-secondary) !important;
-    color: var(--color-secondary);
+    border: var(--toggle-off) inset !important;
+    background: var(--toggle-off) !important;
+    color: var(--on-toggle-off);
 }
 
 #toggleTable, #pbSeriesTable {
@@ -261,6 +264,15 @@ table.formTable > tbody > tr > td#metalogTermsCell {
 table.formTable > tbody > tr > td#tpsCompareCell {
     text-align: center;
 }
+#patternTable td:first-child {
+    white-space: nowrap;
+}
+#patternTable select {
+    width: auto;
+}
+#patternTable input[type=number] {
+    width: calc(3ch + 24px); /*3 digits plus the spinner*/
+}
 #tpsCompareFile {
     display: none;
 }
@@ -340,9 +352,9 @@ select#title-dropdown:hover {
 }
 .radio > label {
     padding: 4px;
-    background: var(--on-secondary);
-    border: var(--on-secondary)  inset;
-    color: var(--color-secondary-variant);
+    background: var(--toggle-off);
+    border: var(--toggle-off)  inset;
+    color: var(--on-toggle-off);
     font-weight: bold;
     width: 50%;
 }

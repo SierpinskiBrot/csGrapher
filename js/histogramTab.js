@@ -514,8 +514,8 @@ function showTestResults(ids, values, digits) {
     values.forEach((v, d) => {
         const el = document.getElementById(ids[d])
         el.innerText = Number.isFinite(v) ? v.toFixed(digits) : "-"
-        el.style.backgroundColor = ""
+        el.style.backgroundColor = el.style.color = ""
         if(Number.isFinite(v) && (best === -1 || v < values[best])) best = d
     })
-    if(best !== -1) document.getElementById(ids[best]).style.backgroundColor = "#FFFF00"
+    if(best !== -1) Object.assign(document.getElementById(ids[best]).style, {backgroundColor: "#FFFF00", color: "#000000"})
 }

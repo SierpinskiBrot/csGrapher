@@ -23,14 +23,7 @@
         </form>
         <button id="hintButton" class="helpButton" onclick="document.getElementById('fileHintOverlay').style.display = 'flex';">?</button>
         <div class="spacer"></div>
-        <div class="radio" id="themeRadio">
-            <input type="radio" id="themeGold" name="themeSelector" checked>
-            <label for="themeGold">Gold</label>
-            <input type="radio" id="themeGreen" name="themeSelector">
-            <label for="themeGreen">Green</label>
-            <input type="radio" id="themeBlue" name="themeSelector">
-            <label for="themeBlue">Blue</label>
-        </div>
+        <div class="radio" id="themeRadio"></div>
         <div id="githubLink">
             <a href="https://github.com/SierpinskiBrot/csGrapher">GitHub</a>
         </div>
@@ -173,6 +166,45 @@
                         <td><button id="logarithmicToggle" class="seriesToggle">Logarithmic</button></td>
                         <td><p id="logarithmicR2" class="R2val">N/A</p></td>
                         <td><button id="logSettings" class="seriesSettings">></button></td>
+                    </tr>
+                </tbody>
+            </table>
+            <br>
+            <table class="formTable" id="patternTable">
+                <tbody>
+                    <tr><th colspan="2"><p>Series Pattern</p></th></tr>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td colspan="2">
+                            <div class="radio">
+                                <input type="radio" id="patternSelectAo" name="patternAvgType" checked>
+                                <label for="patternSelectAo">aoX</label>
+                                <input type="radio" id="patternSelectMo" name="patternAvgType">
+                                <label for="patternSelectMo">moX</label>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Pattern:</td>
+                        <td>
+                            <select id="patternType">
+                                <option value="linear">ax</option>
+                                <option value="polynomial">x^a</option>
+                                <option value="exponential" selected>a^x</option>
+                            </select>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>a:</td>
+                        <td><input id="patternA" type="number" min="0" step="0.1" value="2"></td>
+                    </tr>
+                    <tr>
+                        <td>Max # of series:</td>
+                        <td><input id="patternMax" type="number" min="1" max="100" value="10"></td>
+                    </tr>
+                    <tr>
+                        <td colspan="2"><button id="patternGenerateBtn">Generate</button></td>
                     </tr>
                 </tbody>
             </table>

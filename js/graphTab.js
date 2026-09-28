@@ -1,10 +1,11 @@
 import { createButton } from "./utils.js";
 import {updatePBTable } from "./pbTab.js"
 export {graphTabStartup};
-import { rowsToUPlotCols, xAxisIsLog, setXAxisLog, yAxisIsLog, setYAxisLog, legendAsTooltipPlugin, gridLines } from "./utils.js";
+import { rowsToUPlotCols, xAxisIsLog, setXAxisLog, yAxisIsLog, setYAxisLog, legendAsTooltipPlugin, themedAxis, seriesColor } from "./utils.js";
 import { regressions, powerLawFit, logLogRegression, logarithmicRegression } from "./graphTabRegressions.js";
 import { scanMax } from "./probabilities.js";
 import {solve} from  "../lib/gauss-jordan.js";
+import { themes } from "./themes.js";
 
 function getSize() {
     return {
@@ -45,11 +46,11 @@ presetCstimer.onclick = () => {
     buildMainPlot();
 }
 presetDefault.onclick = () => {
-    const newColors = ["#084C61","#084C61","#177E89","#177E89","#86A06A","#86A06A","#F2934A","#F2934A","#E45E3D","#E45E3D"];
+    //colors by position in the table
+    const newColors = window.userData.labels.slice(1).map((_, i) => seriesColor(i >> 1));
     const newWidths = [2,         2,          2,           2,          2,          2,          2,          2,          2,           2]
     const newVisibilities = [true,true,       true,        false,      true,       false,      true,       false,      true,        false];
-    for(let i = 0; i < window.userData.labels.length - 10; i++) {
-        newColors.push("#000")
+    for(let i = 0; i < window.userData.labels.length - 11; i++) {
         newWidths.push(2)
         newVisibilities.push(false)
     }
@@ -60,24 +61,45 @@ presetDefault.onclick = () => {
     buildMainPlot();
 }
 presetGrayscale.onclick = () => {
-    const newColors = [];
     const newWidths = []
     const newVisibilities = [];
-    const n = window.userData.labels.length-1;
-    for(let i = 0; i < n; i+=2) {
-        const gray = Math.floor(255 * i / (n-1));
-        newColors.push(rgbToHex(gray, gray, gray))
-        newColors.push(rgbToHex(gray, gray, gray))
-        newWidths.push(2)
-        newWidths.push(2)
-        newVisibilities.push(true)
-        newVisibilities.push(false)
+    for(let i = 1; i < window.userData.labels.length; i+=2) {
+        newWidths.push(2, 2)
+        newVisibilities.push(true, false)
     }
-    window.userData.colors = newColors;
+    window.userData.colors = grayscaleColors(isDarkTheme());
     window.userData.widths = newWidths;
     window.userData.visibilities = newVisibilities;
     createAllSeriesRows();
     buildMainPlot();
+}
+
+const isDarkTheme = () => themes[window.currentTheme]['color-scheme'] == 'dark';
+
+//one gray per row (series and its PB), in even steps of perceived lightness (CIELAB L*)
+//from black to light gray, or from white to dark gray on dark themes, so the ends stay visible on the background
+function grayscaleColors(dark) {
+    const rows = (window.userData.labels.length - 1) / 2;
+    const colors = [];
+    for(let k = 0; k < rows; k++) {
+        const t = rows > 1 ? k / (rows - 1) : 0;
+        const L = dark ? 100 - 80 * t : 80 * t;
+        //L* -> relative luminance -> sRGB
+        const Y = L > 8 ? ((L + 16) / 116) ** 3 : L / 903.3;
+        const v = Y <= 0.0031308 ? 12.92 * Y : 1.055 * Y ** (1 / 2.4) - 0.055;
+        const gray = Math.round(255 * v);
+        colors.push(rgbToHex(gray, gray, gray), rgbToHex(gray, gray, gray))
+    }
+    return colors;
+}
+
+//flip the grayscale preset's colors when the theme switches between light and dark
+function flipGrayscale() {
+    if (!window.userData) return;
+    const dark = isDarkTheme();
+    if (window.userData.colors.join() != grayscaleColors(!dark).join()) return;
+    window.userData.colors = grayscaleColors(dark);
+    createAllSeriesRows();
 }
 
 function rgbToHex(r, g, b) {
@@ -208,6 +230,7 @@ for (const [checkbox, type] of bandCheckboxes) {
     });
 }
 
+window.addEventListener("themechange", () => { flipGrayscale(); buildMainPlot(); });
 function buildMainPlot() {
     if (!window.userData) return; // No data loaded yet
     const sess = document.getElementById("title-dropdown").value;
@@ -376,7 +399,7 @@ function buildMainPlot() {
                 log: yAxisIsLog ? 10 : null
             }
         },
-        axes: [[xAxisDataType], "Time (s)"].map(label => ({ label, grid: gridLines(), ticks: gridLines() })),
+        axes: [xAxisDataType, "Time (s)"].map(themedAxis),
         series: seriesMeta,
         bands: bandsOpt,
         legend: { show: true },
@@ -517,6 +540,11 @@ function createAllSeriesRows() {
         toggleTableBody.appendChild(newRow[0])
         pbSeriesTableBody.appendChild(newRow[1])
     }
+    //offer the first default color not in use for the next created series
+    const used = new Set(window.userData.colors.map(c => c.toLowerCase()));
+    let k = 0;
+    while (used.has(seriesColor(k).toLowerCase())) k++;
+    newAvgColor.value = seriesColor(k);
 }
 
 //a button that shows/hides series number s (1-based, 0 is the x-axis), with a shadow in the series' color
@@ -657,6 +685,53 @@ addSeriesBtn.addEventListener("click", () => {
     //just remake the whole table cuz its quick and im lazy
     createAllSeriesRows();
     
+    updateGraph();
+});
+
+//replace every series except Time with aoX/moX series whose X follows a pattern (rounded up)
+patternGenerateBtn.addEventListener("click", () => {
+    const U = window.userData;
+    if (!U) return alert("Please upload a file first")
+    const type = patternSelectAo.checked ? "ao" : "mo";
+    const a = parseFloat(patternA.value);
+    const max = parseInt(patternMax.value);
+    const f = { linear: n => a * n, polynomial: n => n ** a, exponential: n => a ** n }[patternType.value];
+    if (!(max >= 1) || !(patternType.value == "exponential" ? a > 1 : a > 0)) return alert("Please enter a valid number.");
+
+    //X of each series, stopping at max series or once X is longer than every session
+    const longest = Math.max(...U.solves.map(s => s.length));
+    const sizes = [];
+    for (let n = 1; sizes.length < max && n <= 1e6; n++) {
+        const x = Math.ceil(f(n) - 1e-9); //so float error doesn't round e.g. 3.0000000004 up
+        if (x > longest) break;
+        if (x >= (type == "ao" ? 3 : 2) && !sizes.includes(x)) sizes.push(x);
+    }
+    if (!sizes.length) return alert("The pattern gives no series that fit the data.");
+
+    //keep Date, Time and PB Single
+    U.labels = U.labels.slice(0, 3);
+    U.colors = U.colors.slice(0, 2);
+    U.widths = U.widths.slice(0, 2);
+    U.visibilities = U.visibilities.slice(0, 2);
+    U.bands = [];
+    U.pbInfo = U.pbInfo.map(p => p.slice(0, 1));
+    for (const sess of U.solves) for (const row of sess) row.length = 3;
+
+    sizes.forEach((x, k) => {
+        U.labels.push(type + x, "PB " + type + x);
+        U.colors.push(seriesColor(k + 1), seriesColor(k + 1));
+        U.widths.push(2, 2);
+        U.visibilities.push(true, false);
+        if (type == "ao") U.pushAvg(x); else U.pushMean(x);
+        U.createIQR(x);
+        U.createSTD(x);
+        U.pbsOfLastCol(x);
+    });
+    U.createSolves2();
+    U.createSolves3();
+    if (!U.labels.includes(U.currentPbSeries)) U.currentPbSeries = "PB Single";
+
+    createAllSeriesRows();
     updateGraph();
 });
 

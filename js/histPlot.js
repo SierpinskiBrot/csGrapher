@@ -1,6 +1,6 @@
 //the uPlot graph of the histogram tab: the histogram, the cumulative distributions and the TPS graph
 import {themes} from "./themes.js"
-import {legendAsTooltipPlugin, gridLines} from "./utils.js"
+import {legendAsTooltipPlugin, themedAxis} from "./utils.js"
 
 export {histOpts, drawHist, resetHistZoom, resizeHist, clearHist}
 
@@ -67,7 +67,7 @@ function render() {
                 : { stroke: colors[i - 2], width: 2 }),
         }),
         scales: { x: { time: false, range: (u, min, max) => xWindow ?? [min, max] }, y: { range: yScaleRange } },
-        axes: [histOpts.xlabel, histOpts.ylabel].map(label => ({ label, grid: gridLines(), ticks: gridLines() })),
+        axes: [histOpts.xlabel, histOpts.ylabel].map(themedAxis),
         //dragging at least 10px zooms along x or y, whichever the drag is longer in
         cursor: { drag: { x: true, y: true, uni: Infinity, dist: 10, setScale: false } },
         hooks: { setSelect: [zoomToSelection], draw: [drawAnnotations(primary)] },
@@ -143,7 +143,7 @@ function drawAnnotations(color) {
             const cx = Math.round(u.valToPos(x, "x", true))
             const left = cx - Math.round(width * px / 2)
             const top = bottom - height - tickHeight * px
-            ctx.fillStyle = "white"
+            ctx.fillStyle = themes[window.currentTheme]["--color-surface"]
             ctx.fillRect(left, top, width * px, height)
             ctx.strokeRect(left + px / 2, top + px / 2, width * px - px, height - px)
             ctx.fillStyle = color

@@ -1,5 +1,5 @@
 
-import { makeArrayOfArrays, binarySearchInsertIdx, parseTime, defaultColumnWidth} from "./utils.js"
+import { makeArrayOfArrays, binarySearchInsertIdx, parseTime, defaultColumnWidth, seriesColor} from "./utils.js"
 import { sampleMoments } from "./probabilities.js"
 import { graphTabStartup, resetRegressions } from "./graphTab.js";
 import { histogramTabStartup } from "./histogramTab.js";
@@ -171,7 +171,7 @@ class UserData {
         
 
         this.labels = [ "Date",    "Time",      "PB Single",   "ao5",        "PB ao5",    "ao12",      "PB ao12",   "ao100",     "PB ao100",    "ao1000",  "PB ao1000" ];
-        this.colors = [            "#084C61", "#084C61",   "#177E89", "#177E89", "#86A06A", "#86A06A", "#F2934A", "#F2934A",  "#E45E3D", "#E45E3D"];
+        this.colors = [            0, 0, 1, 1, 2, 2, 3, 3, 4, 4].map(seriesColor);
         this.widths = [            2,            2,             2,           2,           2,           2,            2,           2,            2,          2]
         this.visibilities = [      true,        true,          true,        false,       true,         false,        true,        false,         true,      false];
 

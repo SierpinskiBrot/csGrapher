@@ -7,12 +7,14 @@ export { updatePBTable, pbTabStartup }
 let shownSess = 0;
 let shownSeries = 0;
 
-//redraw the predictions when the regression type radio changes
+//redraw the predictions when the regression type radio or the theme changes
 document.querySelectorAll('input[name="pbRegType"]').forEach(radio => {
-    radio.addEventListener("change", () => {
-        if (window.userData) drawPBPredictionGraphs(shownSess, shownSeries);
-    });
+    radio.addEventListener("change", redrawPredictions);
 });
+window.addEventListener("themechange", redrawPredictions);
+function redrawPredictions() {
+    if (window.userData) drawPBPredictionGraphs(shownSess, shownSeries);
+}
 
 function fmtSeconds(v) {
     return Number.isFinite(v) ? v.toFixed(3) + "s" : "N/A";
@@ -260,8 +262,8 @@ function drawGraph(graphId, points, fit, x0, ylabel) {
     const Y = y => h - margin - (Math.min(Math.max(y, 0), yMax) / yMax) * (h - margin - 10);
 
     //draw axes
-    ctx.strokeStyle = "#000000";
-    ctx.fillStyle = "#000000";
+    ctx.strokeStyle = theme['--graph-ink'];
+    ctx.fillStyle = theme['--graph-ink'];
     ctx.lineWidth = 2;
     ctx.setLineDash([]);
     ctx.beginPath();
