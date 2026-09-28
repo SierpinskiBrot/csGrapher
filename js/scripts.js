@@ -1,16 +1,15 @@
-import "../lib/dygraph.js";
-import "../lib/dygraph-extra.js"
-import "../lib/uPlot.iife.min.js";
 
-import { makeArrayOfArrays, binarySearchInsertIdx, round, parseTime} from "./utils.js"
+import { makeArrayOfArrays, binarySearchInsertIdx, parseTime, defaultColumnWidth} from "./utils.js"
+import { sampleMoments } from "./probabilities.js"
 import { graphTabStartup, resetRegressions } from "./graphTab.js";
-import { histogramTabStartup, rangeSelectorApply } from "./histogramTab.js";
+import { histogramTabStartup } from "./histogramTab.js";
 import { updatePBTable, pbTabStartup } from "./pbTab.js"
 import { activityTabStartup, drawHeatmap } from "./activityTab.js";
-
+import { parseMoveSolves } from "./tps.js";
 
 window.selectedSess = 0; //selected session from the cstimer
-
+//acubemy move_times is kept in userData.moveSolves and only shown (as the TPS graph) in the histogram tab
+window.isMoveTimes = () => window.userData?.moveSess == window.selectedSess
 
 //clicking of the overlays closes them too
 const overlayIds = [
@@ -19,7 +18,8 @@ const overlayIds = [
     'creationHintOverlay',
     'createHintOverlay',
     'distributionHintOverlay',
-    'regressionHintOverlay'
+    'regressionHintOverlay',
+    'tpsHintOverlay'
 ];
 function setupOverlayDismiss(id) {
     const el = document.getElementById(id);
@@ -33,36 +33,44 @@ function setupOverlayDismiss(id) {
 }
 overlayIds.forEach(setupOverlayDismiss);
 
-
 //#region handle the toolbar buttons on the top
 window.currentTab = "graph";
+const tabs = [[graphContainer, graphButton], [histogramContainer, histogramButton], [statsContainer, statsButton], [activityContainer, activityButton]];
 window.resetContainers = function() {
-    histogramContainer.style.display = "none";
-    histogramButton.classList.remove("pressed");
+    for (const [container, button] of tabs) {
+        container.style.display = "none";
+        button.classList.remove("pressed");
+    }
+}
+//hide the other tabs and show this one
+window.showTab = function(name, container, button) {
+    window.currentTab = name;
+    window.resetContainers();
+    container.style.display = "flex";
+    button.classList.add("pressed");
 
-    statsContainer.style.display = "none";
-    statsButton.classList.remove("pressed");
-
-    graphContainer.style.display = "none";
-    graphButton.classList.remove("pressed");
-
-    activityContainer.style.display = "none";
-    activityButton.classList.remove("pressed");
+    //move_times can only be selected in the histogram tab
+    const moveOption = window.dropdown?.querySelector(`option[value="${window.userData.moveSess}"]`)
+    if (!moveOption) return
+    moveOption.hidden = name != "hist"
+    if (moveOption.hidden && window.isMoveTimes()) window.dropdown.value = window.selectedSess = 0
 }
 graphButton.addEventListener("click", function () {
-    window.currentTab = "graph";
-    window.resetContainers();
-    graphContainer.style.display = "flex";
-    graphButton.classList.add("pressed");
-
+    window.showTab("graph", graphContainer, graphButton);
     window.updateGraph();
 })
 statsButton.addEventListener("click", function() {
-    window.currentTab = "stats";
-    window.resetContainers();
-    statsContainer.style.display = "flex";
-    statsButton.classList.add("pressed");
+    window.showTab("stats", statsContainer, statsButton);
+    showSelectedPBSeries();
+})
+activityButton.addEventListener("click", function() {
+    window.showTab("activity", activityContainer, activityButton);
+    drawHeatmap();
+})
+//#endregion
 
+//show the PB table of the selected series, by clicking its button
+function showSelectedPBSeries() {
     let clickOccured = false;
     const buttons = document.getElementsByClassName('pbSeriesSelectButton pressed')
     for(let btn of buttons) {
@@ -72,58 +80,27 @@ statsButton.addEventListener("click", function() {
         }
     }
     if(!clickOccured) {
-        updatePBTable(window.dropdown.value,0) 
+        updatePBTable(window.dropdown.value,0)
     }
-})
-activityButton.addEventListener("click", function() {
-    window.currentTab = "activity";
-    window.resetContainers();
-    activityContainer.style.display = "flex";
-    activityButton.classList.add("pressed");
-
-    drawHeatmap();
-})
-//#endregion
-
+}
 
 function dropdownOnChange() {
     window.selectedSess = document.getElementById("title-dropdown").value;
     //Only update what is on screen
-    if(window.currentTab == "graph") { 
+    if(window.currentTab == "graph") {
         resetRegressions();
         window.updateGraph();
     }
-
     else if (window.currentTab == "hist") {
-        histBucketInput.value = window.userData.histDefaultWidths[window.selectedSess]
-        window.resetRangeSelector();
-        rangeSelectorApply()
-        window.genSessionDistribData();
-        window.updateHist();
-        if(window.distribMode == "pdf") window.h.resetZoom(); 
-        window.userData.genSlidingWindowDefaults(); window.userData.genCreationDefaults(); 
+        window.histShowSession();
     }
-
     else if (window.currentTab == "stats") {
-        //automatically click the button of the selected pb series
-        let clickOccured = false;
-        const buttons = document.getElementsByClassName('pbSeriesSelectButton pressed')
-        for(let btn of buttons) {
-            if(btn.innerText == window.userData.currentPbSeries) {
-                btn.click()
-                clickOccured = true
-            }
-        }
-        if(!clickOccured) {
-            updatePBTable(window.dropdown.value,0) 
-        }
+        showSelectedPBSeries();
     }
     else if (window.currentTab == "activity") {
         drawHeatmap();
     }
-
 }
-
 
 //This code is run after the user uploads a file
 const jsonDataFile = document.getElementById("UploadFile");
@@ -146,13 +123,15 @@ jsonDataFile.addEventListener("change", function() {
                 let child = document.createElement("option");
                 child.value = i;
                 child.innerHTML = window.userData.sessions[i];
+                child.hidden = i == window.userData.moveSess && window.currentTab != "hist";
                 window.dropdown.appendChild(child);
             }
         }
-        window.dropdown.setAttribute("value", window.selectedSess);
+        const first = window.userData.solves.findIndex(s => s.length > 0);
+        window.selectedSess = first < 0 ? 0 : first;
+        window.dropdown.value = String(window.selectedSess);
         window.dropdown.addEventListener("change", dropdownOnChange)
         document.getElementById("hintButton").after(window.dropdown)
-        //debugger;
         
         graphTabStartup();
         histogramTabStartup();
@@ -164,7 +143,6 @@ jsonDataFile.addEventListener("change", function() {
     GetFile.readAsText(this.files[0]);
 });
 
-
 class UserData {
     constructor(data) {
 
@@ -172,6 +150,7 @@ class UserData {
 
         this.numSessions = 0;
         this.sessions = []; //names of sessions
+        this.moveSess = -1; //index of the acubemy move_times session, whose solves are in moveSolves instead
 
         //Get the session names
         if(data?.properties?.sessionData != undefined){
@@ -184,10 +163,10 @@ class UserData {
                 }
             }
         } else {
-            console.log("this is acubemy data")
             this.dataFormat = "acubemy"
             this.sessions = ["3x3", "turns", "tps", "cross_time", "f2l_time", "oll_time", "pll_time", "move_times"]
             this.numSessions = 8
+            this.moveSess = 7
         }
         
 
@@ -205,14 +184,13 @@ class UserData {
 
         //histogram
         this.hist = makeArrayOfArrays(this.numSessions);
-        this.maxDelta = 0.985;
-        this.distribLabels = ["Normal Fit", "Skew Fit", "Beta Fit", "Gamma Fit", "Logit Fit", "Log Fit"];
-        this.distribColors = ["#00FF00",    "#0000FF",  "#FF0000",  "#FF00FF",   "#FFFF00",   "#00FFFF"] //g, b, r, m, y, c
-        this.distribVisibilities = [false,        false,      false,      false,       false,       false];
-        this.distribData =         [[],           [],         [],         [],          [],          []];
-        this.distribCdfData =      [[],           [],         [],         [],          [],          []];
-        this.distribADids = ["normAD", "skewAD", "betaAD", "gammaAD", "logitAD", "logAD"]; //ids for elements showing AD statistic
-        this.distribKSids = ["normKS", "skewKS", "betaKS", "gammaKS", "logitKS", "logKS"]; //ids for elements showing KS statistic
+        this.distribLabels = ["Normal Fit", "Skew Fit", "Ex-Gaussian Fit", "Gamma Fit", "Logit Fit", "Shifted Log Fit", "Metalog Fit"];
+        this.distribColors = ["#00FF00",    "#0000FF",  "#FF0000",  "#FF00FF",   "#FFFF00",   "#00FFFF",   "#FF8C00"] //g, b, r, m, y, c, orange
+        this.distribVisibilities = [false,        false,      false,      false,       false,       false,       false];
+        this.distribData =         [[],           [],         [],         [],          [],          [],          []];
+        this.distribCdfData =      [[],           [],         [],         [],          [],          [],          []];
+        this.distribADids = ["normAD", "skewAD", "exGaussAD", "gammaAD", "logitAD", "logAD", "metalogAD"]; //ids for elements showing AD statistic
+        this.distribKSids = ["normKS", "skewKS", "exGaussKS", "gammaKS", "logitKS", "logKS", "metalogKS"]; //ids for elements showing KS statistic
 
         this.averageVisibilities = [false, false, false]
         
@@ -223,8 +201,6 @@ class UserData {
         
         //Add the first two columns: solve date, solve time
         if(this.dataFormat == "csTimer") {
-
-            const fcstartTime = performance.now() 
             for (let s = 1; s <= this.numSessions; s++) {
                 const sessionKey = `session${s}`;
                 if (data[sessionKey] !== undefined) {
@@ -234,105 +210,23 @@ class UserData {
                     }
                 }
             }
-            const fcendTime = performance.now()
-            console.log(`first 2 cols: ${round(fcendTime - fcstartTime)} milliseconds`)
-
         } else if(this.dataFormat == "acubemy") {
-            //this for loop does the regular series
-            for(let i = data.length - 1 ; i > -1 ; i--) {
-                let date = new Date(data[i].date)
-                let totalTime = data[i].total_time
-                let crossTime = data[i].cross_time
-                let f2lTime = data[i].f2l_pair1_time+data[i].f2l_pair2_time+data[i].f2l_pair3_time+data[i].f2l_pair4_time
-                let ollTime = data[i].oll_time
-                let pllTime = data[i].pll_time
-
-                //if(!(crossTime && f2lTime && ollTime && pllTime)) continue;
-                if(data[i].analysis_type != "CFOP") continue;
-                //if(totalTime >= 16000 || data[i].turns >= 88) continue;
-                
-                this.solves[0].push([date, 0.001*totalTime])    //3x3
-                this.solves[1].push([date, data[i].turns])      //turns
-                this.solves[2].push([date, data[i].tps])        //tps
-                this.solves[3].push([date, 0.001*crossTime])    //cross
-                this.solves[4].push([date, 0.001*f2lTime])      //f2l
-                this.solves[5].push([date, 0.001*ollTime])      //oll
-                this.solves[6].push([date, 0.001*pllTime])      //pll
-            }
-
-            console.log("Doing move times now")
-            const n = this.solves[0].length
-            this.meanCross = this.solves[3].map(s => s[1]).filter(t => t != null).reduce((a, b) => a + b, 0) / n;
-            this.meanF2l = this.solves[4].map(s => s[1]).filter(t => t != null).reduce((a, b) => a + b, 0) / n;
-            this.meanOll = this.solves[5].map(s => s[1]).filter(t => t != null).reduce((a, b) => a + b, 0) / n;
-            this.meanPll = this.solves[6].map(s => s[1]).filter(t => t != null).reduce((a, b) => a + b, 0) / n;
-            this.meanTime = this.solves[0].map(s => s[1]).filter(t => t != null).reduce((a, b) => a + b, 0) / n;
-
-            //mcp = meanCrossPercent, mfp = meanF2lPercent, etc.
-            const mcp = this.meanCross/this.meanTime
-            const mfp = this.meanF2l/this.meanTime
-            const mop = this.meanOll/this.meanTime
-            const mpp = this.meanPll/this.meanTime
-
-            for(let i = data.length - 1; i > -1; i--) {
-
-                const totalTime = data[i].total_time
-                const crossTime = data[i].cross_time
-                const f2lTime = data[i].f2l_pair1_time+data[i].f2l_pair2_time+data[i].f2l_pair3_time+data[i].f2l_pair4_time
-                const ollTime = data[i].oll_time
-                const pllTime = data[i].pll_time
-
-                //if(!(crossTime && f2lTime && ollTime && pllTime)) continue
-                if(data[i].analysis_type == "Roux") continue;
-                if(totalTime >= 16000 || data[i].turns >= 88) continue;
-
-                for(let m = 1; m < data[i].move_times.length-1; m++){
-                    let moveTime = Math.max(0.5*(data[i].move_times[m]+data[i].move_times[m-1]), data[i].move_times[m]-100)
-
-                    if(moveTime <= 0) continue
-
-                    let percentDone = 0
-
-                    if((moveTime <= crossTime) && crossTime) {                                      //cross moves
-                        percentDone = 100*(mcp*moveTime/crossTime)
-                    } else if ( Math.abs(moveTime - crossTime) < 100 ||             //prevent boundary spikes at high res
-                                Math.abs(moveTime - (crossTime + f2lTime)) < 100 ||
-                                Math.abs(moveTime - totalTime+pllTime) < 100 ||
-                                !pllTime ) {
-                        percentDone = 100*(moveTime/totalTime)
-                    } else if ((moveTime <= (crossTime + f2lTime)) && f2lTime) {                    //f2l moves
-                        percentDone = 100*(mcp + mfp*(moveTime-crossTime)/f2lTime)
-                    }  else if ((moveTime < crossTime + f2lTime + ollTime) && ollTime) {         //oll moves
-                        percentDone = 100*(mcp + mfp + mop*(moveTime - f2lTime - crossTime)/ollTime)
-                    } else {                                                        //pll moves
-                        percentDone = 100*(mcp + mfp + mop + mpp*(moveTime - ollTime - f2lTime - crossTime)/pllTime)
-                    }
-                    //if(moveTime > crossTime + f2lTime) {
-                    //    percentDone = 100*(mcp + mfp + (mop + mpp)*(moveTime - f2lTime - crossTime)/(pllTime+ollTime))
-                    //}
-                    //if(percentDone > 100) percentDone = 100
-                    //percentDone = 100*(moveTime/totalTime)
-
-                    //this.solves[7].push([new Date(percentDone*10000000), percentDone*this.meanTime/100])
-                    this.solves[7].push([new Date(percentDone*10000000), percentDone])
-
-                }
+            //only CFOP solves, oldest first; moveSolves[i] is the solve of row i in every session
+            this.moveSolves = parseMoveSolves(data)
+            for(const s of this.moveSolves) {
+                this.solves[0].push([s.date, 0.001*s.total])    //3x3
+                this.solves[1].push([s.date, s.turns])          //turns
+                this.solves[2].push([s.date, s.tps])            //tps
+                for(let k = 0; k < 4; k++) this.solves[3+k].push([s.date, 0.001*s.steps[k]])    //cross, f2l, oll, pll
             }
         }
         
         //Delete DNFs
-        const ddstartTime = performance.now() 
         for(let j = 0; j < this.numSessions; j++) {
             for(let i = 0; i < this.solves[j].length; i++) {
-                if(this.solves[j][i][1] == 0) {
-                    this.solves[j][i][1] = null
-                    //this.solves[j].splice(i,1);
-                    //i-=1;
-                }
+                if(this.solves[j][i][1] == 0) this.solves[j][i][1] = null
             }
         }
-        const ddendTime = performance.now()
-        console.log(`delete dnfs: ${round(ddendTime - ddstartTime)} milliseconds`)
 
         //Fix "Invalid Date" for very old cstimer files
         this.sessIsReal = [];
@@ -342,39 +236,17 @@ class UserData {
 
         
         //create the default data series
-        const ddsstartTime = performance.now() 
-
         this.pbsOfLastCol(1);
+        for (const x of [5, 12, 100, 1000]) {
+            this.pushAvg(x);
+            this.createIQR(x)
+            this.createSTD(x)
+            this.pbsOfLastCol(x);
+        }
 
-        this.pushAvg(5);
-        this.createIQR(5)
-        this.createSTD(5)
-        this.pbsOfLastCol(5);
-
-        this.pushAvg(12);
-        this.createIQR(12)
-        this.createSTD(12)
-        this.pbsOfLastCol(12);
-
-        this.pushAvg(100);
-        this.createIQR(100)
-        this.createSTD(100)
-        this.pbsOfLastCol(100);
-
-        this.pushAvg(1000);
-        this.createIQR(1000)
-        this.createSTD(1000)
-        this.pbsOfLastCol(1000);
-        
-        const ddsendTime = performance.now()
-        console.log(`default series: ${round(ddsendTime - ddsstartTime)} milliseconds`)
-        
         //This creates solves2, which is solves but x-axis is solve#
-        const s2startTime = performance.now() 
         this.createSolves2();
         this.createSolves3();
-        const s2endTime = performance.now()
-        console.log(`create solves2 and solves3: ${round(s2endTime - s2startTime)} milliseconds`)
         
 
         //add the data for histogram
@@ -436,93 +308,29 @@ class UserData {
 
     //generate the default parameters for the sliding window animation
     genSlidingWindowDefaults() {
-        console.log("genSlidingWindowDefaults called")
-        let numSolves = this.solves[window.selectedSess].length
-        let mean = 0;
-        let deviation = 0;
-        let max = 0;
-        for(let i = 0; i < numSolves; i++) {
-            const time = this.solves[window.selectedSess][i][1]
-            if(time > max) max = time;
-            mean += time;
-        }
-        mean /= numSolves;
-        for(let i = 0; i < numSolves; i++) {
-            const time = this.solves[window.selectedSess][i][1]
-            deviation += (time - mean) ** 2
-        }
-        deviation /= numSolves;
-        deviation = deviation ** 0.5
-
-        //-----width-----
-        const rawWidth = deviation / 6;
-        //  round to closest power of two fraction (0.25, 0.5, 1, 2, ...)
-        const log2 = Math.round(Math.log2(rawWidth));
-        const sldWinWidth = Math.pow(2, log2);
-
-        //-----window - 1/5 of total solves-----
-        const sldWinWindow = Math.round(numSolves * 0.2 + 1);
-
-        //-----step-----
-        const sldWinStep = Math.round(sldWinWindow / 100 + 1)
-
-        //-----xmax - 3 standard deviations-----
-        const sldWinXmax = Math.round(mean+3*deviation+1);
-
-        //-----time-----
-        const sldWinTime = 1
-
-        document.getElementById("sldWinWidth").value = sldWinWidth
-        document.getElementById("sldWinWindow").value = sldWinWindow
-        document.getElementById("sldWinStep").value = sldWinStep
-        document.getElementById("sldWinXmax").value = sldWinXmax
-        document.getElementById("sldWinTime").value = sldWinTime
+        const times = this.solves[window.selectedSess].map(s => s[1])
+        const { mean, sd } = sampleMoments(times)
+        const window_ = Math.round(times.length * 0.2 + 1) //1/5 of total solves
+        document.getElementById("sldWinWidth").value = defaultColumnWidth(sd)
+        document.getElementById("sldWinWindow").value = window_
+        document.getElementById("sldWinStep").value = Math.round(window_ / 100 + 1)
+        document.getElementById("sldWinXmax").value = Math.round(mean + 3 * sd + 1) //3 standard deviations
+        document.getElementById("sldWinTime").value = 1
     }
 
     //generate the default parameters for the creation animation
     genCreationDefaults() {
-        console.log("genCreationDefaults called")
-        let numSolves = this.solves[window.selectedSess].length
-        let mean = 0;
-        let deviation = 0;
-        let max = 0;
-        for(let i = 0; i < numSolves; i++) {
-            const time = this.solves[window.selectedSess][i][1]
-            if(time > max) max = time;
-            mean += time;
-        }
-        mean /= numSolves;
-        for(let i = 0; i < numSolves; i++) {
-            const time = this.solves[window.selectedSess][i][1]
-            deviation += (time - mean) ** 2
-        }
-        deviation /= numSolves;
-        deviation = deviation ** 0.5
-
-        //-----width-----
-        const rawWidth = deviation / 6;
-        //  round to closest power of two fraction (0.25, 0.5, 1, 2, ...)
-        const log2 = Math.round(Math.log2(rawWidth));
-        const creationWidth = Math.pow(2, log2);
-
-        //-----step-----
-        const creationStep = Math.round(numSolves / 1000 + 1)
-
-        //-----xmax - 6 standard deviations-----
-        const creationXmax = Math.round(mean+6*deviation+1);
-
-        document.getElementById("creationWidth").value = creationWidth
-        document.getElementById("creationStep").value = creationStep
-        document.getElementById("creationXmax").value = creationXmax
+        const times = this.solves[window.selectedSess].map(s => s[1])
+        const { mean, sd } = sampleMoments(times)
+        document.getElementById("creationWidth").value = defaultColumnWidth(sd)
+        document.getElementById("creationStep").value = Math.round(times.length / 1000 + 1)
+        document.getElementById("creationXmax").value = Math.round(mean + 6 * sd + 1) //6 standard deviations
     }
-
 
     //append a column for the average of the x last solves
     pushAvg(x, index = undefined) {
         //if index is undefined the new col will be appended to the end instead of spliced
-        const pastartTime = performance.now() 
-        
-         x = Number(x);
+        x = Number(x);
         const clip = Math.ceil(0.05 * x);
         const trimmedSize = x - clip * 2;
         const key = v => (v == null ? Infinity : v);
@@ -544,235 +352,95 @@ class UserData {
                 put(solves[i], sum / trimmedSize);
             }
         }
-
-        const paendTime = performance.now()
-        console.log(`   push ao${x}: ${round(paendTime - pastartTime)} milliseconds`)
     }
-
 
     //append a column for the mean of the x last solves
     pushMean(x, index = undefined) {
-        const pmstartTime = performance.now() 
-        
-        let sum,mean
+        const put = (row, val) => index === undefined ? row.push(val) : row.splice(index, 0, val);
         for (let j = 0; j < this.numSessions; j++) {
-            //if(this.sessions[j] == "move_times") continue;
             const solves = this.solves[j];
-            let windo = [];
-            
+            let sum = 0, dnfs = 0;
             for (let i = 0; i < solves.length; i++) {
-                const newVal = solves[i][1];
-
-                //Cant make an average without enough data
-                if (i < x) { 
-                    if(index == undefined) { solves[i].push(null); } 
-                    else { solves[i].splice(index,0,null); }
-                    windo.push(newVal)
-                } else {
-                    windo.splice(0,1)  // Remove oldest solve from window
-                    windo.push(newVal) // Insert new solve time in window
-            
-                    //mean of window
-                    sum = 0;
-                    let includesNull = false;
-                    for(let k = 0; k < x; k++) {
-                        sum+=windo[k]
-                        if(windo[k] == null) includesNull = true
-                    }
-                    mean = sum/x
-                    if(mean == 0 || includesNull) mean = null
-
-                    if (index === undefined) { solves[i].push(mean); } 
-                    else { solves[i].splice(index, 0, mean); }
-                }
+                const v = solves[i][1];
+                if (v == null) dnfs++; else sum += v;
+                if (i >= x) { const o = solves[i - x][1]; if (o == null) dnfs--; else sum -= o; }
+                put(solves[i], (i < x - 1 || dnfs > 0) ? null : sum / x);
             }
         }
-
-        const pmendTime = performance.now()
-        console.log(`   push mo${x}: ${round(pmendTime - pmstartTime)} milliseconds`)
     }
 
-
+    //interquartile range band over the last x solves
     createIQR(x) {
-        const band = {};
-        const upperBands = [];
-        const lowerBands = [];
-
-        // nulls treated as slowest => sort them to the end
-        const NULL_SENTINEL = Number.POSITIVE_INFINITY;
-
-        for (let j = 0; j < this.numSessions; j++) {
-            const solves = this.solves[j];
-            if (solves.length === 0) continue;
-
-            const upper = [];
-            const lower = [];
-
-            // first x points can't have a full window
-            for (let i = 0; i < x; i++) {
-                upper.push(null);
-                lower.push(null);
-            }
-
-            // sorted window of length x (values mapped so null goes to the end)
+        x = Number(x);
+        const key = v => (v == null ? Infinity : v);
+        const q1Idx = Math.floor(0.25 * (x - 1));
+        const q3Idx = Math.floor(0.75 * (x - 1));
+        this.createBand(x, "iqr", () => {
             const windo = [];
-            let nullCount = 0;
-
-            // seed initial window using first x solves (indices 0..x-1)
-            for (let i = 0; i < x && i < solves.length; i++) {
-                const v = solves[i][1];
-                const mapped = (v == null) ? NULL_SENTINEL : v;
-                if (v == null) nullCount++;
-
-                const ins = binarySearchInsertIdx(windo, mapped);
-                if (ins === -1) windo.push(mapped);
-                else windo.splice(ins, 0, mapped);
-            }
-
-            // produce bands starting at i = x
-            for (let i = x; i < solves.length; i++) {
-                // slide: remove oldest, add newest
-                const oldV = solves[i - x][1];
-                const oldMapped = (oldV == null) ? NULL_SENTINEL : oldV;
-                if (oldV == null) nullCount--;
-
-                const rem = binarySearchInsertIdx(windo, oldMapped);
-                if (rem !== -1 && windo[rem] === oldMapped) windo.splice(rem, 1);
-
-                const newV = solves[i][1];
-                const newMapped = (newV == null) ? NULL_SENTINEL : newV;
-                if (newV == null) nullCount++;
-
-                const ins = binarySearchInsertIdx(windo, newMapped);
-                if (ins === -1) windo.push(newMapped);
-                else windo.splice(ins, 0, newMapped);
-
-                // If >= 25% are null, Q3 will land in null region => no band
-                if (nullCount / x >= 0.25) {
-                    upper.push(null);
-                    lower.push(null);
-                    continue;
-                }
-
-                // quartiles from sorted window (length x)
-                // using "nearest rank"-style indices (simple + fast)
-                const q1Idx = Math.floor(0.25 * (x - 1));
-                const q3Idx = Math.floor(0.75 * (x - 1));
-                const q1 = windo[q1Idx];
-                const q3 = windo[q3Idx];
-
-                // if something went wrong and quartile hits sentinel, null out
-                upper.push(q3 !== NULL_SENTINEL ? q3 : null);
-                lower.push(q1 !== NULL_SENTINEL ? q1 : null);
-            }
-
-            upperBands.push(upper);
-            lowerBands.push(lower);
-        }
-
-        band.upper = upperBands;
-        band.lower = lowerBands;
-        band.name = x;
-        band.type = "iqr";
-        band.enabled = false;
-
-        this.bands.push(band);
+            return {
+                add: v => windo.splice(binarySearchInsertIdx(windo, key(v)), 0, key(v)),
+                remove: v => windo.splice(binarySearchInsertIdx(windo, key(v)), 1),
+                //too many DNFs for Q3 to be real
+                bounds: nullCount => nullCount / x >= 0.25 ? null
+                    : [windo[q3Idx], windo[q1Idx]].map(q => q !== Infinity ? q : null),
+            };
+        });
     }
 
+    //mean +- one standard deviation band over the last x solves, ignoring DNFs
     createSTD(x) {
-        const band = {};
+        x = Number(x);
+        this.createBand(x, "std", () => {
+            let n = 0, sum = 0, sumSq = 0;
+            return {
+                add: v => { if (v != null) { n++; sum += v; sumSq += v * v; } },
+                remove: v => { if (v != null) { n--; sum -= v; sumSq -= v * v; } },
+                //>= 5% DNFs
+                bounds: nullCount => {
+                    if (nullCount / x >= 0.05 || n <= 1) return null;
+                    const mean = sum / n;
+                    const std = Math.sqrt(Math.max(0, sumSq / n - mean * mean));
+                    return [mean + std, mean - std];
+                },
+            };
+        });
+    }
+
+    //add a band around a series, from a rolling window of the last x solves in each session
+    //makeWindow() gives the window's add(time), remove(time) and bounds(nullCount) -> [upper, lower] or null
+    createBand(x, type, makeWindow) {
         const upperBands = [];
         const lowerBands = [];
-
-        for (let j = 0; j < this.numSessions; j++) {
-            const solves = this.solves[j];
-            if (solves.length === 0) continue;
-
+        //always push, even for empty sessions, so band.upper[j] is session j
+        for (const solves of this.solves) {
+            const windo = makeWindow();
             const upper = [];
             const lower = [];
-
-            for (let i = 0; i < x; i++) {
-                upper.push(null);
-                lower.push(null);
-            }
-
-            // rolling stats over last x, ignoring nulls
             let nullCount = 0;
-            let n = 0;        // non-null count
-            let sum = 0;
-            let sumSq = 0;
-
-            // seed window [0..x-1]
-            for (let i = 0; i < x && i < solves.length; i++) {
-                const v = solves[i][1];
-                if (v == null) {
-                    nullCount++;
-                } else {
-                    n++;
-                    sum += v;
-                    sumSq += v * v;
+            for (let i = 0; i < solves.length; i++) {
+                //add newest, and remove oldest once the window is over size x
+                if (solves[i][1] == null) nullCount++;
+                windo.add(solves[i][1]);
+                if (i >= x) {
+                    if (solves[i - x][1] == null) nullCount--;
+                    windo.remove(solves[i - x][1]);
                 }
+                //not enough solves yet, or the window says there is no band here
+                const bounds = i < x - 1 ? null : windo.bounds(nullCount);
+                upper.push(bounds ? bounds[0] : null);
+                lower.push(bounds ? bounds[1] : null);
             }
-
-            for (let i = x; i < solves.length; i++) {
-                // slide: remove oldest
-                const oldV = solves[i - x][1];
-                if (oldV == null) {
-                    nullCount--;
-                } else {
-                    n--;
-                    sum -= oldV;
-                    sumSq -= oldV * oldV;
-                }
-
-                // add newest
-                const newV = solves[i][1];
-                if (newV == null) {
-                    nullCount++;
-                } else {
-                    n++;
-                    sum += newV;
-                    sumSq += newV * newV;
-                }
-
-                // Requirement: if <5% are null, compute std from non-null points
-                // Otherwise, don't show the band.
-                if (nullCount / x >= 0.05 || n <= 1) {
-                    upper.push(null);
-                    lower.push(null);
-                    continue;
-                }
-
-                const mean = sum / n;
-                const varPop = Math.max(0, (sumSq / n) - mean * mean);
-                const std = Math.sqrt(varPop);
-
-                upper.push(mean + std);
-                lower.push(mean - std);
-            }
-
             upperBands.push(upper);
             lowerBands.push(lower);
         }
-
-        band.upper = upperBands;
-        band.lower = lowerBands;
-        band.name = x;
-        band.type = "std";
-        band.enabled = false;
-
-        this.bands.push(band);
+        this.bands.push({ upper: upperBands, lower: lowerBands, name: x, type, enabled: false });
     }
-
 
     //Append a col for the pb of the previous col
     //lowkey you can provide an index of the col to calc pbs for but thats beside the point
     pbsOfLastCol(x, index = undefined) {
-        const pblstartTime = performance.now() 
-        
         //do this for each session
         for(let j = 0; j < this.numSessions; j++){
-            //if(this.sessions[j] == "move_times") continue;
             if(this.solves[j].length != 0) {
 
                 const seriesPBs = {};
@@ -783,17 +451,15 @@ class UserData {
                 //index of the last col in session
                 let idx = this.solves[j][this.solves[j].length-1].length - 1;
                 if(index != undefined) idx = index;
+                //add the pb col after it
+                const put = (row, val) => index == undefined ? row.push(val) : row.splice(idx + 1, 0, val);
 
                 //find the first valid index - 
                 //for a pb ao12, this would be 12
                 let firstValIdx = 0
                 for(let i = 0; i < this.solves[j].length; i++) {
                     firstValIdx += 1;
-                    if(index == undefined) {
-                        this.solves[j][i].push(this.solves[j][i][idx])
-                    } else {
-                        this.solves[j][i].splice(idx+1,0,this.solves[j][i][idx])
-                    }
+                    put(this.solves[j][i], this.solves[j][i][idx])
                     
                     const v = this.solves[j][i][idx];
                     if (v > 0) {
@@ -812,11 +478,7 @@ class UserData {
                     const prevPB = this.solves[j][i-1][idx+1]
                     //if the time is less than prev pb, update the rolling pb
                     if (solveTime && solveTime < prevPB) {
-                        if(index == undefined) {
-                            this.solves[j][i].push(solveTime)
-                        } else {
-                            this.solves[j][i].splice(idx + 1, 0, solveTime)
-                        }
+                        put(this.solves[j][i], solveTime)
                         bestSinceLastPB = Infinity
                         times.push(solveTime); //time
                         dates.push(this.solves[j][i][0]) //date
@@ -825,11 +487,7 @@ class UserData {
                     }
                     //otherwise, keep the current pb
                     else {
-                        if(index == undefined) {
-                            this.solves[j][i].push(prevPB)
-                        } else {
-                            this.solves[j][i].splice(idx + 1, 0, prevPB)
-                        }
+                        put(this.solves[j][i], prevPB)
                         if (solveTime && solveTime < bestSinceLastPB) bestSinceLastPB = solveTime;
 
                     }
@@ -865,12 +523,7 @@ class UserData {
 
             }
         }
-
-        const pblendTime = performance.now()
-        console.log(`   pb ao${x}: ${round(pblendTime - pblstartTime)} milliseconds`)
-        
     }
-
 
     normalizeSessionDates(solves) {
         const n = solves.length;
@@ -950,4 +603,3 @@ class UserData {
         }
 
 }
-

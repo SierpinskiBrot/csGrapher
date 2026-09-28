@@ -2,11 +2,8 @@
 <head>
     <title>csGrapher</title>
     <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, minimum-scale=1, user-scalable=0">
-    <link rel="stylesheet" type="text/css" href="lib/dygraph.css" />
     <link rel="stylesheet" type="text/css" href="lib/uPlot.min.css" />
     <link rel="stylesheet" type="text/css" href="style.css">
-    <script type="text/javascript" src="lib/dygraph.js"></script>
-    <script type="text/javascript" src="lib/dygraph-extra.js"></script>
     <script type="text/javascript" src="lib/uPlot.iife.min.js"></script>
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <script type="module" src="js/scripts.js"></script>
@@ -14,7 +11,6 @@
     <script type="module" src="js/histogramTab.js"></script>
     <script type="module" src="js/pbTab.js"></script>
     <script type="module" src="lib/gauss-jordan.js"></script>
-
 
 </head>
 <body id="body">
@@ -182,11 +178,84 @@
             </table>
         </div>
 
-
     </div>
     <div id="histogramContainer" style="display:none;flex-wrap:nowrap;">
         <div id="histLeftButtons">
-            <table class="formTable">
+            <table class="formTable tpsOnly" id="tpsMenu">
+                <tbody>
+                    <tr>
+                        <th colspan="3">
+                            <div style="display: flex;">
+                                <p style="flex-grow: 1;">TPS Graph Settings</p>
+                                <button class="helpButton" onclick="document.getElementById('tpsHintOverlay').style.display = 'flex';">?</button>
+                            </div>
+                        </th>
+                    </tr>
+                </tbody>
+                <tbody>
+                    <tr>
+                        <td>Width</td>
+                        <td><input type="number" min="0.01" max="50" placeholder="Width(%)" step="0.01" value="1" id="tpsBucketInput"></td>
+                        <td><button id="tpsBucketReset">Reset</button></td>
+                    </tr>
+                    <tr>
+                        <td>Smoothing</td>
+                        <td colspan="2"><input type="number" min="0" max="50" placeholder="Smoothing(%)" step="0.1" value="0" id="tpsSmoothing"></td>
+                    </tr>
+                    <tr>
+                        <td>Steps</td>
+                        <td colspan="2">
+                            <div class="radio">
+                                <input type="radio" id="tpsSelectSectioned" name="tpsSteps" checked>
+                                <label for="tpsSelectSectioned">Sectioned</label>
+                                <input type="radio" id="tpsSelectRaw" name="tpsSteps">
+                                <label for="tpsSelectRaw">Raw</label>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Last layer</td>
+                        <td colspan="2">
+                            <div class="radio">
+                                <input type="radio" id="tpsSelectSplit" name="tpsLL" checked>
+                                <label for="tpsSelectSplit">OLL+PLL</label>
+                                <input type="radio" id="tpsSelectMerged" name="tpsLL">
+                                <label for="tpsSelectMerged">Merged</label>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>X axis</td>
+                        <td colspan="2">
+                            <div class="radio">
+                                <input type="radio" id="tpsSelectPercent" name="tpsXAxis" checked>
+                                <label for="tpsSelectPercent">% Solved</label>
+                                <input type="radio" id="tpsSelectTime" name="tpsXAxis">
+                                <label for="tpsSelectTime">Time</label>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Remove worst</td>
+                        <td><input type="number" min="0" max="99" placeholder="Removed(%)" step="1" value="0" id="tpsWorstPct"></td>
+                        <td style="text-align: left;">%</td>
+                    </tr>
+                    <tr>
+                        <td>Compare</td>
+                        <td><button id="tpsCompareAdd">Add files</button></td>
+                        <td><button id="tpsCompareClear">Clear</button></td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" id="tpsCompareCell">
+                            <input type="file" id="tpsCompareFile" accept=".json" multiple>
+                            <p id="tpsCompareList"></p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <br class="tpsOnly">
+            <br class="tpsOnly">
+            <table class="formTable histOnly">
                 <tbody><tr><th colspan="3"><p>Settings</p></th></tr></tbody>
                 <tbody>
                     <tr>
@@ -212,8 +281,8 @@
                     </tr>
                 </tbody>
             </table>
-            <br>
-            <br>
+            <br class="histOnly">
+            <br class="histOnly">
             <table class="formTable">
                 <tbody><tr><th colspan="3"><p>Range Selector</p></th></tr></tbody>
                 <tbody>
@@ -234,9 +303,9 @@
                     </tr>
                 </tbody>
             </table>
-            <br>
-            <br>
-            <table class="formTable">
+            <br class="histOnly">
+            <br class="histOnly">
+            <table class="formTable histOnly">
                 <tbody>
                     <tr>
                         <th colspan="2">
@@ -289,9 +358,9 @@
                     </tr>
                 </tbody>
             </table>
-            <br>
-            <br>
-            <table class="formTable">
+            <br class="histOnly">
+            <br class="histOnly">
+            <table class="formTable histOnly">
                 <tbody>
                     <tr>
                         <th colspan="2">
@@ -340,10 +409,10 @@
         <table id="histDivTable">
             <tr height="40px;" class="secondaryToolbar">
                 <td>
-                    <button type="button" id="clickProbDistrib" class="pressed">
+                    <button type="button" id="clickProbDistrib" class="pressed histOnly">
                         <p>Probability Distribution</p>
                     </button>
-                    <button type="button" id="clickCumDistrib">
+                    <button type="button" id="clickCumDistrib" class="histOnly">
                         <p>Cumulative Distribution</p>
                     </button>
                 </td>
@@ -356,7 +425,7 @@
             
         </table>
         
-        <div id="histRightButtons">
+        <div id="histRightButtons" class="histOnly">
             <table class="formTable">
                 <tbody><tr><th colspan="3">
                     <div style="display: flex;">
@@ -381,9 +450,9 @@
                         <td><p id="skewAD">0.0</p></td>
                     </tr>
                     <tr>
-                        <td><button id="showHistBeta" class="seriesToggle">Beta</button></td>
-                        <td><p id="betaKS">0.0</p></td>
-                        <td><p id="betaAD">0.0</p></td>
+                        <td><button id="showHistExGauss" class="seriesToggle">Ex-Gauss</button></td>
+                        <td><p id="exGaussKS">0.0</p></td>
+                        <td><p id="exGaussAD">0.0</p></td>
                     </tr>
                     <tr>
                         <td><button id="showHistGamma" class="seriesToggle">Gamma</button></td>
@@ -396,13 +465,25 @@
                         <td><p id="logitAD">0.0</p></td>
                     </tr>
                     <tr>
-                        <td><button id="showHistLog" class="seriesToggle">Log</button></td>
+                        <td><button id="showHistLog" class="seriesToggle">Shifted Log</button></td>
                         <td><p id="logKS">0.0</p></td>
                         <td><p id="logAD">0.0</p></td>
                     </tr>
+                    <tr>
+                        <td><button id="showHistMetalog" class="seriesToggle">Metalog</button></td>
+                        <td><p id="metalogKS">0.0</p></td>
+                        <td><p id="metalogAD">0.0</p></td>
+                    </tr>
+                    <tr>
+                        <td colspan="3" id="metalogTermsCell">
+                            <label for="metalogTerms">Metalog terms</label>
+                            <input type="number" id="metalogTerms" min="2" max="16" step="1" value="9">
+                            <p id="metalogNote"></p>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
-            <br>
+            <br class="histOnly">
             <table class="formTable">
                 <tr>
                     <th colspan="2">Highlight Average</th>
@@ -416,6 +497,48 @@
                     <td colspan="2"><button class="seriesToggle" id="showHistMedian">Median</button></td>
                   
                 </tr>
+            </table>
+        </div>
+        <div id="tpsRightButtons" class="tpsOnly">
+            <table class="formTable">
+                <tbody><tr><th colspan="3"><p>TPS Stats</p></th></tr></tbody>
+                <tbody>
+                    <tr>
+                        <td><p style="text-align: center;">Section</p></td>
+                        <td><p style="text-align: center;">TPS</p></td>
+                        <td><p style="text-align: center;"># of Moves</p></td>
+                    </tr>
+                    <tr>
+                        <td><p style="text-align: center;">Cross</p></td>
+                        <td><p id="tpsMeanCross">-</p></td>
+                        <td><p id="tpsMovesCross">-</p></td>
+                    </tr>
+                    <tr>
+                        <td><p style="text-align: center;">F2L</p></td>
+                        <td><p id="tpsMeanF2L">-</p></td>
+                        <td><p id="tpsMovesF2L">-</p></td>
+                    </tr>
+                    <tr>
+                        <td><p style="text-align: center;">OLL</p></td>
+                        <td><p id="tpsMeanOLL">-</p></td>
+                        <td><p id="tpsMovesOLL">-</p></td>
+                    </tr>
+                    <tr>
+                        <td><p style="text-align: center;">PLL</p></td>
+                        <td><p id="tpsMeanPLL">-</p></td>
+                        <td><p id="tpsMovesPLL">-</p></td>
+                    </tr>
+                    <tr>
+                        <td><p style="text-align: center;">Full LL</p></td>
+                        <td><p id="tpsMeanLL">-</p></td>
+                        <td><p id="tpsMovesLL">-</p></td>
+                    </tr>
+                    <tr>
+                        <td><p style="text-align: center;">Overall</p></td>
+                        <td><p id="tpsMeanOverall">-</p></td>
+                        <td><p id="tpsMovesOverall">-</p></td>
+                    </tr>
+                </tbody>
             </table>
         </div>
     </div>
@@ -474,6 +597,14 @@
                 <tbody><tr><th>Predictions</th></tr></tbody>
                 <tbody>
                     <tr><td>
+                        <div class="radio">
+                            <input type="radio" id="pbRegLinear" name="pbRegType" value="linear" checked>
+                            <label for="pbRegLinear">Linear</label>
+                            <input type="radio" id="pbRegExp" name="pbRegType" value="exp">
+                            <label for="pbRegExp">Exponential</label>
+                        </div>
+                    </td></tr>
+                    <tr><td>
                         <div><p id="solveNumPrediction"></p><canvas width="500px" height="250px" class="statsRegressionCanvas" id="solveNumRegression"></canvas></div>
                     </td></tr>
 
@@ -487,17 +618,98 @@
                 </tbody>
             </table>
 
-            
-            
-            
         </div>
     </div>
-    <div id="activityContainer" style="display:none; flex-wrap:nowrap; justify-content: center;">
-        <div id="activityDiv" style="width: 80%">
-            <canvas id="activityCanvas" width="1000" height="500" style="width:100%"></canvas>
+    <div id="activityContainer" style="display:none; flex-wrap:nowrap">
+        <div id="activityLeftButtons">
+            <table class="formTable">
+                <tbody>
+                    <tr><th>View</th></tr>
+                    <tr><td>
+                        <div class="radio">
+                            <input type="radio" id="activityViewWeek" name="activityView" value="week" checked>
+                            <label for="activityViewWeek">Week</label>
+                            <input type="radio" id="activityViewCalendar" name="activityView" value="calendar">
+                            <label for="activityViewCalendar">Calendar</label>
+                        </div>
+                    </td></tr>
+                    <tr><th>Color Scale</th></tr>
+                    <tr><td>
+                        <div class="radio">
+                            <input type="radio" id="activityScaleLinear" name="activityScale" value="linear" checked>
+                            <label for="activityScaleLinear">Linear</label>
+                            <input type="radio" id="activityScaleLog" name="activityScale" value="log">
+                            <label for="activityScaleLog">Log</label>
+                        </div>
+                    </td></tr>
+                    <tr><th>Period</th></tr>
+                    <tr><td><select id="activityPeriod"><option value="all">All time</option></select></td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="activityDiv">
+            <canvas id="activityCanvas"></canvas>
+            <div id="activityTooltip"></div>
+        </div>
+        <div id="activityRightButtons">
+            <table class="formTable" id="activityStatsTable">
+                <tbody><tr><th colspan="2">Summary</th></tr></tbody>
+                <tbody id="activityStatsBody">
+                    <tr><td colspan="2">Waiting for file upload...</td></tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
+    <div id="tpsHintOverlay" class="hintOverlay">
+        <div class="hintContent">
+            <table>
+                <th colspan="2" style="height: 40px;">
+                    <p>TPS Graph Settings</p>
+                </th>
+                <tr>
+                    <td>TPS Graph</td>
+                    <td><p>The average turns per second at each point of a solve, over the CFOP solves picked by the range selector.</p>
+                        <p>Each point is the number of moves in that column divided by the time all of the solves spent in it.</p>
+                        <p>Each move is spread evenly over the time since the previous move, so pauses show up as a low TPS.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Width</td>
+                    <td><p>Column width, measured in % of the solve.</p></td>
+                </tr>
+                <tr>
+                    <td>Smoothing</td>
+                    <td><p>Averages each column with its neighbours, weighted by e^(-distance/smoothing) out to 3 times the smoothing, measured in % of the solve.</p>
+                        <p>0 turns smoothing off.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Steps</td>
+                    <td><p>Sectioned: each step (cross, F2L, OLL, PLL) of every solve is stretched to that step's share of the total time of the solves, so the steps line up.</p>
+                        <p>Raw: every move is placed at its time divided by the solve's time.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Last layer</td>
+                    <td><p>OLL and PLL as separate steps, or merged into one last layer step (for ZBLL and other last layer methods).</p></td>
+                </tr>
+                <tr>
+                    <td>X axis</td>
+                    <td><p>% of the solve, or time in seconds with every solve of a file stretched to that file's mean time.</p></td>
+                </tr>
+                <tr>
+                    <td>Remove worst</td>
+                    <td><p>The % of slowest solves left out.</p></td>
+                </tr>
+                <tr>
+                    <td>Compare</td>
+                    <td><p>Acubemy exports drawn on the same graph with the same settings, using all of their solves.</p></td>
+                </tr>
+            </table>
+            <button class="closeHint" onclick="document.getElementById('tpsHintOverlay').style.display = 'none';">X</button>
+        </div>
+    </div>
     <div id="fileHintOverlay" class="hintOverlay">
         <div class="hintContent">
             <img src="resources/cstimer-export-help.jpg" alt="Export instructions for csTimer">
@@ -533,6 +745,7 @@
                     <td>Offset</td>
                     <td><p>How far into the past the regression will begin as a multiple of the x-axis.</p>
                         <p>This affects the calculation of the regression, and can make it a better or worse fit.</p>
+                        <p>The Best offset button in a regression's settings (the &gt; button) sets the offset that gives that regression the highest R^2.</p>
                     </td>
                 </tr>
                 <tr>
@@ -545,9 +758,9 @@
                 <tr>
                     <td>Power Law</td>
                     <td>
-                        <p>Fits data to y = A * N^(-B) + C using gradient descent.</p>
-                        <p> Changing the number of iterations in the regression settings can make it better, but take longer to calculate.</p>
-                        <p>Will often overestimate the time of early solves, and may take a few seconds to compute.</p>
+                        <p>Fits data to y = A * N^(-B) + C by least squares, with B &gt; 0 and C &ge; 0 so times fall toward a floor that is not negative.</p>
+                        <p>For a fixed B, the best A and C can be solved exactly, so only B is searched for.</p>
+                        <p>Will often overestimate the time of early solves.</p>
                         <a href="https://en.wikipedia.org/wiki/Power_law_of_practice">Power law of practice</a>
                     </td>
                 </tr>
@@ -581,10 +794,11 @@
                 </tr>
                 <tr><td>Normal</td><td><a href="https://en.wikipedia.org/wiki/Normal_distribution">Normal / Gaussian distribution</a></td><td>Maximum Likelihood</td></tr>
                 <tr><td>Skew</td><td><a href="https://en.wikipedia.org/wiki/Skew_normal_distribution">Skew normal distribution</a></td><td>Method of Moments</td></tr>
-                <tr><td>Beta</td><td><a href="https://en.wikipedia.org/wiki/Beta_distribution">Beta distribution</a></td><td>Method of Moments</td></tr>
+                <tr><td>Ex-Gauss</td><td><a href="https://en.wikipedia.org/wiki/Exponentially_modified_Gaussian_distribution">Ex-Gaussian distribution</a> (normal + exponential)</td><td>Maximum Likelihood</td></tr>
                 <tr><td>Gamma</td><td><a href="https://en.wikipedia.org/wiki/Gamma_distribution">Gamma distribution</a></td><td>Maximum Likelihood</td></tr>
                 <tr><td>Logit</td><td><a href="https://en.wikipedia.org/wiki/Logit-normal_distribution">Logit-normal distribution</a></td><td>Maximum Likelihood</td></tr>
-                <tr><td>Log</td><td><a href="https://en.wikipedia.org/wiki/Log-normal_distribution">Log-normal distribution</a></td><td>Maximum Likelihood</td></tr>
+                <tr><td>Shifted Log</td><td><a href="https://en.wikipedia.org/wiki/Log-normal_distribution">Log-normal distribution</a>, shifted by a fitted minimum time</td><td>Maximum Likelihood</td></tr>
+                <tr><td>Metalog</td><td><a href="https://en.wikipedia.org/wiki/Metalog_distribution">Metalog distribution</a>, with the number of terms (2 to 16) set in the row under it</td><td>Least squares on the quantiles</td></tr>
                 <tr><td colspan="3"><b>KS: </b>Kolmogorov-Smirnov test for goodness of fit. </br>A lower number means a better fit</td></tr>
                 <tr><td colspan="3"><b>A^2: </b>Anderson-Darling test for goodness of fit. </br>A lower number means a better fit</td></tr>
             </table>
@@ -675,12 +889,7 @@
             Width:
             <input id="regressionWidthSelector" type="number" class="width-input" min="0" max="10">
         </label>
-        <div id="iterationsDiv" display="none">
-            <label>
-            Iterations:
-            <input style="width: -webkit-fill-available" type="number" min="1" max="999999" step="1" value="1000" id="powerLawIterations"></input>
-        </label>
-        </div>
+        <button id="regressionBestOffset" title="Set the offset that gives this regression the highest R^2">Best offset</button>
         <button id="regressionCloseSelector" class="close-settings" onclick="document.getElementById('regressionSettingsBox').style.display = 'none'">X</button>
     </div>
     <div id="allSeriesSettingsBox" class="settings-box">

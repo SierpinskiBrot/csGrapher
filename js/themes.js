@@ -1,5 +1,3 @@
-import "../lib/dygraph.js";
-
 export {themes};
 
 window.currentTheme = 'gold'
@@ -62,7 +60,7 @@ function applyTheme(theme) {
     for (let key in colors) {
         root.style.setProperty(key, colors[key]);
     }
-    window.h.updateOptions({color: themes[theme]['--color-primary']})
+    window.dispatchEvent(new Event("themechange"))
 }
 
 document.getElementById("themeGreen").addEventListener("click", function() {applyTheme("green")})

@@ -1,5 +1,6 @@
-export { makeArrayOfArrays, binarySearchInsertIdx, round, dhm, sleep, createButton, parseTime, nonlinearExponentialFit};
+import {themes} from "./themes.js"
 
+export { makeArrayOfArrays, binarySearchInsertIdx, dhm, sleep, createButton, parseTime};
 
 // Utility to make N arrays
 const makeArrayOfArrays = (n) => Array(n).fill().map(() => []);
@@ -14,14 +15,6 @@ function binarySearchInsertIdx(arr, val) {
     }
     return low;
 }
-
-
-//round a number to a certain amount of decimal places
-function round(num, decimalPlaces = 0) {
-    num = Math.round(num + "e" + decimalPlaces);
-    return Number(num + "e" + -decimalPlaces);
-}
-
 
 //Get the days, hours, mins, seconds from a time in ms
 //> 1 day returns days&hours, else > 1hr returns hours&mins, else > 1min returns mins&secs, else returns secs 
@@ -42,15 +35,15 @@ function dhm (ms) {
     } else {
         return sec + " Seconds";
     }
-    return days + " Days, " + hours + " Hours, " + minutes + " Mins";
 }
 
+//a histogram column width of about sd/6, rounded to a power of two (0.25, 0.5, 1, 2, ...)
+export const defaultColumnWidth = sd => Math.pow(2, Math.round(Math.log2(sd / 6)));
 
 //real sleep
 const sleep = function(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
-
 
 //Creates a button with the given labeltext, onclick function, and optional class parameter
 function createButton(labelText, onClick, className = "") {
@@ -61,7 +54,6 @@ function createButton(labelText, onClick, className = "") {
     btn.addEventListener("click", onClick);
     return btn;
 }
-
 
 /*
 Parsing a solve time from cstimer
@@ -81,136 +73,6 @@ function parseTime(t) {
         console.log("error parsing time:")
         console.log("t1 of " + t[0] + "does not correlate with a +2 or a dnf")
     }
-}
-
-
-/**
- * Quick log linear regression to get an initial guess for [A,B].
- * Assumes x[i], y[i]>0.
- */
-function linearInit(x, y) {
-    let n = x.length;
-    let Sx = 0, Slny = 0, Sxlny = 0, Sx2 = 0;
-    for (let i = 0; i < n; i++) {
-        Sx += x[i];
-        Slny += Math.log(y[i]);
-        Sxlny += x[i] * Math.log(y[i]);
-        Sx2 += x[i] * x[i];
-    }
-    let denom = n * Sx2 - Sx * Sx;
-    let B = (n * Sxlny - Sx * Slny) / denom;
-    let lnA = (Slny - B * Sx) / n;
-    return { A: Math.exp(lnA), B };
-}
-
-/**
- * Solve 2x2 linear system M*delta = v, where
- *   M = [[m00,m01],[m10,m11]] and v = [v0, v1].
- */
-function solve2x2(m00, m01, m10, m11, v0, v1) {
-    const det = m00 * m11 - m01 * m10;
-    if (Math.abs(det) < 1e-12) throw new Error("Singular matrix");
-    return [
-        (m11 * v0 - m01 * v1) / det,
-        (-m10 * v0 + m00 * v1) / det
-    ];
-}
-
-/**
- * Levenberg-Marquardt nonlinear least squares for y = A e^(B x).
- *
- * @param {number[]} x       array of independent variables
- * @param {number[]} y       array of dependent variables (y_i > 0)
- * @param {object}   [opts]  optional settings:
- *    maxIter (default=100),
- *    tol     (default=1e-8),
- *    lambda0 (default=1e-3)
- * @returns {{A:number,B:number}}   fitted parameters
- */
-
-function nonlinearExponentialFit(x, y, opts = {}) {
-    const n = x.length;
-    let { maxIter = 100, tol = 1e-8, lambda0 = 1e-3 } = opts;
-
-    // initial guess from log-linear fit
-    let { A, B } = linearInit(x, y);
-
-    let lambda = lambda0;
-    let prevSSR = Infinity;
-
-    for (let iter = 0; iter < maxIter; iter++) {
-        // build J^T J and J^T r
-        let JtJ00 = 0, JtJ01 = 0, JtJ11 = 0;
-        let Jtr0 = 0, Jtr1 = 0;
-        let SSR = 0;
-
-        for (let i = 0; i < n; i++) {
-            const xi = x[i];
-            const yi = y[i];
-            const Ei = Math.exp(B * xi);
-            const fi = A * Ei;           // model prediction
-            const ri = yi - fi;          // residual
-            SSR += ri * ri;
-
-            // partial derivatives: df/dA = Ei,  df/dB = A xi Ei
-            const dA = Ei;
-            const dB = A * xi * Ei;
-
-            // accumulate J^T J:
-            JtJ00 += dA * dA;
-            JtJ01 += dA * dB;
-            JtJ11 += dB * dB;
-
-            // accumulate J^T r:
-            Jtr0 += dA * ri;
-            Jtr1 += dB * ri;
-        }
-
-        // check convergence on SSR
-        if (Math.abs(prevSSR - SSR) < tol) break;
-        prevSSR = SSR;
-
-        // damped normal equations: (J^T J + lambda diag(J^T J)) delta = J^T r
-        const m00 = JtJ00 * (1 + lambda);
-        const m01 = JtJ01;
-        const m10 = JtJ01;
-        const m11 = JtJ11 * (1 + lambda);
-
-        let dA, dB;
-        try {
-            [dA, dB] = solve2x2(m00, m01, m10, m11, Jtr0, Jtr1);
-        } catch (e) {
-            break; // singular, give up
-        }
-
-        // trial step
-        const Anew = A + dA;
-        const Bnew = B + dB;
-
-        // compute new SSR
-        let SSRnew = 0;
-        for (let i = 0; i < n; i++) {
-            const fi = Anew * Math.exp(Bnew * x[i]);
-            const ri = y[i] - fi;
-            SSRnew += ri * ri;
-        }
-
-        if (SSRnew < SSR) {
-            // improvement: accept and decrease lambda
-            A = Anew; B = Bnew;
-            lambda *= 0.1;
-        } else {
-            // no improvement: increase lambda and retry
-            lambda *= 10;
-        }
-
-        // stop if parameter update is tiny
-        if (Math.hypot(dA, dB) < tol * (Math.hypot(A, B) + tol)) {
-            break;
-        }
-    }
-    console.log("a",A,"b",B)
-    return { A, B };
 }
 
 export function rowsToUPlotCols(rows, isDate, xAxisIsLog_) {
@@ -243,11 +105,65 @@ export function rowsToUPlotCols(rows, isDate, xAxisIsLog_) {
   return cols;
 }
 
-
-
 export let xAxisIsLog = false;
 export function setXAxisLog(isLog) { xAxisIsLog = isLog; }
 export let yAxisIsLog = false;
 export function setYAxisLog(isLog) { yAxisIsLog = isLog; }
 
+//faint lines for the axis grid and ticks of a uPlot graph
+export function gridLines() {
+    return { show: true, stroke: "rgba(0,0,0,0.2)", width: 1 };
+}
 
+// converts the legend of a uPlot graph into a simple tooltip
+export function legendAsTooltipPlugin({ className, style = { backgroundColor: themes[window.currentTheme]["--color-secondary-variant"], color: "black" } } = {}) {
+    let legendEl;
+
+    function init(u, opts) {
+        legendEl = u.root.querySelector(".u-legend");
+
+        legendEl.classList.remove("u-inline");
+        className && legendEl.classList.add(className);
+
+        uPlot.assign(legendEl.style, {
+            textAlign: "left",
+            pointerEvents: "none",
+            display: "none",
+            position: "absolute",
+            left: "10px",
+            top: "10px",
+            opacity: 0.9,
+            zIndex: 100,
+            boxShadow: "2px 2px 10px rgba(0,0,0,0.5)",
+            ...style
+        });
+
+        // hide series color markers
+        const idents = legendEl.querySelectorAll(".u-marker");
+
+        for (let i = 0; i < idents.length; i++)
+            idents[i].style.display = "none";
+
+        const overEl = u.over;
+        overEl.style.overflow = "visible";
+
+        // move legend into plot bounds
+        overEl.appendChild(legendEl);
+
+        // show/hide tooltip on enter/exit
+        overEl.addEventListener("mouseenter", () => {legendEl.style.display = null;});
+        overEl.addEventListener("mouseleave", () => {legendEl.style.display = "none";});
+    }
+
+    function update(u) {
+        const { left, top } = u.cursor;
+        legendEl.style.transform = "translate(" + left + "px, " + top + "px)";
+    }
+
+    return {
+        hooks: {
+            init: init,
+            setCursor: update,
+        }
+    };
+}

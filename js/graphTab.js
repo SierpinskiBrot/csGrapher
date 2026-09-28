@@ -1,9 +1,9 @@
 import { createButton } from "./utils.js";
 import {updatePBTable } from "./pbTab.js"
-import {themes} from "./themes.js"
 export {graphTabStartup};
-import { rowsToUPlotCols, xAxisIsLog, setXAxisLog, yAxisIsLog, setYAxisLog } from "./utils.js";
+import { rowsToUPlotCols, xAxisIsLog, setXAxisLog, yAxisIsLog, setYAxisLog, legendAsTooltipPlugin, gridLines } from "./utils.js";
 import { regressions, powerLawFit, logLogRegression, logarithmicRegression } from "./graphTabRegressions.js";
+import { scanMax } from "./probabilities.js";
 import {solve} from  "../lib/gauss-jordan.js";
 
 function getSize() {
@@ -81,15 +81,7 @@ presetGrayscale.onclick = () => {
 }
 
 function rgbToHex(r, g, b) {
-    return (
-        "#" +
-        [r, g, b]
-        .map((x) => {
-            const hex = x.toString(16);
-            return hex.length === 1 ? "0" + hex : hex;
-        })
-        .join("")
-    );
+    return "#" + [r, g, b].map(x => x.toString(16).padStart(2, "0")).join("");
 }
 
 allSeriesWidthSelector.addEventListener("change", (e) => {
@@ -102,8 +94,7 @@ allSeriesWidthSelector.addEventListener("change", (e) => {
 
 let regXMap = x => x;
 
-function makeRegXMap(sess) {
-    const offset = parseFloat(regressionOffset.value) || 0;
+function makeRegXMap(sess, offset = parseFloat(regressionOffset.value) || 0) {
     if (xAxisDataType === "Date") {
         let minT = Infinity, maxT = -Infinity;
         for (const s of window.userData.solves[sess]) {
@@ -122,7 +113,6 @@ function makeRegXMap(sess) {
     const shift = offset * s3[s3.length - 1][0];
     return x => x + shift;
 }
-
 
 function hexToRgba(hex, a = 0.15) {
     // accepts "#RRGGBB"
@@ -193,60 +183,30 @@ function applyBandsToPlot({ displayed, baseSeriesMeta, regSeriesMeta, addedFront
             displayed[i].push(lower[i]);
         }
 
-        // Add two hidden series to uPlot
+        // Add two hidden series to uPlot, and a band fill between them
         const upperIdx = seriesMeta.length;
-        seriesMeta.push({
-            label: `${band.type.toUpperCase()} ${targetLabel} (upper)`,
-            stroke: "transparent",
-            width: 0,
-            show: true,
-        });
-
-        const lowerIdx = seriesMeta.length;
-        seriesMeta.push({
-            label: `${band.type.toUpperCase()} ${targetLabel} (lower)`,
-            stroke: "transparent",
-            width: 0,
-            show: true,
-        });
-
-        // Add uPlot band fill between hidden upper/lower series
-        bandsOpt.push({
-            series: [upperIdx, lowerIdx],
-            fill: hexToRgba(seriesColor, 0.15),
-        });
+        for (const side of ["upper", "lower"]) {
+            seriesMeta.push({ label: `${band.type.toUpperCase()} ${targetLabel} (${side})`, stroke: "transparent", width: 0, show: true });
+        }
+        bandsOpt.push({ series: [upperIdx, upperIdx + 1], fill: hexToRgba(seriesColor, 0.15) });
     }
 
     return { seriesMeta, bandsOpt };
 }
 
 // IQR / STD band toggles (per-series)
-seriesToggleIqr.addEventListener("change", function () {
-    const seriesNumber = parseInt(seriesSettingsBox.name, 10);
-    const lbl = window.userData.labels[seriesNumber - 1]; 
-    const size = parseAvgSizeFromLabel(lbl);
-    if (!size) { this.checked = false; return; }
+const bandCheckboxes = [[seriesToggleIqr, "iqr"], [seriesToggleSTD, "std"]];
+for (const [checkbox, type] of bandCheckboxes) {
+    checkbox.addEventListener("change", function () {
+        const seriesNumber = parseInt(seriesSettingsBox.name, 10);
+        const size = parseAvgSizeFromLabel(window.userData.labels[seriesNumber - 1]);
+        const band = size && findBand(type, size);
+        if (!band) { this.checked = false; return; }
 
-    const band = findBand("iqr", size);
-    if (!band) { this.checked = false; return; }
-
-    band.enabled = this.checked;
-    buildMainPlot();
-});
-
-seriesToggleSTD.addEventListener("change", function () {
-    const seriesNumber = parseInt(seriesSettingsBox.name, 10);
-    const lbl = window.userData.labels[seriesNumber - 1];
-    const size = parseAvgSizeFromLabel(lbl);
-    if (!size) { this.checked = false; return; }
-
-    const band = findBand("std", size);
-    if (!band) { this.checked = false; return; }
-
-    band.enabled = this.checked;
-    buildMainPlot();
-});
-
+        band.enabled = this.checked;
+        buildMainPlot();
+    });
+}
 
 function buildMainPlot() {
     if (!window.userData) return; // No data loaded yet
@@ -266,7 +226,7 @@ function buildMainPlot() {
     }
 
     // clone into displayedRows so we can append extra columns
-    const displayed = rows.map(r => r.slice());
+    let displayed = rows.map(r => r.slice());
     let slowestSolve = 0
     for(let i = 0; i < displayed.length; i++) {
         if(displayed[i][1] > slowestSolve) slowestSolve = displayed[i][1]
@@ -295,11 +255,14 @@ function buildMainPlot() {
             displayed[displayed.length - 1][0] = xVal; //x is always col 0
             addedBack++;
         }
-        //Prepend one offset point (x value + null row)
+        //Prepend one offset point (x value + null row), each call going before the previous one
+        //they are collected and prepended all at once below, since unshifting one at a time is quadratic
+        const frontXs = [], frontRows = [];
         const unshiftPoint = (xVal) => {
-            xs.unshift(xVal)
-            displayed.unshift(new Array(nSeries).fill(null))
-            displayed[0][0] = xVal
+            frontXs.push(xVal)
+            const row = new Array(nSeries).fill(null)
+            row[0] = xVal
+            frontRows.push(row)
             addedFront++;
         }
 
@@ -354,10 +317,12 @@ function buildMainPlot() {
             const dtFwd = (endMs - maxT) / steps;
             if (dtFwd > 0) {
                 for (let i = 1; i <= steps; i++) { pushPoint(new Date(maxT + dtFwd * i));}
-            } 
-             
-        } 
+            }
 
+        }
+
+        xs = frontXs.reverse().concat(xs)
+        displayed = frontRows.reverse().concat(displayed)
     }
 
     // for each active regression, compute and append its values
@@ -367,7 +332,6 @@ function buildMainPlot() {
         const preds = reg.compute(xForCompute);
         preds.forEach((yhat, i) => displayed[i].push(Number.isFinite(yhat) && yhat < 2 * slowestSolve ? yhat : null));
     });
-
 
     const baseSeries  = buildSeriesMeta();
     const regSeries  = regressions
@@ -392,7 +356,6 @@ function buildMainPlot() {
     // convert to uPlot columns and re-create the plot
     const dataCols = rowsToUPlotCols(displayed, (xAxisDataType == "Date"), xAxisIsLog);
 
-
     if (window.u) window.u.destroy();            // tear-down old instance
 
     
@@ -413,32 +376,7 @@ function buildMainPlot() {
                 log: yAxisIsLog ? 10 : null
             }
         },
-        axes  : [
-            { label: [xAxisDataType],
-                grid: {
-                            show: true,
-                            stroke: "rgba(0,0,0,0.2)",
-                            width: 1,
-                        },
-                ticks: {
-                            show: true,
-                            stroke: "rgba(0,0,0,0.2)",
-                            width: 1,
-                        }
-            },
-            { label: "Time (s)",
-                grid: {
-                            show: true,
-                            stroke: "rgba(0,0,0,0.2)",
-                            width: 1,
-                        },
-                ticks: {
-                            show: true,
-                            stroke: "rgba(0,0,0,0.2)",
-                            width: 1,
-                        }
-            }
-        ],
+        axes: [[xAxisDataType], "Time (s)"].map(label => ({ label, grid: gridLines(), ticks: gridLines() })),
         series: seriesMeta,
         bands: bandsOpt,
         legend: { show: true },
@@ -490,7 +428,6 @@ window.residualsGraph = function (T) {
 
     const x = [];
     const resid = [];
-
 
     // subtract regression from all visible non-regression series
     for (let s = 1; s < regColIdx; s++) {
@@ -582,39 +519,23 @@ function createAllSeriesRows() {
     }
 }
 
+//a button that shows/hides series number s (1-based, 0 is the x-axis), with a shadow in the series' color
+function createSeriesToggle(label, s) {
+    const btn = createButton(label, (e) => {
+        const currentVisibility = window.userData.visibilities[s - 1];
+        window.userData.visibilities[s - 1] = !currentVisibility;
+        window.u.setSeries(s, { show: !currentVisibility });
+        e.target.closest('button').classList.toggle('pressed');
+    }, "seriesToggle")
+    btn.style = "box-shadow: 2px 2px 3px 3px" + window.userData.colors[s - 1]
+    if (!window.userData.visibilities[s - 1]) btn.classList.toggle('pressed')
+    return btn
+}
+
 function createSeriesRow(i) {
-    //create 1st toggle button (aoX/moX/Single)
-    const newButton1 = createButton(window.userData.labels[i], (e) => {
-        const currentVisibility = window.userData.visibilities[i - 1];
-        window.userData.visibilities[i - 1] = !currentVisibility;
-        window.u.setSeries(i, { show: !currentVisibility });
-        const tgt = e.target.closest('button');
-        tgt.classList.toggle('pressed');
-    }, "seriesToggle")
-    
-    //colorful shadow
-    const color1 = window.userData.colors[i - 1];
-    newButton1.style = "box-shadow: 2px 2px 3px 3px" + color1
-
-    //check if clicked or unclicked
-    if (!window.userData.visibilities[i - 1]) newButton1.classList.toggle('pressed')
-
-    //create 2nd toggle button (PB)
-    const newButton2 = createButton("PB", (e) => {
-        const currentVisibility = window.userData.visibilities[i];
-        window.userData.visibilities[i] = !currentVisibility;
-        window.u.setSeries(i+1, { show: !currentVisibility });
-        const tgt = e.target.closest('button');
-        tgt.classList.toggle('pressed');
-    }, "seriesToggle")
-
-    //colorful shadow
-    const color2 = window.userData.colors[i];
-    newButton2.style = "box-shadow: 2px 2px 3px 3px" + color2
-
-    //check if clicked or unclicked
-    if (!window.userData.visibilities[i]) newButton2.classList.toggle('pressed')
-
+    //toggle buttons for the aoX/moX/Single series and its PB series
+    const newButton1 = createSeriesToggle(window.userData.labels[i], i)
+    const newButton2 = createSeriesToggle("PB", i + 1)
 
     //create the settings button
     const seriesSettings = createButton(">", (e) => {
@@ -637,29 +558,14 @@ function createSeriesRow(i) {
         //set the value of the width selector the the width of the series
         seriesWidthSelector.value = window.userData.widths[i - 1];
 
-        // --- Band checkbox states for this series ---
-        seriesToggleIqr.disabled = true;
-        seriesToggleSTD.disabled = true;
-        seriesToggleIqr.checked = false;
-        seriesToggleSTD.checked = false;
-
-        const lbl = window.userData.labels[i]; // this row's main series (e.g. "ao5")
-        const size = parseAvgSizeFromLabel(lbl);
-
-        if (size) {
-            const iqrBand = findBand("iqr", size);
-            if (iqrBand) {
-                seriesToggleIqr.disabled = false;
-                seriesToggleIqr.checked = !!iqrBand.enabled;
-            }
-
-            const stdBand = findBand("std", size);
-            if (stdBand) {
-                seriesToggleSTD.disabled = false;
-                seriesToggleSTD.checked = !!stdBand.enabled;
-            }
+        // --- Band checkbox states for this row's main series (e.g. "ao5") ---
+        const size = parseAvgSizeFromLabel(window.userData.labels[i]);
+        for (const [checkbox, type] of bandCheckboxes) {
+            const band = size && findBand(type, size);
+            checkbox.disabled = !band;
+            checkbox.checked = !!band?.enabled;
         }
-        
+                
     }, "seriesSettings")
 
     //create the button for the pbs tab
@@ -680,16 +586,12 @@ function createSeriesRow(i) {
 
     if(window.userData.currentPbSeries == window.userData.labels[i+1]) {pbSeriesButton.classList.toggle('pressed')}
 
-    const cell1 = document.createElement("td")
-    cell1.appendChild(newButton1)
-    const cell2 = document.createElement("td")
-    cell2.appendChild(newButton2)
-    const cell3 = document.createElement("td")
-    cell3.appendChild(seriesSettings)
     const newRow = document.createElement("tr")
-    newRow.appendChild(cell1)
-    newRow.appendChild(cell2)
-    newRow.appendChild(cell3)
+    for (const btn of [newButton1, newButton2, seriesSettings]) {
+        const cell = document.createElement("td")
+        cell.appendChild(btn)
+        newRow.appendChild(cell)
+    }
     return [newRow, pbSeriesButton]
 }
 
@@ -765,10 +667,8 @@ allSeriesSettings.addEventListener("click", (e) => {
     allSeriesSettingsBox.style.left = e.pageX + 10 + "px"
 })
 
-
 //Update the graph
 window.updateGraph = function() {
-    console.log("window.updateGraph called")
     window.selectedSess = document.getElementById("title-dropdown").value;
     buildMainPlot();
 };
@@ -776,18 +676,10 @@ window.updateGraph = function() {
 //#region Handle the buttons on the right of the graph screen
 //Handle swapping between Date and Solve # on the x-axis
 
+//refit every active regression, e.g. after the x-axis or offset changes
 function rebuildRegressions() {
-    if(activeRegs.powerLaw) {
-        activeRegs.powerLaw = false;
-        powerLawToggle.click()
-    }
-    if(activeRegs.logLog) {
-        activeRegs.logLog = false;
-        logLogToggle.click()
-    }
-    if(activeRegs.logarithmic) {
-        activeRegs.logarithmic = false;
-        logarithmicToggle.click()
+    for (const [id, { toggle }] of Object.entries(regressionControls)) {
+        if (activeRegs[id]) { activeRegs[id] = false; toggle.click(); }
     }
 }
 
@@ -799,9 +691,17 @@ xSelectLog.onclick    = () => { if (!xAxisIsLog)  { setXAxisLog(true);   buildMa
 ySelectLinear.onclick = () => { if ( yAxisIsLog)  { setYAxisLog(false);  buildMainPlot(); } };
 ySelectLog.onclick    = () => { if (!yAxisIsLog)  { setYAxisLog(true);   buildMainPlot(); } };
 
-const activeRegs = {powerLaw: false, logLog: false, logarithmic: false, linear: false};
+const activeRegs = {powerLaw: false, logLog: false, logarithmic: false};
 
-function getRegressionXYForSession(sess) {
+//the buttons, fit and R^2 display of each regression
+const regressionControls = {
+    powerLaw:    { name: "Power-Law",   toggle: powerLawToggle,    settings: powerLawSettings, fit: powerLawFit,           r2: powerLawR2 },
+    logLog:      { name: "Log-Log",     toggle: logLogToggle,      settings: logLogSettings,   fit: logLogRegression,      r2: loglogR2 },
+    logarithmic: { name: "Logarithmic", toggle: logarithmicToggle, settings: logSettings,      fit: logarithmicRegression, r2: logarithmicR2 },
+};
+
+//offset defaults to the value in the offset input
+function getRegressionXYForSession(sess, offset) {
     const solves = window.userData.solves[sess];
 
     let xRaw;
@@ -809,7 +709,7 @@ function getRegressionXYForSession(sess) {
     else if (xAxisDataType === "Solve #") xRaw = window.userData.solves2[sess].map(s => s[0]);
     else                                  xRaw = window.userData.solves3[sess].map(s => s[0]);
 
-    regXMap = makeRegXMap(sess);
+    regXMap = makeRegXMap(sess, offset);
 
     const x = [];
     const y = [];
@@ -829,86 +729,58 @@ function getRegressionXYForSession(sess) {
     return { x, y };
 }
 
-powerLawToggle.onclick = () => {
-    if (!window.userData) return alert("Please upload a file first");
-    activeRegs.powerLaw = !activeRegs.powerLaw;
-
-    if (activeRegs.powerLaw) {
-        powerLawToggle.classList.add("pressed");
-        const iters = parseInt(powerLawIterations.value, 10);
-
-        const { x, y } = getRegressionXYForSession(window.selectedSess);
-        powerLawFit(y, x, { iterations: iters });
-
-    } else {
-        powerLawToggle.classList.remove("pressed");
-    }
-
-    buildMainPlot();
-};
-
-powerLawIterations.onchange = () => {
-    if(activeRegs.powerLaw) {
-        activeRegs.powerLaw = false;
-        powerLawToggle.click()
-    }
+//each regression's toggle button fits it (showing its R^2) when turned on
+for (const [id, { toggle, fit, r2 }] of Object.entries(regressionControls)) {
+    toggle.onclick = () => {
+        if (!window.userData) return alert("Please upload a file first");
+        activeRegs[id] = !activeRegs[id];
+        toggle.classList.toggle("pressed", activeRegs[id]);
+        if (activeRegs[id]) {
+            const { x, y } = getRegressionXYForSession(window.selectedSess);
+            r2.innerText = fit(y, x).r2.toFixed(3);
+        }
+        buildMainPlot();
+    };
 }
 
-logLogToggle.onclick = () => {
+//find the offset in [0, 2] that gives a regression the highest R^2, then apply it and show that regression
+function findBestOffset(id) {
     if (!window.userData) return alert("Please upload a file first");
-    activeRegs.logLog = !activeRegs.logLog;
+    const { fit, toggle } = regressionControls[id];
+    const sess = window.selectedSess;
 
-    if (activeRegs.logLog) {
-        logLogToggle.classList.add("pressed");
+    //search on an evenly spaced sample of at most 5000 solves so large sessions stay quick;
+    //the best offset barely changes (R^2 within ~0.0002 of searching all the solves)
+    const r2At = (offset) => {
+        const { x, y } = getRegressionXYForSession(sess, offset);
+        const step = Math.max(1, Math.ceil(x.length / 5000));
+        const xs = [], ys = [];
+        for (let i = 0; i < x.length; i += step) { xs.push(x[i]); ys.push(y[i]); }
+        try { return fit(ys, xs).r2; } catch { return -Infinity; }
+    };
 
-        const { x, y } = getRegressionXYForSession(window.selectedSess);
-        logLogRegression(y, x);
+    //R^2 rises to a single peak that can sit anywhere from about 0.001 to 2,
+    //so search the offset on a log scale, and also try no offset at all
+    let best = Math.exp(scanMax(t => r2At(Math.exp(t)), Math.log(1e-4), Math.log(2), 24, 20));
+    if (r2At(0) >= r2At(best)) best = 0;
 
-    } else {
-        logLogToggle.classList.remove("pressed");
-    }
+    //apply it: every active regression is refit with the new offset, and this one is turned on
+    regressionOffset.value = best.toFixed(3);
+    rebuildRegressions();
+    if (!activeRegs[id]) toggle.click();
+    else buildMainPlot();
+}
 
-    buildMainPlot();
-};
+regressionBestOffset.addEventListener("click", () => findBestOffset(regressionSettingsBox.name));
 
-logarithmicToggle.onclick = () => {
-    if (!window.userData) return alert("Please upload a file first");
-    activeRegs.logarithmic = !activeRegs.logarithmic;
-
-    if (activeRegs.logarithmic) {
-        logarithmicToggle.classList.add("pressed");
-
-        const { x, y } = getRegressionXYForSession(window.selectedSess);
-        logarithmicRegression(y, x);
-
-    } else {
-        logarithmicToggle.classList.remove("pressed");
-    }
-
-    buildMainPlot();
-};
-
-
+//turn every regression off
 export function resetRegressions() {
-    //reset the regressions
-    activeRegs.powerLaw = false;
-    activeRegs.logLog = false;
-    activeRegs.logarithmic = false;
-    activeRegs.linear = false;
-
-    //remove the pressed class from all buttons
-    powerLawToggle.classList.remove("pressed");
-    logLogToggle.classList.remove("pressed");
-    logarithmicToggle.classList.remove("pressed");
-
-    //reset the r2
-    powerLawR2.innerText = "N/A";
-    loglogR2.innerText = "N/A";
-    logarithmicR2.innerText = "N/A";
-
+    for (const [id, { toggle, r2 }] of Object.entries(regressionControls)) {
+        activeRegs[id] = false;
+        toggle.classList.remove("pressed");
+        r2.innerText = "N/A";
+    }
 }
-
-
 
 //#region handle series settings box
 //the color selector
@@ -925,7 +797,6 @@ seriesColorSelector.addEventListener("change", function () {
     //update the color of the series toggle buttons shadow
     const toggleButtons = document.getElementsByClassName("seriesToggle")
     for (let i = 1; i <= 2; i++) {
-        toggleButtons[seriesNumber - i].style = "box-shadow: 2px 2px 3px 3px " + window.userData.colors[seriesNumber - i]
         toggleButtons[seriesNumber - i].style = "box-shadow: 2px 2px 3px 3px " + window.userData.colors[seriesNumber - i]
     }
 })
@@ -962,6 +833,8 @@ function graphTabStartup() {
     xSelectSolve.checked = true; xAxisDataType = "Solve #";
     xSelectLinear.checked = true; setXAxisLog(false);
     ySelectLinear.checked = true; setYAxisLog(false);
+    //regressions were fit to the previous file (and possibly another x-axis), so turn them off
+    resetRegressions();
     //Make sure its empty
     graphdiv.replaceChildren();
 
@@ -971,65 +844,9 @@ function graphTabStartup() {
     createAllSeriesRows();
 }
 
-// converts the legend into a simple tooltip
-function legendAsTooltipPlugin({ className, style = { backgroundColor: themes[window.currentTheme]["--color-secondary-variant"], color: "black" } } = {}) {
-    let legendEl;
-
-    function init(u, opts) {
-        legendEl = u.root.querySelector(".u-legend");
-
-        legendEl.classList.remove("u-inline");
-        className && legendEl.classList.add(className);
-
-        uPlot.assign(legendEl.style, {
-            textAlign: "left",
-            pointerEvents: "none",
-            display: "none",
-            position: "absolute",
-            left: "10px",
-            top: "10px",
-            opacity: 0.9,
-            zIndex: 100,
-            boxShadow: "2px 2px 10px rgba(0,0,0,0.5)",
-            ...style
-        });
-
-        // hide series color markers
-        const idents = legendEl.querySelectorAll(".u-marker");
-
-        for (let i = 0; i < idents.length; i++)
-            idents[i].style.display = "none";
-
-        const overEl = u.over;
-        overEl.style.overflow = "visible";
-
-        // move legend into plot bounds
-        overEl.appendChild(legendEl);
-
-        // show/hide tooltip on enter/exit
-        overEl.addEventListener("mouseenter", () => {legendEl.style.display = null;});
-        overEl.addEventListener("mouseleave", () => {legendEl.style.display = "none";});
-
-        // let tooltip exit plot
-    //	overEl.style.overflow = "visible";
-    }
-
-    function update(u) {
-        const { left, top } = u.cursor;
-        legendEl.style.transform = "translate(" + left + "px, " + top + "px)";
-    }
-
-    return {
-        hooks: {
-            init: init,
-            setCursor: update,
-        }
-    };
+for (const [id, { name, settings }] of Object.entries(regressionControls)) {
+    settings.addEventListener("click", (e) => openRegressionSettings(e, name, id))
 }
-
-powerLawSettings.addEventListener("click", (e) => { openRegressionSettings(e, "Power-Law", "powerLaw")})
-logLogSettings.addEventListener("click", (e) => {   openRegressionSettings(e, "Log-Log","logLog")})
-logSettings.addEventListener("click", (e) => {      openRegressionSettings(e, "Logarithmic","logarithmic")})
 
 function openRegressionSettings(e, name, id) {
     //make the settings box visible and move it to the cursor
@@ -1041,15 +858,10 @@ function openRegressionSettings(e, name, id) {
     //use the name attribute to know which series is being edited
     regressionSettingsBox.name = id
 
-    //set the value of the color selector to the color of the regression
-    regressionColorSelector.value = regressions.find(r => r.id === id).color;
-
-    //set the value of the width selector the the width of the series
-    regressionWidthSelector.value = regressions.find(r => r.id === id).width;
-
-    //if dealing with the power law series, show iterations
-    if(id == "powerLaw") { iterationsDiv.style.display = "flex" } 
-    else { iterationsDiv.style.display = "none" }
+    //show the regression's color and width
+    const reg = regressions.find(r => r.id === id);
+    regressionColorSelector.value = reg.color;
+    regressionWidthSelector.value = reg.width;
 }
 
 regressionColorSelector.addEventListener("change", function () {
@@ -1071,60 +883,3 @@ regressionWidthSelector.addEventListener("change", function () {
 
 regressionProjection.onchange = () => {buildMainPlot();}
 regressionOffset.onchange = () => {rebuildRegressions();buildMainPlot(); }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

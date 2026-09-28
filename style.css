@@ -31,7 +31,15 @@ html, body {
     padding: 0;
     margin: 0;
     row-gap: 0;
-    grid-template-rows: min-content min-content auto;
+    grid-template-rows: min-content min-content minmax(0, 1fr);
+}
+#graphContainer, #histogramContainer, #activityContainer {
+    min-height: 0;
+    overflow: hidden;
+}
+#statsContainer {
+    min-height: 0;
+    overflow-y: auto;
 }
 
 body > div {
@@ -96,7 +104,6 @@ div.toolbar > button.pressed, .secondaryToolbar button.pressed {
     border: var(--color-primary-variant) inset thick;
 }
 
-
 h1, p, a {
     margin: 0px;
 }
@@ -140,20 +147,6 @@ div.spacer {
 }
 #githubLink > a {
     color: var(--on-primary) !important;
-}
-
-
-.toggleButtonRow {
-    display: flex;
-    flex-wrap: wrap;
-    width: 100%;
-}
-.toggleButtonRow > button {
-    flex-grow: 1;
-    display: flex;
-    align-content: center;
-    align-items: center;
-    justify-content: center;
 }
 
 button.seriesToggle {
@@ -206,6 +199,13 @@ button.seriesToggle.pressed {
     border-spacing: 0;
     border: 3px solid var(--on-background);
     border-top: none;
+    table-layout: fixed;
+}
+#histDivTable > tbody > tr:last-child {
+    height: 100%;
+}
+#histDivTable .secondaryToolbar > td {
+    height: 40px;
 }
 
 #graphdiv {
@@ -222,7 +222,13 @@ button.seriesToggle.pressed {
 #histogramDiv {
     background: var(--color-surface);
     padding: 0;
-    overflow:hidden
+    overflow:hidden;
+    position: relative;
+}
+#histogramDiv > div {
+    position: absolute !important;
+    top: 0;
+    left: 0;
 }
 
 #graphLeftButtons, #histLeftButtons {
@@ -234,17 +240,80 @@ button.seriesToggle.pressed {
     width: 15%;
     overflow-y: auto
 }
-#graphRightButtons, #histRightButtons {
+#graphRightButtons, #histRightButtons, #tpsRightButtons {
     width: 20%;
-    min-width: min-content
+    min-width: min-content;
+    overflow-y: auto
 }
 #statsRightButtons {
     width: 25%;
 }
-#legendDiv {
-    width: 0%;
+table.formTable > tbody > tr > td#metalogTermsCell {
+    text-align: center;
 }
-
+.formTable #metalogTerms {
+    width: 4em;
+    margin-left: 4px;
+}
+#histogramContainer.tpsMode .histOnly, #histogramContainer:not(.tpsMode) .tpsOnly {
+    display: none;
+}
+table.formTable > tbody > tr > td#tpsCompareCell {
+    text-align: center;
+}
+#tpsCompareFile {
+    display: none;
+}
+#tpsCompareList {
+    margin: 2px 0 0 0;
+    font-size: small;
+}
+#metalogNote {
+    margin: 2px 0 0 0;
+    font-size: small;
+}
+#metalogNote:empty {
+    display: none;
+}
+#activityLeftButtons {
+    width: 15%;
+    min-width: min-content;
+    overflow-y: auto
+}
+#activityRightButtons {
+    width: 20%;
+    min-width: 14em;
+    overflow-y: auto
+}
+#activityDiv {
+    flex: 1;
+    min-width: 0;
+    position: relative;
+    margin: 0 8px;
+}
+#activityCanvas {
+    display: block;
+    width: 100%;
+}
+#activityTooltip {
+    display: none;
+    position: absolute;
+    pointer-events: none;
+    white-space: nowrap;
+    padding: 4px 8px;
+    background: var(--color-surface-odd);
+    color: var(--on-surface);
+    border: solid thin var(--on-background);
+    box-shadow: var(--on-surface) 2px 2px;
+    font-size: 14px;
+}
+#activityStatsTable > tbody > tr > td:first-child {
+    text-align: left;
+    font-weight: bold;
+}
+#activityStatsTable small {
+    font-weight: normal;
+}
 
 select#title-dropdown {
     background: var(--color-primary-variant);
@@ -259,12 +328,6 @@ select#title-dropdown {
 select#title-dropdown:hover {
     box-shadow: var(--on-surface) 3px 3px;
 }
-
-
-
-
-
-
 
 .radio {
     display: inline-flex;
@@ -314,13 +377,6 @@ select#title-dropdown:hover {
     padding-left: 4px;
     color: var(--on-secondary)
 }
-
-.dygraph-label {
-    font-weight: bold;
-    font-size: larger;
-}
-
-
 
 .hintOverlay {
     position: fixed;
@@ -398,7 +454,6 @@ div.hintContent .hintWarning {
     cursor: pointer;
 }
 
-
 .formTable, #predictionsTable, #pbInfoTable {
     width: 100%;
     border-spacing: 0px;
@@ -450,9 +505,6 @@ display: none;
     padding: 1px;
 }
 
-
-
-
 #pbStats {
     border-spacing: 0px;
     border: solid thin var(--on-background);
@@ -480,7 +532,6 @@ display: none;
     text-align: center;
 }
 
-
 .helpButton {
     background: var(--on-surface);
     color: var(--color-surface);
@@ -495,8 +546,6 @@ display: none;
     border-style: inset;
 }
 
-
-
 .animationProgressBar {
     height: 4px;
     background-color: var(--color-surface);
@@ -510,6 +559,3 @@ display: none;
 .R2val {
     padding-right: 4px;
 }
-
-
-

@@ -1,203 +1,317 @@
 import { dhm } from "./utils.js"
 import { themes } from "./themes.js"
+import { tCrit68, olsThroughPoint, scanMax } from "./probabilities.js"
 export { updatePBTable, pbTabStartup }
+
+//which session/series the prediction graphs are showing, so the radio can redraw them
+let shownSess = 0;
+let shownSeries = 0;
+
+//redraw the predictions when the regression type radio changes
+document.querySelectorAll('input[name="pbRegType"]').forEach(radio => {
+    radio.addEventListener("change", () => {
+        if (window.userData) drawPBPredictionGraphs(shownSess, shownSeries);
+    });
+});
+
+function fmtSeconds(v) {
+    return Number.isFinite(v) ? v.toFixed(3) + "s" : "N/A";
+}
+
+function fmtDate(d) {
+    return d.getDate() + "/" + (d.getMonth() + 1) + "/" + d.getFullYear(); //month is 0-indexed
+}
 
 //create the list for stats tab
 function updatePBTable(sess, series) {
-
-    //calcRegressionCoeffs(sess, series)
-    drawPBPredictionGraphs(sess, series)
-    const seriesStats = window.userData.pbInfo[sess][series]
-    document.getElementById("bestSince").innerText = `The best time since your last PB was ${seriesStats.bestSinceLastPB.toFixed(3)}s.
-                                                        The mean time since your last PB is ${seriesStats.meanSinceLastPB.toFixed(3)}s,
-                                                        with a standard deviation of ${seriesStats.stdSinceLastPB.toFixed(3)}s.`
-    //document.getElementById("meanSince").innerText = `The mean time since your last PB is ${seriesStats.meanSinceLastPB.toFixed(3)}s`
-    //document.getElementById("stdSince").innerText = `The standard deviation since your last PB is ${seriesStats.stdSinceLastPB.toFixed(3)}s`
-    const pbStatsBody = document.getElementById("pbStatsBody")
+    const seriesStats = window.userData.pbInfo[sess]?.[series];
+    const pbStatsBody = document.getElementById("pbStatsBody");
     pbStatsBody.replaceChildren();
 
-    for (let i = seriesStats.times.length - 1; i >= 0; i--) {
-        let newRow = document.createElement("tr");
+    drawPBPredictionGraphs(sess, series);
 
-        //PB # column
-        let pbNumCol = document.createElement("td")
-        pbNumCol.innerHTML = i+1
+    if (!seriesStats || seriesStats.times.length === 0) {
+        document.getElementById("bestSince").innerText = "No PBs in this series yet.";
+        return;
+    }
 
-        //Date column
-        let dateCol = document.createElement("td");
-        let date = seriesStats.dates[i]
-        let dateStr = date.getDate() + "/" + (date.getMonth() + 1) + "/" + date.getFullYear(); //month is 0-indexed for some reason
-        dateCol.innerHTML = dateStr;
+    document.getElementById("bestSince").innerText =
+        `The best time since your last PB was ${fmtSeconds(seriesStats.bestSinceLastPB)}.
+        The mean time since your last PB is ${fmtSeconds(seriesStats.meanSinceLastPB)},
+        with a standard deviation of ${fmtSeconds(seriesStats.stdSinceLastPB)}.`
 
-        //PB For Time column
-        let date2 = new Date();
-        let dateDiff = 0;
-        let pbForTimeCol = document.createElement("td")
-        if (i == seriesStats.dates.length - 1) { //most recent record
-            dateDiff = Math.abs(date2 - date);
-            pbForTimeCol.innerHTML = dhm(dateDiff) + " and counting";
-        }
-        else { //everything else
-            date2 = seriesStats.dates[i + 1]
-            dateDiff = Math.abs(date2 - date)
-            pbForTimeCol.innerHTML = dhm(dateDiff);
-        }
+    const numPBs = seriesStats.times.length;
+    const isReal = window.userData.sessIsReal[sess];
 
-        if(!window.userData.sessIsReal[sess][seriesStats.solveNums[i]-1]) {
-            dateCol.innerHTML = "Unknown"
-            pbForTimeCol.innerHTML = "Unknown"
+    for (let i = numPBs - 1; i >= 0; i--) {
+        const isCurrent = (i === numPBs - 1);
+        const date = seriesStats.dates[i];
+        const solveNum = seriesStats.solveNums[i];
+
+        //PB For Time: until the next PB, or until now for the current PB
+        const until = isCurrent ? new Date() : seriesStats.dates[i + 1];
+        let dateStr = fmtDate(date);
+        let pbForTimeStr = dhm(Math.abs(until - date)) + (isCurrent ? " and counting" : "");
+        if (!isReal[solveNum - 1]) {
+            dateStr = "Unknown";
+            pbForTimeStr = "Unknown";
         }
 
-        //Solve # column
-        let solveCol = document.createElement("td")
-        solveCol.innerHTML = seriesStats.solveNums[i]
+        //PB For # Solves: until the next PB, or until the latest solve for the current PB
+        const nextSolveNum = isCurrent ? window.userData.solves[sess].length : seriesStats.solveNums[i + 1];
+        const pbForSolvesStr = (nextSolveNum - solveNum) + (isCurrent ? " and counting" : "");
 
-        //PB for # solves column
-        let solves = seriesStats.solveNums[i]
-        let nextSolves = window.userData.solves[sess].length;
-        if (i < seriesStats.times.length - 1) {  //Is not the current pb
-            nextSolves = seriesStats.solveNums[i + 1]
+        const cells = [i + 1, seriesStats.times[i].toFixed(3), dateStr, pbForTimeStr, solveNum, pbForSolvesStr];
+        const newRow = document.createElement("tr");
+        for (const c of cells) {
+            const td = document.createElement("td");
+            td.textContent = c;
+            newRow.appendChild(td);
         }
-        let solvesPassed = nextSolves - solves;
-        if (i == seriesStats.times.length - 1) solvesPassed += " and counting"  //Is the current pb
-        let pbForSolvesCol = document.createElement("td");
-        pbForSolvesCol.innerHTML = solvesPassed;
-
-        //Solve time column
-        let timeCol = document.createElement("td");
-        timeCol.innerHTML = seriesStats.times[i].toFixed(3)
-
-        newRow.appendChild(pbNumCol)
-        newRow.appendChild(timeCol);
-        newRow.appendChild(dateCol);
-        newRow.appendChild(pbForTimeCol);
-        newRow.appendChild(solveCol);
-        newRow.appendChild(pbForSolvesCol);
-        //console.log(seriesStats)
-
         pbStatsBody.appendChild(newRow);
     }
 }
 
 function pbTabStartup() {
-    updatePBTable(0, 0)
-    drawPBPredictionGraphs(0,0)
+    updatePBTable(window.selectedSess, 0)
+}
+
+
+function getRegType() {
+    return document.querySelector('input[name="pbRegType"]:checked')?.value || "linear";
+}
+
+/*
+Both models pass through the most recent PB, so the prediction continues from where
+you actually are.
+
+linear: a straight line forced through the last PB, fitted on the last 20% of PBs.
+exponential: y = c + a*e^(b*x) forced through the first and the last PB, fitted on all PBs.
+
+lo/hi is a 68% prediction interval for the next PB: if the model is right and the
+scatter around it is normal, the next PB lands inside it 68% of the time (the same
+coverage as +-1 SD).
+*/
+function anchoredLinear(points, x0) {
+    const m = Math.max(4, Math.ceil(0.2 * points.length));
+    const use = points.slice(-m, -1); //fitted points, the anchor itself excluded
+    const last = points[points.length - 1];
+
+    const r = olsThroughPoint(use.map(p => p.x), use.map(p => p.y), last.x, last.y, x0);
+    if (!r) return null;
+
+    return {
+        pred: r.yhat,
+        lo: r.lo,
+        hi: r.hi,
+        curve: x => last.y + r.b * (x - last.x),
+        xFrom: use[0].x,
+    };
+}
+
+//exponential y = c + a*e^(b*x) forced through the first and the most recent PB.
+//Written as y = y1 + (yn - y1) * (e^(b(x-x1)) - 1) / (e^(b(xn-x1)) - 1), so the only free
+//parameter is the curvature b (b -> 0 is a straight line). b is fitted by least squares
+//on the PBs in between.
+function clampedExponential(points, x0) {
+    const first = points[0];
+    const last = points[points.length - 1];
+    const inner = points.slice(1, -1);
+    const L = last.x - first.x;
+    if (inner.length < 2 || L <= 0) return null;
+
+    const shape = (b, x) => Math.abs(b * L) < 1e-9
+        ? (x - first.x) / L
+        : Math.expm1(b * (x - first.x)) / Math.expm1(b * L);
+    const model = (b, x) => first.y + (last.y - first.y) * shape(b, x);
+    const sse = b => {
+        let s = 0;
+        for (const p of inner) s += (p.y - model(b, p.x)) ** 2;
+        return s;
+    };
+
+    //search u = b*L on a grid, then refine the best cell with golden section
+    const b = scanMax(u => -sse(u / L), -40, 40, 400, 60) / L;
+
+    //68% prediction interval: linearise the model in b around the fit
+    //(dy/db at each point), same formula as least squares with one parameter
+    const h = 1e-4 / L;
+    const dydb = x => (model(b + h, x) - model(b - h, x)) / (2 * h);
+    let Sgg = 0;
+    for (const p of inner) Sgg += dydb(p.x) ** 2;
+    const dof = inner.length - 1;
+    const s = Math.sqrt(sse(b) / dof);
+    const g0 = dydb(x0);
+    const se = s * Math.sqrt(1 + (Sgg > 0 ? g0 * g0 / Sgg : 0));
+    const pred = model(b, x0);
+    const half = tCrit68(dof) * se;
+
+    return {
+        pred,
+        lo: pred - half,
+        hi: pred + half,
+        curve: x => model(b, x),
+        xFrom: first.x,
+    };
+}
+
+function fitModel(points, x0, type) {
+    return type === "exp" ? clampedExponential(points, x0) : anchoredLinear(points, x0);
 }
 
 function drawPBPredictionGraphs(sess, series) {
-    //debugger;
-    const seriesStats = window.userData.pbInfo[sess][series]
-    const solveNums = seriesStats.solveNums
-    const times = seriesStats.times
-    const dates = seriesStats.dates
+    shownSess = sess;
+    shownSeries = series;
 
-    const timePassed = []
-    for (let i = 1; i < dates.length; i++) {
-        timePassed.push(Math.abs(dates[i] - dates[0]) / 1000)
+    const numOut = document.getElementById("solveNumPrediction");
+    const timeOut = document.getElementById("solveTimePrediction");
+    const dateOut = document.getElementById("solveDatePrediction");
+
+    const stats = window.userData.pbInfo[sess]?.[series];
+    if (!stats || stats.times.length < 4) {
+        const msg = "Need at least 4 PBs to make a prediction";
+        numOut.innerText = msg; timeOut.innerText = msg; dateOut.innerText = msg;
+        drawGraph("solveNumRegression", [], null, 2, "Solve #");
+        drawGraph("solveTimeRegression", [], null, 2, "Time");
+        drawGraph("solveDateRegression", [], null, 2, "Date");
+        return;
     }
 
-    //draw graphs and get predictions
-    const [solveNumP,solveNumPstd] = drawGraph(solveNums, "solveNumRegression", "Solve #")
-    const [timeP, timePstd] =     drawGraph(times, "solveTimeRegression", "Time")
-    const [dateP, datePstd] = drawGraph(timePassed, "solveDateRegression", "Date")
+    const type = getRegType();
+    const n = stats.times.length;
+    const x0 = n + 1; //the next PB
 
-    //parse date prediction into a string
-    let predictedDate = null;
-    let dateStr = "N/A";
-    if(dates.length != 0) {
-        predictedDate = new Date(dates[0].getTime() + Math.ceil(dateP * 1000))
-        dateStr = predictedDate.getDate() + "/" + (predictedDate.getMonth() + 1) + "/" + predictedDate.getFullYear();
+    //x is always the PB number (1-based)
+    const numPts = stats.solveNums.map((y, i) => ({ x: i + 1, y }));
+    const timePts = stats.times.map((y, i) => ({ x: i + 1, y }));
+    //seconds since the first PB
+    const t0 = stats.dates[0].getTime();
+    const datePts = stats.dates.map((d, i) => ({ x: i + 1, y: (d.getTime() - t0) / 1000 }));
+
+    const numFit = fitModel(numPts, x0, type);
+    const timeFit = fitModel(timePts, x0, type);
+    const dateFit = fitModel(datePts, x0, type);
+
+    drawGraph("solveNumRegression", numPts, numFit, x0, "Solve #");
+    drawGraph("solveTimeRegression", timePts, timeFit, x0, "Time");
+    drawGraph("solveDateRegression", datePts, dateFit, x0, "Date");
+
+    //-----solve #-----
+    //the next PB has not happened yet, so it can't be before the next solve
+    const nextSolve = window.userData.solves[sess].length + 1;
+    if (!numFit) {
+        numOut.innerText = "Solve # prediction: N/A";
+    } else if (Math.ceil(numFit.hi) < nextSolve) {
+        numOut.innerText = `Next PB is overdue: the model expected it by Solve #${Math.ceil(numFit.hi)}, you are on #${nextSolve - 1}`;
+    } else {
+        numOut.innerText =
+            `Next PB will happen around Solve #${Math.max(nextSolve, Math.ceil(numFit.pred))}
+            68% interval: #${Math.max(nextSolve, Math.ceil(numFit.lo))} to #${Math.ceil(numFit.hi)}`;
     }
 
-    //write the predictions
-    document.getElementById("solveNumPrediction").innerText = 
-    `Next PB will happen around Solve #${Math.ceil(solveNumP)}
-    1 SD: #${Math.max(solveNums[solveNums.length-1]+1,Math.ceil(solveNumP-solveNumPstd))}-#${Math.ceil(solveNumP+solveNumPstd)}`
-    document.getElementById("solveTimePrediction").innerText = 
-    `Next PB will be around ${timeP.toFixed(3)}s
-    1 SD: ${Math.max(0.001,(timeP-timePstd)).toFixed(3)}s-${Math.min(times[times.length-1]-0.001,(timeP+timePstd)).toFixed(3)}s`
-    document.getElementById("solveDatePrediction").innerText = `Next PB will happen around ${dateStr}`
+    //-----time-----
+    //the next PB has to beat the current one
+    const maxTime = stats.times[n - 1] - 0.001;
+    if (!timeFit) {
+        timeOut.innerText = "Time prediction: N/A";
+    } else {
+        timeOut.innerText =
+            `Next PB will be around ${Math.min(maxTime, Math.max(0, timeFit.pred)).toFixed(3)}s
+            68% interval: ${Math.max(0, timeFit.lo).toFixed(3)}s to ${Math.min(maxTime, timeFit.hi).toFixed(3)}s`;
+    }
 
+    //-----date-----
+    const allReal = stats.solveNums.every(s => window.userData.sessIsReal[sess][s - 1]);
+    const toDate = secs => new Date(t0 + secs * 1000);
+    const now = Date.now();
+    if (!allReal) {
+        dateOut.innerText = "Date prediction: N/A (some PB dates are estimated)";
+    } else if (!dateFit) {
+        dateOut.innerText = "Date prediction: N/A";
+    } else if (toDate(dateFit.hi).getTime() < now) {
+        dateOut.innerText = `Next PB is overdue: the model expected it by ${fmtDate(toDate(dateFit.hi))}`;
+    } else {
+        const predDate = new Date(Math.max(now, toDate(dateFit.pred).getTime()));
+        const loDate = new Date(Math.max(now, toDate(dateFit.lo).getTime()));
+        dateOut.innerText =
+            `Next PB will happen around ${fmtDate(predDate)}
+            68% interval: ${fmtDate(loDate)} to ${fmtDate(toDate(dateFit.hi))}`;
+    }
 }
 
-function drawGraph(data, graphId, ylabel) {
-    //debugger;
-    const ctx = document.getElementById(graphId).getContext("2d");
-    const n = data.length
-    const max = data.reduce((a, b) => Math.max(a, b), -Infinity);
-    const w = document.getElementById(graphId).width
-    const h = document.getElementById(graphId).height
-    const margin = 40
+function drawGraph(graphId, points, fit, x0, ylabel) {
+    const canvas = document.getElementById(graphId);
+    const ctx = canvas.getContext("2d");
+    const w = canvas.width;
+    const h = canvas.height;
+    const margin = 40;
+    const theme = themes[window.currentTheme];
 
     //fill the background
-    ctx.fillStyle = themes[window.currentTheme]['--color-surface']
+    ctx.fillStyle = theme['--color-surface'];
     ctx.fillRect(0, 0, w, h);
 
+    //scales: x from PB 1 to the predicted PB, y from 0 to a bit above everything drawn
+    let yMax = 0;
+    for (const p of points) yMax = Math.max(yMax, p.y);
+    if (fit && Number.isFinite(fit.hi)) yMax = Math.max(yMax, fit.hi);
+    yMax = (yMax || 1) * 1.1;
+    const X = x => margin + (x - 1) / Math.max(1, x0 - 1) * (w - margin - 15);
+    const Y = y => h - margin - (Math.min(Math.max(y, 0), yMax) / yMax) * (h - margin - 10);
+
     //draw axes
-    ctx.strokeStyle = "#000000"
-    ctx.fillStyle = "#000000"
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    ctx.moveTo(margin, 0)
-    ctx.lineTo(margin, h)
-    ctx.stroke()
-    ctx.beginPath()
-    ctx.moveTo(0, h - margin)
-    ctx.lineTo(w, h - margin)
-    ctx.stroke()
+    ctx.strokeStyle = "#000000";
+    ctx.fillStyle = "#000000";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(margin, 0);
+    ctx.lineTo(margin, h - margin);
+    ctx.lineTo(w, h - margin);
+    ctx.stroke();
+
     //draw labels
+    ctx.textAlign = "start";
+    ctx.textBaseline = "alphabetic";
     ctx.font = "bold 24px serif";
-    ctx.fillText("PB #", w / 2, h - 14)
+    ctx.fillText("PB #", w / 2, h - 14);
     ctx.save();
-    ctx.translate(w - 1, 0)
-    ctx.rotate(3 * Math.PI / 2)
-    //ctx.textAlign = "right";
-    ctx.fillText(ylabel, -h/1.8, -(w-30))
-    ctx.restore()
+    ctx.translate(w - 1, 0);
+    ctx.rotate(3 * Math.PI / 2);
+    ctx.fillText(ylabel, -h / 1.8, -(w - 30));
+    ctx.restore();
 
     //draw the actual data
-    ctx.strokeStyle = themes[window.currentTheme]['--color-primary']
+    ctx.strokeStyle = theme['--color-primary'];
     ctx.beginPath();
-    for (let i = 0; i < n; i++) {
-        const canvasX = margin + (i) * (w - margin) / (n + 1)
-        const canvasY = h - margin - (h - margin) * (data[i] / (1.2 * max))
-        if (i == 0) { ctx.moveTo(canvasX, canvasY) }
-        else        { ctx.lineTo(canvasX, canvasY) }
-    }
+    points.forEach((p, i) => {
+        if (i === 0) ctx.moveTo(X(p.x), Y(p.y));
+        else ctx.lineTo(X(p.x), Y(p.y));
+    });
     ctx.stroke();
 
-    //calc the slope and intercept for prediction line
-    const rangeForSlope = Math.max(2, Math.floor(0.2 * n))
-    const slope = (data[n - 1] - data[n - 1 - rangeForSlope]) / rangeForSlope
-//debugger;
-    let std = 0;
-    for(let i = n-1-rangeForSlope; i < n-1; i++) {
-        std += (Math.abs(data[i]-data[i-1])-Math.abs(slope))**2
-    }
-    std = Math.sqrt(std/(rangeForSlope-1))
-    
-    console.log(`${graphId}: ${std}`)
-    const c = data[n - 1] - slope * (n - 1)
+    if (!fit) return;
 
-    //draw the prediction line
-    ctx.strokeStyle = themes[window.currentTheme]['--color-secondary']
+    //draw the fitted curve (dashed) from the first fitted point to the prediction
+    ctx.strokeStyle = theme['--color-secondary'];
+    ctx.setLineDash([6, 4]);
     ctx.beginPath();
-    ctx.moveTo(margin, h - margin)
-    for (let i = 0; i < 100; i++) {
-        const x = (i) * (n + 1) / 100
-        const y = x * slope + c
-
-        const canvasX = margin + x * (w - margin) / (n + 1);
-        const canvasY = h - margin - (h - margin) * (y / (1.2 * max))
-
-        if (i == 0 || i % 2 == 0 || canvasY > h - margin) { ctx.moveTo(canvasX, canvasY) }
-        else                                              { ctx.lineTo(canvasX, canvasY) }
-
+    const steps = 100;
+    for (let i = 0; i <= steps; i++) {
+        const x = fit.xFrom + (x0 - fit.xFrom) * i / steps;
+        if (i === 0) ctx.moveTo(X(x), Y(fit.curve(x)));
+        else ctx.lineTo(X(x), Y(fit.curve(x)));
     }
     ctx.stroke();
+    ctx.setLineDash([]);
 
-    const prediction = slope * (n) + c
-    //console.log(ylabel, prediction)
-    return [prediction,std];
+    //draw the 68% interval as an error bar at the next PB
+    const xp = X(x0);
+    ctx.beginPath();
+    ctx.moveTo(xp, Y(fit.lo)); ctx.lineTo(xp, Y(fit.hi));
+    ctx.moveTo(xp - 6, Y(fit.lo)); ctx.lineTo(xp + 6, Y(fit.lo));
+    ctx.moveTo(xp - 6, Y(fit.hi)); ctx.lineTo(xp + 6, Y(fit.hi));
+    ctx.stroke();
+    ctx.fillStyle = theme['--color-secondary'];
+    ctx.fillRect(xp - 4, Y(fit.pred) - 4, 8, 8);
 }
-
